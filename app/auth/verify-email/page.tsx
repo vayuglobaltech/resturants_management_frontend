@@ -1,0 +1,193 @@
+"use client";
+import { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { verifyEmail, resendVerification } from "@/lib/api";
+
+function VerifyEmailInner() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const emailFromQuery = params.get("email") || "";
+
+  const [email, setEmail] = useState(emailFromQuery);
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [countdown]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await verifyEmail({ email, code });
+      setSuccess(true);
+      setTimeout(() => router.push("/auth/login"), 1800);
+    } catch (err: unknown) {
+      const e = err as Record<string, string[]>;
+      setError(Object.values(e).flat().join(" ") || "Verification failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) { setError("Please enter your email first."); return; }
+    setResending(true);
+    setResendMsg(null);
+    setError(null);
+    try {
+      await resendVerification({ email });
+      setResendMsg("A new 6-digit code has been sent to your email.");
+      setCountdown(60);
+    } catch (err: unknown) {
+      const e = err as Record<string, string[]>;
+      setError(Object.values(e).flat().join(" ") || "Could not resend code.");
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const inputCls =
+    "w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-600 text-sm outline-none transition-all focus:border-indigo-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-indigo-500/15";
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-[#0a0e1a] relative overflow-hidden">
+      <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-600/20 blur-[100px] animate-pulse" />
+      <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-violet-600/15 blur-[90px] animate-pulse [animation-delay:1.5s]" />
+
+      <div className="relative z-10 w-full max-w-md">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_80px_rgba(99,102,241,0.15)] px-8 py-10 animate-[fadeUp_0.4s_cubic-bezier(0.22,1,0.36,1)_both]">
+
+          <div className="text-5xl text-center mb-4 drop-shadow-[0_0_16px_rgba(99,102,241,0.5)]">📧</div>
+
+          <h1 className="text-2xl font-bold text-center text-slate-100 tracking-tight mb-1">
+            Verify Your Email
+          </h1>
+          <p className="text-sm text-center text-slate-400 mb-7">
+            Enter the 6-digit code sent to your inbox
+          </p>
+
+          {success && (
+            <div className="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-sm mb-6 animate-[fadeDown_0.25s_ease_both]">
+              ✅ Email verified! Redirecting to login…
+            </div>
+          )}
+          {error && (
+            <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm mb-6 animate-[fadeDown_0.25s_ease_both]">
+              ⚠️ {error}
+            </div>
+          )}
+          {resendMsg && (
+            <div className="px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-400 text-sm mb-6 animate-[fadeDown_0.25s_ease_both]">
+              📬 {resendMsg}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* email */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="verify-email" className="text-xs font-medium text-slate-400 tracking-wide">
+                Email Address
+              </label>
+              <input
+                id="verify-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="john@example.com"
+                className={inputCls}
+              />
+            </div>
+
+            {/* code input */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="verify-code" className="text-xs font-medium text-slate-400 tracking-wide">
+                6-Digit Code
+              </label>
+              <input
+                id="verify-code"
+                type="text"
+                inputMode="numeric"
+                value={code}
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                required
+                placeholder="123456"
+                maxLength={6}
+                className="w-full px-4 py-4 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 text-2xl font-bold tracking-[0.4em] text-center outline-none transition-all focus:border-indigo-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-indigo-500/15"
+              />
+            </div>
+
+            <button
+              id="verify-submit"
+              type="submit"
+              disabled={loading}
+              className="mt-1 w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-500 to-violet-600 shadow-[0_4px_20px_rgba(99,102,241,0.4)] hover:shadow-[0_6px_28px_rgba(99,102,241,0.55)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all duration-200"
+            >
+              {loading ? (
+                <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              ) : (
+                "Verify Email"
+              )}
+            </button>
+          </form>
+
+          {/* resend row */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-5 text-sm text-slate-400">
+            <span>Didn&apos;t receive the code?</span>
+            <button
+              id="resend-code"
+              onClick={handleResend}
+              disabled={resending || countdown > 0}
+              className="text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-2 decoration-transparent hover:decoration-indigo-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {resending
+                ? "Sending…"
+                : countdown > 0
+                ? `Resend in ${countdown}s`
+                : "Resend Code"}
+            </button>
+          </div>
+
+          <p className="text-center text-sm text-slate-400 mt-5">
+            <Link href="/auth/login" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+              ← Back to Login
+            </Link>
+          </p>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(20px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes fadeDown {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense>
+      <VerifyEmailInner />
+    </Suspense>
+  );
+}
