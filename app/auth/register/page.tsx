@@ -1,8 +1,19 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { registerUser } from "@/lib/api";
+import { registerUser, getBranches, getRoles } from "@/lib/api";
+
+interface Branch {
+  id: number;
+  name: string;
+}
+
+interface Role {
+  id: number;
+  name: string;
+  display_name: string;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,12 +24,41 @@ export default function RegisterPage() {
     last_name: "",
     password: "",
     password2: "",
+    phone_number: "",
+    preferred_branch: "",
+    preferred_role: "",
   });
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [branchesRes, rolesRes] = await Promise.all([
+          getBranches(),
+          getRoles(),
+        ]);
+        setBranches(branchesRes.results || []);
+        setRoles(rolesRes.results || []);
+        
+        // Set default values if results exist
+        if (branchesRes.results?.length > 0) {
+          setForm(prev => ({ ...prev, preferred_branch: branchesRes.results[0].name }));
+        }
+        if (rolesRes.results?.length > 0) {
+          setForm(prev => ({ ...prev, preferred_role: rolesRes.results[0].name }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch branches or roles:", err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -140,6 +180,61 @@ export default function RegisterPage() {
                 placeholder="john@example.com"
                 className={inputCls}
               />
+            </div>
+
+            {/* phone number */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="phone_number" className={labelCls}>Phone Number</label>
+              <input
+                id="phone_number"
+                name="phone_number"
+                type="tel"
+                value={form.phone_number}
+                onChange={handleChange}
+                required
+                placeholder="+977 98XXXXXXX"
+                className={inputCls}
+              />
+            </div>
+
+            {/* branch / role row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="preferred_branch" className={labelCls}>Preferred Branch</label>
+                <select
+                  id="preferred_branch"
+                  name="preferred_branch"
+                  value={form.preferred_branch}
+                  onChange={handleChange}
+                  required
+                  className={inputCls}
+                >
+                  <option value="" disabled>Select Branch</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.name} className="bg-[#1e293b] text-slate-100">
+                      {branch.name.charAt(0).toUpperCase() + branch.name.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="preferred_role" className={labelCls}>Preferred Role</label>
+                <select
+                  id="preferred_role"
+                  name="preferred_role"
+                  value={form.preferred_role}
+                  onChange={handleChange}
+                  required
+                  className={inputCls}
+                >
+                  <option value="" disabled>Select Role</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.name} className="bg-[#1e293b] text-slate-100">
+                      {role.display_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* password */}
