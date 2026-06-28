@@ -25,6 +25,7 @@ export interface MenuListResponse {
 
 export interface MenuItemPayload {
   name: string;
+  sku: string;
   description: string;
   price: string;
   cost_price: string;

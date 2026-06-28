@@ -33,7 +33,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body data-new-gr-c-s-check-loaded="14.1305.0"
+        data-gr-ext-installed=""
+        cz-shortcut-listen="true">
         <AuthProvider>
           <ServiceWorkerRegistration />
           {children}

@@ -20,6 +20,7 @@ interface Category {
 
 interface FormData {
   name: string;
+  sku: string;
   description: string;
   price: string;
   cost_price: string;
@@ -70,6 +71,7 @@ export default function AddMenuItemPage() {
     try {
       const payload = {
         name: data.name,
+        sku: data.sku,
         description: data.description,
         price: data.price,
         cost_price: data.cost_price || undefined,
@@ -97,7 +99,11 @@ export default function AddMenuItemPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/dashboard/menu">
-          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-slate-400 hover:text-white"
+          >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back
           </Button>
@@ -117,6 +123,13 @@ export default function AddMenuItemPage() {
               {...register("name", { required: "Name is required" })}
               error={errors.name?.message}
             />
+            <Input
+              label="SKU *"
+              id="sku"
+              {...register("sku", { required: "SKU is required" })}
+              error={errors.sku?.message}
+            />
+
             <Input
               label="Description"
               id="description"
@@ -138,7 +151,10 @@ export default function AddMenuItemPage() {
               {...register("cost_price")}
             />
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-slate-300 mb-1">
+              <label
+                htmlFor="category"
+                className="block text-sm font-medium text-slate-300 mb-1"
+              >
                 Category *
               </label>
               <select
@@ -159,7 +175,11 @@ export default function AddMenuItemPage() {
                   ))
                 )}
               </select>
-              {errors.category && <p className="text-sm text-red-400 mt-1">{errors.category.message}</p>}
+              {errors.category && (
+                <p className="text-sm text-red-400 mt-1">
+                  {errors.category.message}
+                </p>
+              )}
             </div>
             <Input
               label="Prep Time (minutes)"
