@@ -224,9 +224,10 @@ export async function deleteCategory(id: string | number) {
     { method: "DELETE" },
     true
   );
+  // 204 No Content – no JSON body
   if (res.status === 204) return null;
   const json = await res.json().catch(() => null);
-  if (res.ok === false && json) throw json;
+  if (!res.ok && json) throw json;
   return json;
 }
 

@@ -1,29 +1,42 @@
 import { apiFetch } from "./api";
 
 export async function listOrders() {
-  const res = await apiFetch("/api/orders/", {}, true);
-  const json = await res.json();
-  if (!res.ok) throw json;
-  return json;
+  try {
+    const res = await apiFetch("/api/orders/", {}, true);
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    const json = await res.json();
+    // Return array if possible
+    if (Array.isArray(json)) return json;
+    if (json.results && Array.isArray(json.results)) return json.results;
+    return [];
+  } catch (error) {
+    console.error("listOrders error:", error);
+    return [];
+  }
 }
 
 export async function listTables() {
-  const res = await apiFetch("/api/orders/tables/", {}, true);
-  const json = await res.json();
-  if (!res.ok) throw json;
-  return json;
+  try {
+    const res = await apiFetch("/api/orders/tables/", {}, true);
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    const json = await res.json();
+    if (Array.isArray(json)) return json;
+    if (json.results && Array.isArray(json.results)) return json.results;
+    return [];
+  } catch (error) {
+    console.error("listTables error:", error);
+    return [];
+  }
 }
 
 export async function getOrder(id: string | number) {
   const res = await apiFetch(`/api/orders/${id}/`, {}, true);
-  const json = await res.json();
-  if (!res.ok) throw json;
-  return json;
+  if (!res.ok) throw await res.json();
+  return await res.json();
 }
 
 export async function getTable(id: string | number) {
   const res = await apiFetch(`/api/orders/tables/${id}/`, {}, true);
-  const json = await res.json();
-  if (!res.ok) throw json;
-  return json;
+  if (!res.ok) throw await res.json();
+  return await res.json();
 }
