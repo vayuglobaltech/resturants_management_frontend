@@ -1,36 +1,39 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import {
-  getProducts,
-  createProduct,
-  deleteProduct,
-  getCategories,
-} from "@/lib/api";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { getProducts, createProduct, deleteProduct, getCategories } from "@/lib/api";
+import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
+import { cn } from "@/lib/utils";
+import toast from "react-hot-toast";
 
 type Product = {
   id: number | string;
   name: string;
   sku: string;
+  description: string;
   price: string;
   cost_price: string;
   product_type: string;
   category: number | string;
   category_name: string;
   kitchen_station_name: string;
+  is_active?: boolean;
 };
 
 export default function ProductsPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
-    [],
-  );
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionMsg, setActionMsg] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
-
   const [showAdd, setShowAdd] = useState(false);
+  const [actionMsg, setActionMsg] = useState<{ type: string; text: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number | string; name: string } | null>(null);
+
   const [form, setForm] = useState({
     name: "",
     sku: "",
@@ -42,13 +45,15 @@ export default function ProductsPage() {
   });
 
   const loadData = async () => {
-    setLoading(true);
     try {
-      const [prods, cats] = await Promise.all([getProducts(), getCategories()]);
-      setProducts(prods);
-      setCategories(cats);
-    } catch (err) {
-      console.error(err);
+      const [productsData, categoriesData] = await Promise.all([
+        getProducts(),
+        getCategories(),
+      ]);
+      setProducts(productsData);
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error("Failed to load data:", error);
     } finally {
       setLoading(false);
     }
@@ -69,7 +74,7 @@ export default function ProductsPage() {
         description: "",
         price: "",
         cost_price: "",
-        product_type: "retail",
+        product_type: "menu_item",
         category: "",
       });
       setActionMsg({ type: "success", text: "Product created successfully!" });
@@ -77,22 +82,18 @@ export default function ProductsPage() {
     } catch (err: any) {
       console.error("Product creation error:", err);
       if (err && typeof err === "object") {
-        // Flatten all field error messages
         const messages = Object.values(err).flat().join(" ");
-        setActionMsg({
-          type: "error",
-          text: messages || "Failed to create product.",
-        });
+        setActionMsg({ type: "error", text: messages || "Failed to create product." });
       } else {
         setActionMsg({ type: "error", text: "Failed to create product." });
       }
     }
   };
 
-  const handleDelete = async (id: number | string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteProduct(id);
+      await deleteProduct(deleteTarget.id);
       setActionMsg({ type: "success", text: "Product deleted successfully." });
       loadData();
     } catch (err: any) {
@@ -100,149 +101,122 @@ export default function ProductsPage() {
         type: "error",
         text: err?.detail || "Failed to delete product.",
       });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
+  const handleEdit = (id: number | string) => {
+    router.push(`/dashboard/inventory/products/${id}/edit`);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
   return (
-    <div className="animate-fadeUp">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-100 tracking-tight">
-            Products
-          </h1>
-          <p className="text-slate-400 mt-1 text-sm">
-            Manage end-products sold to customers.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          className={`px-5 py-2.5 rounded-xl font-semibold text-sm text-white shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all ${showAdd ? "bg-slate-700 hover:bg-slate-600" : "bg-orange-600 hover:bg-orange-700"}`}
-        >
-          {showAdd ? "Cancel" : "+ Add Product"}
-        </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="text-2xl font-bold text-white">Products</h1>
+        <Button onClick={() => setShowAdd(!showAdd)} className="gap-1.5">
+          <Plus className="h-4 w-4" /> {showAdd ? "Cancel" : "Add Product"}
+        </Button>
       </div>
 
+      {/* Action Messages */}
       {actionMsg && (
         <div
-          className={`mb-6 px-4 py-3 rounded-xl border text-sm animate-fadeDown flex justify-between items-center ${
+          className={`p-3 rounded-xl ${
             actionMsg.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-              : "bg-red-500/10 border-red-500/25 text-red-400"
+              ? "bg-emerald-500/20 text-emerald-400"
+              : "bg-red-500/20 text-red-400"
           }`}
         >
-          <span>
-            {actionMsg.type === "success" ? "✅ " : "⚠️ "} {actionMsg.text}
-          </span>
-          <button
-            onClick={() => setActionMsg(null)}
-            className="text-xl leading-none opacity-60 hover:opacity-100"
-          >
-            &times;
+          {actionMsg.text}
+          <button onClick={() => setActionMsg(null)} className="ml-2 opacity-60 hover:opacity-100">
+            ✕
           </button>
         </div>
       )}
 
+      {/* Add Form */}
       {showAdd && (
-        <form
-          onSubmit={handleCreate}
-          className="mb-8 p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md animate-fadeDown"
-        >
-          <h2 className="text-lg font-semibold text-slate-100 mb-4">
-            New Product Details
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
+        <form onSubmit={handleCreate} className="p-6 rounded-2xl bg-white/[0.03] border border-white/10">
+          <h2 className="text-lg font-semibold text-slate-100 mb-4">New Product</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">
-                Name
-              </label>
+              <label className="text-xs font-medium text-slate-400">Name *</label>
               <input
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-orange-500/50"
+                className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-indigo-500/50"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">
-                SKU
-              </label>
+              <label className="text-xs font-medium text-slate-400">SKU *</label>
               <input
                 required
                 value={form.sku}
                 onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-orange-500/50"
+                className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-indigo-500/50"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">
-                Category
-              </label>
+              <label className="text-xs font-medium text-slate-400">Category *</label>
               <select
                 required
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-orange-500/50 appearance-none"
+                className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-indigo-500/50"
               >
-                <option value="" className="text-black">
-                  Select...
-                </option>
+                <option value="">Select...</option>
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id} className="text-black">
-                    {c.name}
-                  </option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
-
-              {/* Description */}
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">Description</label>
+              <label className="text-xs font-medium text-slate-400">Description</label>
               <input
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-indigo-500/50"
+                className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-indigo-500/50"
               />
             </div>
-
-
-
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">
-                Selling Price
-              </label>
+              <label className="text-xs font-medium text-slate-400">Selling Price *</label>
               <input
                 required
                 type="number"
                 step="0.01"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-orange-500/50"
+                className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-indigo-500/50"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">
-                Cost Price
-              </label>
+              <label className="text-xs font-medium text-slate-400">Cost Price</label>
               <input
-                required
                 type="number"
                 step="0.01"
                 value={form.cost_price}
-                onChange={(e) =>
-                  setForm({ ...form, cost_price: e.target.value })
-                }
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-orange-500/50"
+                onChange={(e) => setForm({ ...form, cost_price: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-indigo-500/50"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">
-                Product Type
-              </label>
+              <label className="text-xs font-medium text-slate-400">Product Type *</label>
               <select
+                required
                 value={form.product_type}
-                onChange={(e) =>
-                  setForm({ ...form, product_type: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, product_type: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-indigo-500/50"
               >
                 <option value="menu_item">Menu Item</option>
                 <option value="raw_ingredient">Raw Ingredient</option>
@@ -250,63 +224,77 @@ export default function ProductsPage() {
               </select>
             </div>
           </div>
-          <button
-            type="submit"
-            className="px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-emerald-600 hover:bg-emerald-700 transition-all"
-          >
-            Save Product
-          </button>
+          <Button type="submit" className="w-full md:w-auto">Save Product</Button>
         </form>
       )}
 
-      {loading ? (
-        <div className="flex py-10 justify-center">
-          <span className="w-8 h-8 rounded-full border-4 border-orange-500/30 border-t-orange-500 animate-spin" />
+      {/* Product Grid */}
+      {products.length === 0 ? (
+        <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
+          <p className="text-slate-400">No products found.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map((p) => (
-            <div
-              key={p.id}
-              className="p-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-md flex flex-col justify-between hover:border-orange-500/30 transition-colors group"
-            >
-              <div>
-                <div className="flex justify-between items-start mb-3">
+            <Card key={p.id} className="relative group bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] transition-all">
+              <CardContent className="p-4 pr-12">
+                <div className="flex justify-between items-start mb-3 mt-2">
                   <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-lg">
                     {p.product_type}
                   </span>
-                  <button
-                    onClick={() => handleDelete(p.id)}
-                    className="text-slate-500 hover:text-red-400 transition-colors"
-                  >
-                    🗑️
-                  </button>
                 </div>
                 <h3 className="text-xl font-bold text-slate-100">{p.name}</h3>
                 <p className="text-slate-400 text-xs mt-1">SKU: {p.sku}</p>
-              </div>
-              <div className="mt-6 pt-4 border-t border-white/[0.05] flex justify-between items-end">
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">
-                    Category
-                  </p>
-                  <p className="text-sm font-medium text-slate-300">
-                    {p.category_name || "Uncategorized"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">
-                    Price
-                  </p>
-                  <p className="text-lg font-bold text-emerald-400">
+                {p.description && (
+                  <p className="text-slate-400 text-sm line-clamp-2 mt-1">{p.description}</p>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-white/5">
+                  <span className="text-indigo-400 font-bold text-lg">
                     ${parseFloat(p.price).toFixed(2)}
-                  </p>
+                  </span>
+                  <span className="text-xs text-slate-500">{p.category_name || "No category"}</span>
                 </div>
+              </CardContent>
+
+              {/* Actions */}
+              <div
+                className={cn(
+                  "absolute top-3 right-3 flex items-center gap-1",
+                  "opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
+                )}
+              >
+                <button
+                  onClick={() => handleEdit(p.id)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
+                  aria-label="Edit"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
+                  aria-label="Delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
+
+      {/* Delete Modal */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete Product"
+        icon={<Trash2 className="h-8 w-8 text-red-400" />}
+        description={`Are you sure you want to delete "${deleteTarget?.name || 'this product'}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDelete}
+        variant="danger"
+      />
     </div>
   );
 }
