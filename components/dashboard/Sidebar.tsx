@@ -19,9 +19,11 @@ import {
   List,
   Archive,
   Layers,
+  Folder,        // ← added for category icon
 } from "lucide-react";
 import { listMenuItems } from "@/lib/menuApi";
 import { listOrders, listTables } from "@/lib/ordersApi";
+import { getCategories } from "@/lib/api";
 
 const SUB_FEATURES: Record<
   string,
@@ -30,7 +32,7 @@ const SUB_FEATURES: Record<
   dashboard: [{ label: "Overview", icon: LayoutDashboard, href: "/dashboard" }],
   menu: [
     { label: "All Items", icon: List, href: "/dashboard/menu" },
-    { label: "Add Item", icon: Plus, href: "/dashboard/menu/add" },
+    // { label: "Add Item", icon: Plus, href: "/dashboard/menu/add" },
   ],
   orders: [{ label: "Tables", icon: Table, href: "/dashboard/orders" }],
   inventory: [
@@ -99,7 +101,7 @@ export function DashboardSidebar({
   const items = SUB_FEATURES[selectedFeature] || SUB_FEATURES.dashboard;
 
   const [dynamicItems, setDynamicItems] = useState<
-    { id: string | number; name: string; href: string; status?: string }[]
+    { id: string | number; name: string; href: string; status?: string; icon?: any }[]
   >([]);
   const [loadingDynamic, setLoadingDynamic] = useState(false);
 
@@ -109,21 +111,19 @@ export function DashboardSidebar({
       setLoadingDynamic(true);
       try {
         if (selectedFeature === "menu") {
-          const res = await listMenuItems();
+          const res = await getCategories();
           if (isMounted) {
-            const data = res.results || res;
+            const data = Array.isArray(res) ? res : res.results || [];
             setDynamicItems(
-              Array.isArray(data)
-                ? data.map((m: any) => ({
-                    id: m.id,
-                    name: m.name,
-                    href: `/dashboard/menu/${m.id}`,
-                  }))
-                : []
+              data.map((cat: any) => ({
+                id: cat.id,
+                name: cat.name,
+                href: `/dashboard/menu?category=${cat.id}`,
+                icon: Folder,  // ← folder icon for categories
+              }))
             );
           }
         } else if (selectedFeature === "orders") {
-          // ✅ Show tables instead of orders
           const res = await listTables();
           if (isMounted) {
             const data = res.results || res;
@@ -134,6 +134,7 @@ export function DashboardSidebar({
                     name: `Table ${t.table_number}`,
                     href: `/dashboard/orders?table=${t.id}`,
                     status: t.status,
+                    icon: Table,  // ← table icon for tables
                   }))
                 : []
             );
@@ -148,6 +149,7 @@ export function DashboardSidebar({
                     id: t.id,
                     name: `Table ${t.table_number || t.name || t.id}`,
                     href: `/dashboard/tables/${t.id}`,
+                    icon: Table,
                   }))
                 : []
             );
@@ -168,7 +170,6 @@ export function DashboardSidebar({
     };
   }, [selectedFeature]);
 
-  // Helper to check if a dynamic link is active (handles query params)
   const isDynamicActive = (href: string) => {
     if (href.includes("?")) {
       const [base, query] = href.split("?");
@@ -218,13 +219,13 @@ export function DashboardSidebar({
         })}
       </div>
 
-      {/* Dynamic Items List */}
+      {/* Dynamic Items List – with icons and larger font */}
       {(dynamicItems.length > 0 || loadingDynamic) && (
         <div className="flex-1 overflow-y-auto px-4 pb-4">
           <div className="mt-2 pt-4 border-t border-white/[0.06]">
             <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-1 mb-2">
               {selectedFeature === "menu"
-                ? "Items List"
+                ? "Categories"
                 : selectedFeature === "orders"
                 ? "Tables"
                 : "Tables"}
@@ -238,6 +239,7 @@ export function DashboardSidebar({
               <div className="space-y-0.5">
                 {dynamicItems.map((dItem) => {
                   const isActive = isDynamicActive(dItem.href);
+                  const Icon = dItem.icon || Folder; // fallback
                   return (
                     <Link
                       key={dItem.id}
@@ -250,15 +252,13 @@ export function DashboardSidebar({
                           : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.05]"
                       )}
                     >
-                      <span
+                      <Icon
                         className={cn(
-                          "w-1.5 h-1.5 rounded-full transition-colors flex-shrink-0",
-                          isActive
-                            ? "bg-indigo-400"
-                            : "bg-slate-600 group-hover:bg-indigo-400"
+                          "h-5 w-5 flex-shrink-0",
+                          isActive ? "text-indigo-400" : "text-slate-500"
                         )}
                       />
-                      <span className="text-sm font-medium truncate">
+                      <span className="text-base font-medium truncate">
                         {dItem.name}
                       </span>
                       {dItem.status === "OCCUPIED" && (
@@ -277,9 +277,9 @@ export function DashboardSidebar({
     </div>
   );
 
+  // Desktop and mobile rendering (unchanged)
   return (
     <>
-      {/* Desktop static sidebar */}
       {!collapsed ? (
         <aside className="fixed left-0 top-16 bottom-0 w-64 z-20 hidden md:block">
           <SidebarContent />
@@ -301,11 +301,9 @@ export function DashboardSidebar({
         </aside>
       )}
 
-      {/* Mobile sidebar with overlay blur and slide-in */}
       <AnimatePresence>
         {mobileOpen && (
           <>
-            {/* Overlay backdrop with blur */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -314,7 +312,6 @@ export function DashboardSidebar({
               className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
               onClick={onMobileClose}
             />
-            {/* Sidebar slide-in */}
             <motion.aside
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}

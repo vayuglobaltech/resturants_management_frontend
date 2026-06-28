@@ -1,6 +1,9 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { getCategories, createCategory, deleteCategory } from "@/lib/api";
+import { Modal } from "@/components/ui/Modal";
+import { Trash2 } from "lucide-react";
 
 type Category = { id: number | string; name: string; description: string; created_at: string };
 
@@ -8,12 +11,16 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionMsg, setActionMsg] = useState<{type: 'success'|'error', text: string} | null>(null);
+  const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // New category form
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+
+  // Delete modal
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -46,14 +53,17 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleDelete = async (id: number | string) => {
-    if (!confirm("Delete this category?")) return;
+  const handleDelete = async () => {
+    if (!categoryToDelete) return;
     try {
-      await deleteCategory(id);
+      await deleteCategory(categoryToDelete.id);
       setActionMsg({ type: 'success', text: 'Category deleted successfully.' });
       loadData();
     } catch (err: any) {
       setActionMsg({ type: 'error', text: err?.detail || 'Failed to delete category.' });
+    } finally {
+      setIsDeleteModalOpen(false);
+      setCategoryToDelete(null);
     }
   };
 
@@ -73,11 +83,10 @@ export default function CategoriesPage() {
       </div>
 
       {actionMsg && (
-        <div className={`mb-6 px-4 py-3 rounded-xl border text-sm animate-fadeDown flex justify-between items-center ${
-          actionMsg.type === 'success' 
-            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' 
+        <div className={`mb-6 px-4 py-3 rounded-xl border text-sm animate-fadeDown flex justify-between items-center ${actionMsg.type === 'success'
+            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
             : 'bg-red-500/10 border-red-500/25 text-red-400'
-        }`}>
+          }`}>
           <span>{actionMsg.type === 'success' ? '✅ ' : '⚠️ '} {actionMsg.text}</span>
           <button onClick={() => setActionMsg(null)} className="text-xl leading-none opacity-60 hover:opacity-100">&times;</button>
         </div>
@@ -90,7 +99,9 @@ export default function CategoriesPage() {
             <div>
               <label className="text-xs font-medium text-slate-400 mb-1.5 block">Name <span className="text-red-400">*</span></label>
               <input
-                value={newName} onChange={(e) => setNewName(e.target.value)} required
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                required
                 className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-500 text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
                 placeholder="e.g. Beverages"
               />
@@ -98,7 +109,8 @@ export default function CategoriesPage() {
             <div>
               <label className="text-xs font-medium text-slate-400 mb-1.5 block">Description</label>
               <input
-                value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-500 text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
                 placeholder="Optional description"
               />
@@ -131,23 +143,48 @@ export default function CategoriesPage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {categories.length === 0 ? (
                   <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500">No categories found.</td></tr>
-                ) : categories.map((cat) => (
-                  <tr key={cat.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-200">{cat.name}</td>
-                    <td className="px-6 py-4 text-slate-400">{cat.description || "—"}</td>
-                    <td className="px-6 py-4 text-slate-500">{new Date(cat.created_at).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 text-right">
-                      <button onClick={() => handleDelete(cat.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/25 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                ) : (
+                  categories.map((cat) => (
+                    <tr key={cat.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-6 py-4 font-medium text-slate-200">{cat.name}</td>
+                      <td className="px-6 py-4 text-slate-400">{cat.description || "—"}</td>
+                      <td className="px-6 py-4 text-slate-500">{new Date(cat.created_at).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => {
+                            setCategoryToDelete(cat);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/25 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ml-auto"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
       )}
+
+      {/* ─── Delete Confirmation Modal ─── */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setCategoryToDelete(null);
+        }}
+        title="Delete Category"
+        icon={<Trash2 className="h-8 w-8 text-red-400" />}
+        description={`Are you sure you want to delete "${categoryToDelete?.name || 'this category'}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDelete}
+        variant="danger"
+      />
     </div>
   );
 }

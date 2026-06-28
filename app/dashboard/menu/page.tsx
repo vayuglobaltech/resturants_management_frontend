@@ -2,48 +2,60 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { listMenuItems, MenuItem } from "@/lib/menuApi";
+import { useRouter, useSearchParams } from "next/navigation";
+import { listMenuItems, deleteMenuItem } from "@/lib/menuApi";
+import { Plus, Edit2, Trash2, Clock, Tag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import toast from "react-hot-toast";
 
 export default function MenuPage() {
-  const [items, setItems] = useState<MenuItem[]>([]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+
+  const fetchItems = async () => {
+    try {
+      const data = await listMenuItems();
+      setItems(data.results || data || []);
+    } catch (error) {
+      console.error("Failed to fetch menu items:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchMenu = async () => {
-      try {
-        const data = await listMenuItems();
-        setItems(data.results || []);
-      } catch (error) {
-        console.error("Failed to fetch menu:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMenu();
+    fetchItems();
   }, []);
 
-  // Group items by category
-  const groupedItems = useMemo(() => {
-    const groups: Record<string, MenuItem[]> = {};
-    items.forEach((item) => {
-      const category = item.category_name || "Uncategorized";
-      if (!groups[category]) {
-        groups[category] = [];
-      }
-      groups[category].push(item);
-    });
-    // Sort categories alphabetically
-    const sorted: Record<string, MenuItem[]> = {};
-    Object.keys(groups)
-      .sort()
-      .forEach((key) => {
-        sorted[key] = groups[key];
-      });
-    return sorted;
-  }, [items]);
+  const filteredItems = useMemo(() => {
+    if (!categoryParam) return items;
+    return items.filter((item) => item.category === parseInt(categoryParam));
+  }, [items, categoryParam]);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteMenuItem(deleteTarget.id);
+      toast.success("Menu item deleted successfully.");
+      fetchItems();
+    } catch (err: any) {
+      toast.error(err?.detail || "Failed to delete menu item.");
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleEdit = (id: number) => {
+    router.push(`/dashboard/menu/${id}/edit`);
+  };
 
   if (loading) {
     return (
@@ -68,69 +80,121 @@ export default function MenuPage() {
         </Link>
       </div>
 
-      {items.length === 0 ? (
+      {filteredItems.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-          <p className="text-slate-400">No menu items found.</p>
-          <Link href="/dashboard/menu/add" className="text-indigo-400 hover:text-indigo-300 text-sm mt-2 inline-block">
+          <p className="text-slate-400">
+            {categoryParam
+              ? `No items found for this category.`
+              : "No menu items found."}
+          </p>
+          <Link
+            href="/dashboard/menu/add"
+            className="text-indigo-400 hover:text-indigo-300 text-sm mt-2 inline-block"
+          >
             Add your first menu item →
           </Link>
         </div>
       ) : (
-        <div className="space-y-8">
-          {Object.entries(groupedItems).map(([category, categoryItems]) => (
-            <div key={category}>
-              {/* Category Header */}
-              <div className="flex items-center gap-3 mb-3">
-                <h2 className="text-lg font-semibold text-white tracking-wide">
-                  {category}
-                </h2>
-                <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-white/10 text-slate-400 border border-white/5">
-                  {categoryItems.length} item{categoryItems.length !== 1 ? "s" : ""}
-                </span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredItems.map((item) => (
+            <Card
+              key={item.id}
+              className="relative group py-5 md:py-3 mb-2 bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] hover:border-indigo-500/30 transition-all duration-200 cursor-pointer overflow-hidden"
+            >
+              {/* Action buttons - top right */}
+              <div
+                className={cn(
+                  "absolute bottom-2 right-3  z-10 flex items-center gap-1",
+                  "opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 "
+                )}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(item.id);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
+                  aria-label="Edit"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTarget({ id: item.id, name: item.name });
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
+                  aria-label="Delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
 
-              {/* Vertical list of items */}
-              <div className="space-y-2">
-                {categoryItems.map((item) => (
-                  <Link href={`/dashboard/menu/${item.id}`} key={item.id} className="block">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-indigo-500/30 transition-all cursor-pointer">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-white font-semibold truncate">
-                            {item.name}
-                          </h3>
-                          <span className="text-indigo-400 font-bold">
-                            ${parseFloat(item.price).toFixed(2)}
-                          </span>
-                        </div>
-                        <p className="text-slate-400 text-sm line-clamp-1">
-                          {item.description || "No description"}
-                        </p>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                          {item.prep_time_minutes && (
-                            <span>⏱ {item.prep_time_minutes}m</span>
-                          )}
-                          {item.sku && <span>SKU: {item.sku}</span>}
-                        </div>
-                      </div>
-                      <span
-                        className={cn(
-                          "text-xs px-2.5 py-1 rounded-full border flex-shrink-0 ml-4",
-                          item.is_available
-                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                            : "bg-red-500/20 text-red-400 border-red-500/30"
-                        )}
-                      >
-                        {item.is_available ? "Available" : "Unavailable"}
-                      </span>
+              <Link href={`/dashboard/menu/${item.id}`} className="block">
+                <CardContent className="p-4 pr-12">
+                  {/* Name + Availability */}
+                  <div className="flex items-start justify-between gap-2 py-3">
+                    <h3 className="text-white font-semibold text-base truncate pr-2">
+                      {item.name}
+                    </h3>
+                    <span
+                      className={cn(
+                        "text-xs px-2.5 -py-5 rounded-full border font-medium whitespace-nowrap flex-shrink-0 mt-0.5",
+                        item.is_available
+                          ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                          : "bg-red-500/15 text-red-400 border-red-500/30"
+                      )}
+                    >
+                      {item.is_available ? "Available" : "Unavailable"}
+                    </span>
+                  </div>
+
+                  {/* Description */}
+                  {item.description && (
+                    <p className="text-slate-400 text-sm line-clamp-2 mt-1.5">
+                      {item.description}
+                    </p>
+                  )}
+
+                  {/* Price + Meta */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-white/5">
+                    <span className="text-indigo-400 font-bold text-lg">
+                      ${parseFloat(item.price).toFixed(2)}
+                    </span>
+                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                      {item.category_name && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5">
+                          <Tag className="h-3 w-3" />
+                          {item.category_name}
+                        </span>
+                      )}
+                      {item.prep_time_minutes && (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {item.prep_time_minutes}m
+                        </span>
+                      )}
                     </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
+                  </div>
+                </CardContent>
+              </Link>
+            </Card>
           ))}
         </div>
       )}
+
+      {/* Delete Modal */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete Menu Item"
+        icon={<Trash2 className="h-8 w-8 text-red-400" />}
+        description={`Are you sure you want to delete "${deleteTarget?.name || 'this item'}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDelete}
+        variant="danger"
+      />
     </div>
   );
 }
