@@ -375,7 +375,25 @@ export default function DashboardPage() {
               Accept orders, process payments, and send tickets directly to the kitchen display system.
             </p>
           </div>
+       
+          {/* Kitchen Stations - NEW */}
+        
+        <a
+          href="/dashboard/kitchen"
+          className="group flex flex-col p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 hover:shadow-[0_8px_30px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300 backdrop-blur-md cursor-pointer"
+        >
+          <div className="flex items-center gap-4 mb-3">
+            <span className="text-4xl group-hover:scale-110 transition-transform duration-300">🍳</span>
+            <h3 className="text-xl font-bold text-slate-100 group-hover:text-emerald-300 transition-colors">
+              Kitchen Stations
+            </h3>
+          </div>
+          <p className="text-sm text-slate-400">
+            Manage kitchen stations, track capacity, and monitor station availability across branches.
+          </p>
+        </a>
         </div>
+  
 
         {/* ── Quick Links ── */}
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-[fadeUp_0.6s_ease_both]">

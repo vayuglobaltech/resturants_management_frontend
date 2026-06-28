@@ -52,3 +52,18 @@ export function canManageMenu(user: UserProfile): boolean {
 export function hasPermission(user: UserProfile, codename: string): boolean {
   return getRolePermissions(user).some((p) => p.codename === codename);
 }
+
+// lib/permissions.ts
+export function canManageKitchen(user: any): boolean {
+  if (!user) return false;
+  
+  // Check if user is superuser or staff
+  if (user.is_superuser || user.is_staff) return true;
+  
+  // Check role-based permissions
+  const role = user.role?.name?.toLowerCase() || '';
+  const adminRoles = ['admin', 'superadmin', 'super_admin'];
+  const managerRoles = ['manager', 'branch_manager'];
+  
+  return adminRoles.includes(role) || managerRoles.includes(role);
+}
