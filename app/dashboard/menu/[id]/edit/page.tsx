@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import toast from "react-hot-toast";
+import { ProtectedWrite } from "@/components/ProtectedWrite";
 
 interface EditMenuItemPageProps {
   params: Promise<{ id: string }>;
@@ -133,6 +134,7 @@ export default function EditMenuItemPage({ params }: EditMenuItemPageProps) {
   }
 
   return (
+     <ProtectedWrite>
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -238,5 +240,6 @@ export default function EditMenuItemPage({ params }: EditMenuItemPageProps) {
         </CardContent>
       </Card>
     </motion.div>
+     </ProtectedWrite>
   );
 }

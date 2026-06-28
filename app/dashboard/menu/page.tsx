@@ -10,8 +10,11 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useCanManage } from "@/hooks/useCanManage";
+
 
 export default function MenuPage() {
+  const canManage = useCanManage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
@@ -102,10 +105,12 @@ export default function MenuPage() {
               className="relative group py-5 md:py-3 mb-2 bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] hover:border-indigo-500/30 transition-all duration-200 cursor-pointer overflow-hidden"
             >
               {/* Action buttons - top right */}
+              {/* Action buttons - only for managers */}
+            {canManage && (
               <div
                 className={cn(
-                  "absolute bottom-2 right-3  z-10 flex items-center gap-1",
-                  "opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 "
+                  "absolute bottom-2 right-3 z-10 flex items-center gap-1",
+                  "opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
                 )}
               >
                 <button
@@ -129,6 +134,7 @@ export default function MenuPage() {
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
+            )}
 
               <Link href={`/dashboard/menu/${item.id}`} className="block">
                 <CardContent className="p-4 pr-12">

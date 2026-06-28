@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+import { ProtectedWrite } from "@/components/ProtectedWrite";
 
 interface Category {
   id: number;
@@ -30,7 +30,6 @@ interface FormData {
 
 export default function AddMenuItemPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [fetchingCategories, setFetchingCategories] = useState(true);
@@ -50,7 +49,6 @@ export default function AddMenuItemPage() {
     },
   });
 
-  // Fetch categories on mount
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -93,9 +91,10 @@ export default function AddMenuItemPage() {
     }
   };
 
-  if (!user) return null;
 
   return (
+
+    <ProtectedWrite>
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/dashboard/menu">
@@ -198,5 +197,6 @@ export default function AddMenuItemPage() {
         </CardContent>
       </Card>
     </div>
+    </ProtectedWrite>
   );
 }

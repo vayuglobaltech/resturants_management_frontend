@@ -1,3 +1,4 @@
+// lib/permissions.ts
 import { UserProfile } from "@/context/AuthContext";
 
 type UserRole = {
@@ -6,7 +7,6 @@ type UserRole = {
   permissions?: { id: number; name: string; codename: string }[];
 };
 
-// Roles that can manage (create / edit / delete) menu items
 const MANAGER_ROLES = new Set([
   "admin",
   "super_admin",
@@ -15,7 +15,6 @@ const MANAGER_ROLES = new Set([
   "branch_manager",
 ]);
 
-/** Returns the raw role name string from the profile (lowercased). */
 export function getRoleName(user: UserProfile): string {
   if (user.role && typeof user.role === "object" && "name" in user.role) {
     return (user.role as UserRole).name.toLowerCase();
@@ -24,11 +23,10 @@ export function getRoleName(user: UserProfile): string {
     return user.role.trim().toLowerCase();
   }
   if (user.is_superuser) return "super_admin";
-  if (user.is_staff)     return "admin";
+  if (user.is_staff) return "admin";
   return "staff";
 }
 
-/** Returns the full list of permissions from the role object. */
 export function getRolePermissions(
   user: UserProfile
 ): { id: number; name: string; codename: string }[] {
@@ -38,17 +36,28 @@ export function getRolePermissions(
   return [];
 }
 
-/** Can the user VIEW menu items? (all authenticated staff) */
+/** Can the user view menu items? (all authenticated staff) */
 export function canViewMenu(_user: UserProfile): boolean {
   return true;
 }
 
 /** Can the user CREATE / EDIT / DELETE menu items? (Admin / Manager only) */
 export function canManageMenu(user: UserProfile): boolean {
-  return MANAGER_ROLES.has(getRoleName(user)) || !!user.is_staff;
+  return isAdminOrManager(user);
 }
 
-/** Check a specific codename permission. */
+/** Check if user is Admin or Branch Manager (can perform write operations) */
+export function isAdminOrManager(user: UserProfile): boolean {
+  const role = getRoleName(user);
+  return (
+    role === "admin" ||
+    role === "branch_manager" ||
+    user.is_staff ||
+    user.is_superuser
+  );
+}
+
+/** Check a specific codename permission (if you use granular permissions later) */
 export function hasPermission(user: UserProfile, codename: string): boolean {
   return getRolePermissions(user).some((p) => p.codename === codename);
 }
