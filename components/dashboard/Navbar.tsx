@@ -40,11 +40,13 @@ const FEATURES_BY_ROLE: Record<string, { id: string; label: string }[]> = {
   cashier: [
     { id: "dashboard", label: "Dashboard" },
     { id: "orders", label: "Orders" },
+    { id: "menu", label: "Menu" },
     { id: "payments", label: "Payments" },
   ],
   kitchen_staff: [
     { id: "dashboard", label: "Dashboard" },
     { id: "orders", label: "Orders" },
+    { id: "menu", label: "Menu" },
     { id: "kitchen", label: "Kitchen" },
   ],
 };

@@ -1,89 +1,3 @@
-// "use client";
-
-// import { useState, ReactNode, useEffect } from "react";
-// import { usePathname, useRouter } from "next/navigation";
-// import { useAuth } from "@/context/AuthContext";
-// import { DashboardNavbar } from "@/components/dashboard/Navbar";
-// import { DashboardSidebar } from "@/components/dashboard/Sidebar";
-// import { cn } from "@/lib/utils";
-
-// // Map route path to feature ID
-// const getFeatureFromPath = (path: string): string => {
-//   if (path === "/dashboard") return "dashboard";
-//   const segments = path.split("/").filter(Boolean);
-//   if (segments.length >= 2) {
-//     return segments[1]; // e.g. "/dashboard/menu" → "menu"
-//   }
-//   return "dashboard";
-// };
-
-// export default function DashboardLayout({ children }: { children: ReactNode }) {
-//   const { user, isLoading } = useAuth();
-//   const pathname = usePathname();
-//   const router = useRouter();
-//   const [selectedFeature, setSelectedFeature] = useState("dashboard");
-//   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-//   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-
-//   // Sync selected feature with current route
-//   useEffect(() => {
-//     const feature = getFeatureFromPath(pathname);
-//     setSelectedFeature(feature);
-//   }, [pathname]);
-
-//   if (isLoading) {
-//     return (
-//       <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
-//         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
-//       </div>
-//     );
-//   }
-
-//   if (!user) return null;
-
-//   return (
-//     <div className="min-h-screen bg-[#0a0e1a] flex flex-col">
-//       <DashboardNavbar
-//         user={user}
-//         selectedFeature={selectedFeature}
-//         onSelectFeature={(id) => {
-//           setSelectedFeature(id);
-//           if (id === "dashboard") {
-//             router.push("/dashboard");
-//           } else {
-//             router.push(`/dashboard/${id}`);
-//           }
-//         }}
-//         onToggleSidebar={() => {
-//           if (window.innerWidth < 768) {
-//             setMobileSidebarOpen(!mobileSidebarOpen);
-//           } else {
-//             setSidebarCollapsed(!sidebarCollapsed);
-//           }
-//         }}
-//       />
-//       <div className="flex flex-1 overflow-hidden">
-//         <DashboardSidebar
-//           selectedFeature={selectedFeature}
-//           collapsed={sidebarCollapsed}
-//           mobileOpen={mobileSidebarOpen}
-//           onMobileClose={() => setMobileSidebarOpen(false)}
-//         />
-//         <main
-//           className={cn(
-//             "flex-1 overflow-y-auto p-4 sm:p-6 transition-all duration-300",
-//             sidebarCollapsed ? "md:ml-16" : "md:ml-64"
-//           )}
-//         >
-//           {children}
-//         </main>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
 "use client";
 
 import { useState, ReactNode, useEffect } from "react";
@@ -110,19 +24,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  // ✅ Simple: selectedFeature = path-based, no role override
   useEffect(() => {
     const feature = getFeatureFromPath(pathname);
-    // For kitchen staff, force feature to 'kitchen' except on dashboard
-    if (user && user.role && user.role.name === 'kitchen_staff') {
-      if (feature === 'dashboard') {
-        setSelectedFeature('dashboard');
-      } else {
-        setSelectedFeature('kitchen');
-      }
-    } else {
-      setSelectedFeature(feature);
-    }
-  }, [pathname, user]);
+    setSelectedFeature(feature);
+  }, [pathname]);
 
   if (isLoading) {
     return (
