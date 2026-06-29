@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getOrder, updateOrder } from "@/lib/ordersApi";
+import { getRecipeByProduct, getBranchInventory } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useCanManage } from "@/hooks/useCanManage";
 import {
@@ -16,6 +17,9 @@ import {
   Hash,
   RefreshCw,
   Loader2,
+  Utensils,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -34,7 +38,6 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-red-500/20 text-red-400 border-red-500/30",
 };
 
-// Role-based allowed transitions
 const ROLE_TRANSITIONS: Record<string, string[]> = {
   waiter: ["CONFIRMED", "DELIVERED", "CANCELLED"],
   kitchen_staff: ["QUEUED", "PREPARING", "READY"],
@@ -53,6 +56,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
+  const [recipeData, setRecipeData] = useState<Record<number, any>>({});
+  const [inventoryData, setInventoryData] = useState<Record<number, number>>({});
 
   const fetchOrder = async () => {
     try {
@@ -77,7 +83,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const getAvailableStatuses = () => {
     if (!order) return [];
     const current = order.status;
-    // Admin/Manager can update to any status
     if (role === "admin" || role === "branch_manager") {
       return Object.keys(STATUS_COLORS);
     }
@@ -113,13 +118,44 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  // ─── Toggle Recipe ─────────────────────────────────────────────
+  const toggleRecipe = async (itemId: number, productId: number, branchId: number) => {
+    if (expandedItems[itemId]) {
+      setExpandedItems((prev) => ({ ...prev, [itemId]: false }));
+      return;
+    }
+
+    setExpandedItems((prev) => ({ ...prev, [itemId]: true }));
+
+    // Fetch recipe if not already loaded
+    if (!recipeData[productId]) {
+      try {
+        const recipe = await getRecipeByProduct(productId);
+        if (recipe) {
+          setRecipeData((prev) => ({ ...prev, [productId]: recipe }));
+          // Fetch inventory for this branch once
+          if (Object.keys(inventoryData).length === 0) {
+            const inv = await getBranchInventory(branchId);
+            const invMap: Record<number, number> = {};
+            inv.forEach((item: any) => {
+              invMap[item.ingredient] = item.quantity;
+            });
+            setInventoryData(invMap);
+          }
+        } else {
+          toast.error("No recipe found for this product.");
+        }
+      } catch (error) {
+        console.error("Failed to fetch recipe:", error);
+        toast.error("Failed to load recipe.");
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm">Loading order details...</p>
-        </div>
+        <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
       </div>
     );
   }
@@ -139,7 +175,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header Breadcrumb & Actions */}
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2 text-sm text-slate-400">
           <Link href="/dashboard/orders" className="hover:text-white transition-colors">
@@ -153,7 +189,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             {order.status}
           </span>
 
-          {/* Status update dropdown – only if there are available transitions */}
           {availableStatuses.length > 0 && (
             <div className="flex items-center gap-2">
               <select
@@ -199,25 +234,82 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             <CardContent className="p-0">
               <div className="divide-y divide-white/[0.05]">
                 {order.items && order.items.length > 0 ? (
-                  order.items.map((item: any) => (
-                    <div key={item.id} className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                          <span className="text-indigo-400 font-bold">{item.quantity}x</span>
+                  order.items.map((item: any) => {
+                    const isExpanded = expandedItems[item.id];
+                    const recipe = recipeData[item.product];
+                    const ingredients = recipe?.ingredients || [];
+
+                    return (
+                      <div key={item.id} className="p-4 hover:bg-white/[0.02] transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                              <span className="text-indigo-400 font-bold">{item.quantity}x</span>
+                            </div>
+                            <div>
+                              <h4 className="text-white font-medium">{item.product_name || "Unknown Product"}</h4>
+                              <p className="text-xs text-slate-400 mt-0.5">SKU: {item.product_sku}</p>
+                              {item.product && (
+                                <button
+                                  onClick={() => toggleRecipe(item.id, item.product, order.branch)}
+                                  className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 mt-1"
+                                >
+                                  <Utensils className="h-3 w-3" />
+                                  {isExpanded ? "Hide Recipe" : "View Recipe"}
+                                  {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-white font-bold">${parseFloat(item.price_at_order).toFixed(2)}</div>
+                            <div className="text-xs text-slate-400 mt-0.5">
+                              ${(parseFloat(item.price_at_order) * item.quantity).toFixed(2)} total
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="text-white font-medium">{item.product_name || "Unknown Product"}</h4>
-                          <p className="text-xs text-slate-400 mt-0.5">SKU: {item.product_sku}</p>
-                        </div>
+
+                        {/* ─── Recipe Ingredients (expanded) ─── */}
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t border-white/5">
+                            {ingredients.length === 0 ? (
+                              <p className="text-xs text-slate-400">No ingredients defined for this recipe.</p>
+                            ) : (
+                              <div className="space-y-1.5">
+                                <p className="text-xs font-medium text-slate-400 mb-1">Ingredients & Stock</p>
+                                {ingredients.map((ing: any) => {
+                                  const stock = inventoryData[ing.ingredient] ?? 0;
+                                  const required = parseFloat(ing.quantity) * item.quantity;
+                                  const isSufficient = stock >= required;
+                                  return (
+                                    <div key={ing.id} className="flex items-center justify-between text-sm bg-white/5 p-2 rounded-lg">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-white">{ing.ingredient_name}</span>
+                                        <span className="text-slate-400 text-xs">
+                                          {ing.quantity} {ing.unit} × {item.quantity} = {required} {ing.unit}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-slate-300">
+                                          Stock: {stock} {ing.unit}
+                                        </span>
+                                        <span className={cn(
+                                          "text-xs px-2 py-0.5 rounded-full",
+                                          isSufficient ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+                                        )}>
+                                          {isSufficient ? "✅ Sufficient" : "❌ Insufficient"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <div className="text-white font-bold">${parseFloat(item.price_at_order).toFixed(2)}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          ${(parseFloat(item.price_at_order) * item.quantity).toFixed(2)} total
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="p-8 text-center text-slate-400">No items in this order.</div>
                 )}
@@ -225,7 +317,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             </CardContent>
           </Card>
 
-          {/* Notes / Special Instructions */}
           {order.special_instructions && (
             <Card className="border-amber-500/20 bg-amber-500/5">
               <CardContent className="p-4">
@@ -236,36 +327,31 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           )}
         </div>
 
-        {/* Right Column: Order Details Summary */}
+        {/* Right Column: Order Summary */}
         <div className="space-y-6">
           <Card className="border-white/[0.05] bg-white/[0.02]">
             <CardHeader className="pb-4 border-b border-white/[0.05]">
               <CardTitle className="text-lg">Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-4">
-              
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-400 flex items-center gap-2"><Hash className="h-4 w-4"/> Order ID</span>
                 <span className="text-white">{order.order_number}</span>
               </div>
-              
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-400 flex items-center gap-2"><User className="h-4 w-4"/> Server/User</span>
                 <span className="text-white">{order.user_name || "Guest"}</span>
               </div>
-              
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-400 flex items-center gap-2"><Clock className="h-4 w-4"/> Created At</span>
                 <span className="text-white">
                   {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
-
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-400 flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> Priority</span>
                 <span className="text-white">{order.priority}</span>
               </div>
-
               <div className="pt-4 border-t border-white/[0.05]">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-300 font-medium">Total Amount</span>

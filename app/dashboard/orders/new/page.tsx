@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { ProtectedWrite } from "@/components/ProtectedWrite";
+import { ProtectedOrder } from "@/components/ProtectedOrder";
 
 interface MenuItem {
   id: number;
@@ -69,7 +69,7 @@ export default function NewOrderPage() {
   } = useForm<FormData>({
     defaultValues: {
       table: "",
-      special_instructions: "",
+      special_instructions: "None",
     },
   });
 
@@ -184,13 +184,28 @@ export default function NewOrderPage() {
   }
 
   return (
-    <ProtectedWrite>
+    <ProtectedOrder>
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-white">New Order</h1>
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* ─── Left Panel: Menu Browser ─── */}
           <div className="flex-1 space-y-4">
+
+            <div>
+  <label htmlFor="special_instructions" className="block text-sm font-medium text-slate-300 mb-1">
+    Special Instructions
+  </label>
+  <textarea
+    id="special_instructions"
+    {...register("special_instructions")}
+    rows={2}
+    placeholder="e.g., No onions, extra cheese…"
+    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+  />
+</div>
+
+
             {/* Table selector */}
             <div>
               <label htmlFor="table" className="block text-sm font-medium text-slate-300 mb-1">
@@ -369,6 +384,6 @@ export default function NewOrderPage() {
           </div>
         </div>
       </div>
-    </ProtectedWrite>
+    </ProtectedOrder>
   );
 }
