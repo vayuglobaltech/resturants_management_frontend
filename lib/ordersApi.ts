@@ -40,3 +40,23 @@ export async function getTable(id: string | number) {
   if (!res.ok) throw await res.json();
   return await res.json();
 }
+
+export async function createOrder(data: any) {
+  const res = await apiFetch("/api/orders/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function updateOrder(id: number | string, data: { status: string }) {
+  const res = await apiFetch(`/api/orders/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  }, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
