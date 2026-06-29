@@ -60,3 +60,23 @@ export async function updateOrder(id: number | string, data: { status: string })
   if (!res.ok) throw json;
   return json;
 }
+
+
+export async function addOrderItem(data: { order: number; product: number; quantity: number }) {
+  const res = await apiFetch("/api/orders/items/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function deleteOrderItem(id: number) {
+  const res = await apiFetch(`/api/orders/items/${id}/`, { method: "DELETE" }, true);
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw json;
+  }
+  return res;
+}

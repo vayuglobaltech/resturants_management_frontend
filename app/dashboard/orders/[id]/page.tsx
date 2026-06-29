@@ -3,10 +3,10 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getOrder, updateOrder } from "@/lib/ordersApi";
+import { getOrder, updateOrder, addOrderItem, deleteOrderItem } from "@/lib/ordersApi";
 import { getRecipeByProduct, getBranchInventory } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { useCanManage } from "@/hooks/useCanManage";
+import { useCanManage, useCanModifyOrders } from "@/hooks/usePermissions";
 import {
   ArrowLeft,
   Clock,
@@ -20,11 +20,18 @@ import {
   Utensils,
   ChevronDown,
   ChevronUp,
+  Plus,
+  Trash2,
+  Pencil,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { listMenuItems } from "@/lib/menuApi";
 
 // Status colors
 const STATUS_COLORS: Record<string, string> = {
@@ -50,7 +57,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const router = useRouter();
   const { user } = useAuth();
-  const canManage = useCanManage();
+  const canModify = useCanModifyOrders();
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +66,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
   const [recipeData, setRecipeData] = useState<Record<number, any>>({});
   const [inventoryData, setInventoryData] = useState<Record<number, number>>({});
+
+  // Add item state
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [newItemProduct, setNewItemProduct] = useState("");
+  const [newItemQty, setNewItemQty] = useState(1);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [fetchingMenu, setFetchingMenu] = useState(false);
 
   const fetchOrder = async () => {
     try {
@@ -127,13 +141,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
     setExpandedItems((prev) => ({ ...prev, [itemId]: true }));
 
-    // Fetch recipe if not already loaded
     if (!recipeData[productId]) {
       try {
         const recipe = await getRecipeByProduct(productId);
         if (recipe) {
           setRecipeData((prev) => ({ ...prev, [productId]: recipe }));
-          // Fetch inventory for this branch once
           if (Object.keys(inventoryData).length === 0) {
             const inv = await getBranchInventory(branchId);
             const invMap: Record<number, number> = {};
@@ -149,6 +161,58 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         console.error("Failed to fetch recipe:", error);
         toast.error("Failed to load recipe.");
       }
+    }
+  };
+
+  // ─── Add Item ──────────────────────────────────────────────────
+  const fetchMenuItems = async () => {
+    setFetchingMenu(true);
+    try {
+      const data = await listMenuItems();
+      setMenuItems(data.results || data || []);
+    } catch (error) {
+      toast.error("Failed to load menu items.");
+    } finally {
+      setFetchingMenu(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showAddItem) {
+      fetchMenuItems();
+    }
+  }, [showAddItem]);
+
+  const handleAddItem = async () => {
+    if (!newItemProduct) {
+      toast.error("Please select a product.");
+      return;
+    }
+    try {
+      await addOrderItem({
+        order: parseInt(id),
+        product: parseInt(newItemProduct),
+        quantity: newItemQty,
+      });
+      toast.success("Item added successfully!");
+      setShowAddItem(false);
+      setNewItemProduct("");
+      setNewItemQty(1);
+      fetchOrder();
+    } catch (error: any) {
+      const msg = Object.values(error).flat().join(" ");
+      toast.error(msg || "Failed to add item.");
+    }
+  };
+
+  const handleDeleteItem = async (itemId: number) => {
+    if (!confirm("Remove this item from the order?")) return;
+    try {
+      await deleteOrderItem(itemId);
+      toast.success("Item removed.");
+      fetchOrder();
+    } catch (error: any) {
+      toast.error(error?.detail || "Failed to remove item.");
     }
   };
 
@@ -226,12 +290,73 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         <div className="lg:col-span-2 space-y-6">
           <Card className="border-white/[0.05] bg-white/[0.02]">
             <CardHeader className="pb-4 border-b border-white/[0.05]">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-indigo-400" />
-                Order Items
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5 text-indigo-400" />
+                  Order Items
+                </CardTitle>
+                {canModify && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowAddItem(!showAddItem)}
+                    className="gap-1"
+                  >
+                    <Plus className="h-4 w-4" /> Add Item
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="p-0">
+              {/* ─── Add Item Form ─── */}
+              {showAddItem && canModify && (
+                <div className="p-4 border-b border-white/5 bg-white/[0.03]">
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="flex-1 min-w-[150px]">
+                      <label className="text-xs text-slate-400 block mb-1">Product</label>
+                      <select
+                        value={newItemProduct}
+                        onChange={(e) => setNewItemProduct(e.target.value)}
+                        className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">Select...</option>
+                        {fetchingMenu ? (
+                          <option disabled>Loading...</option>
+                        ) : (
+                          menuItems.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name} (${item.price})
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
+                    <div className="w-24">
+                      <label className="text-xs text-slate-400 block mb-1">Qty</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newItemQty}
+                        onChange={(e) => setNewItemQty(parseInt(e.target.value) || 1)}
+                        className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                    <Button size="sm" onClick={handleAddItem} className="mb-0.5">
+                      Add
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowAddItem(false)}
+                      className="mb-0.5"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── Order Items List ─── */}
               <div className="divide-y divide-white/[0.05]">
                 {order.items && order.items.length > 0 ? (
                   order.items.map((item: any) => {
@@ -261,15 +386,27 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                               )}
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-white font-bold">${parseFloat(item.price_at_order).toFixed(2)}</div>
-                            <div className="text-xs text-slate-400 mt-0.5">
-                              ${(parseFloat(item.price_at_order) * item.quantity).toFixed(2)} total
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <div className="text-white font-bold">${parseFloat(item.price_at_order).toFixed(2)}</div>
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                ${(parseFloat(item.price_at_order) * item.quantity).toFixed(2)} total
+                              </div>
                             </div>
+                            {canModify && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleDeleteItem(item.id)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {/* ─── Recipe Ingredients (expanded) ─── */}
+                        {/* Recipe Ingredients (expanded) */}
                         {isExpanded && (
                           <div className="mt-3 pt-3 border-t border-white/5">
                             {ingredients.length === 0 ? (
