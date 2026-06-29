@@ -363,6 +363,16 @@ export async function createRecipe(data: any) {
   return json;
 }
 
+export async function getRecipeByProduct(productId: number) {
+  // Query recipes by product ID (returns a paginated list)
+  const res = await apiFetch(`/api/inventory/recipes/?product=${productId}`, {}, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  const results = json.results || json;
+  // Return the first recipe (there should be only one per product)
+  return results[0] || null;
+}
+
 export async function getRecipe(id: string | number) {
   const res = await apiFetch(`/api/inventory/recipes/${id}/`, {}, true);
   const json = await res.json();
@@ -534,4 +544,13 @@ export async function getTransaction(id: string | number) {
   const json = await res.json();
   if (!res.ok) throw json;
   return json;
+}
+
+// lib/api.ts
+
+export async function getBranchInventory(branchId: number) {
+  const res = await apiFetch(`/api/inventory/inventory/?branch=${branchId}`, {}, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json.results || json;
 }
