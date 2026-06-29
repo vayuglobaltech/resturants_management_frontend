@@ -67,3 +67,70 @@ export function canManageKitchen(user: any): boolean {
   
   return adminRoles.includes(role) || managerRoles.includes(role);
 }
+
+/** Can the user VIEW ingredients? (all authenticated staff) */
+export function canViewIngredients(_user: UserProfile): boolean {
+  return true;
+}
+
+/** Can the user CREATE / EDIT / DELETE ingredients? (Admin / Manager only) */
+export function canManageIngredients(user: UserProfile): boolean {
+  return MANAGER_ROLES.has(getRoleName(user)) || !!user.is_staff || !!user.is_superuser;
+}
+
+// Add these after your existing functions
+
+/**
+ * Transaction Permissions
+ * Only Admin and Managers can view, create, update, and delete transactions
+ */
+
+/** Can the user VIEW transactions? (Admin & Managers only) */
+export function canViewTransactions(user: UserProfile): boolean {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  
+  const role = getRoleName(user);
+  const allowedRoles = ['admin', 'super_admin', 'superadmin', 'manager', 'branch_manager'];
+  return allowedRoles.includes(role);
+}
+
+/** Can the user CREATE transactions? (Admin & Managers only) */
+export function canCreateTransaction(user: UserProfile): boolean {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  
+  const role = getRoleName(user);
+  const allowedRoles = ['admin', 'super_admin', 'superadmin', 'manager', 'branch_manager'];
+  return allowedRoles.includes(role);
+}
+
+/** Can the user UPDATE/EDIT transactions? (Admin & Managers only) */
+export function canEditTransaction(user: UserProfile): boolean {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  
+  const role = getRoleName(user);
+  const allowedRoles = ['admin', 'super_admin', 'superadmin', 'manager', 'branch_manager'];
+  return allowedRoles.includes(role);
+}
+
+/** Can the user DELETE transactions? (Admin & Managers only) */
+export function canDeleteTransaction(user: UserProfile): boolean {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  
+  const role = getRoleName(user);
+  const allowedRoles = ['admin', 'super_admin', 'superadmin', 'manager', 'branch_manager'];
+  return allowedRoles.includes(role);
+}
+
+/** Combined permission check for all transaction operations */
+export function canManageTransactions(user: UserProfile): boolean {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  
+  const role = getRoleName(user);
+  const allowedRoles = ['admin', 'super_admin', 'superadmin', 'manager', 'branch_manager'];
+  return allowedRoles.includes(role);
+}
