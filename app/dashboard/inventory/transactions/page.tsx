@@ -7,8 +7,6 @@ import { canManageTransactions, getRoleName } from "@/lib/permissions";
 import {
   getTransactions,
   createTransaction,
-  getTransaction,
-  updateTransaction,
   deleteTransaction,
   getBranches,
   getIngredients,
@@ -27,6 +25,7 @@ interface Transaction {
   reason: string;
   performed_by: number | null;
   performed_by_name?: string;
+  performed_by_username?: string;
   timestamp: string;
   branch_name?: string;
   ingredient_name?: string;
@@ -100,7 +99,6 @@ const InventoryTransactions: React.FC = () => {
 
   // Modal states
   const [showModal, setShowModal] = useState<boolean>(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [formLoading, setFormLoading] = useState<boolean>(false);
   const [formData, setFormData] = useState({
     branch: '',
@@ -295,7 +293,7 @@ const InventoryTransactions: React.FC = () => {
     }
   };
 
-  // Fetch transactions with filters - FIXED VERSION
+  // Fetch transactions with filters
   const fetchTransactions = async () => {
     setLoading(true);
     try {
@@ -325,40 +323,42 @@ const InventoryTransactions: React.FC = () => {
       const ingredientMap = new Map<number, string>();
       ingredients.forEach(i => ingredientMap.set(i.id, i.name));
       
-      console.log('Branch map:', Object.fromEntries(branchMap));
-      console.log('Ingredient map:', Object.fromEntries(ingredientMap));
-      
       // Enrich transaction data with names
       const enrichedTransactions = transactionsArray.map((tx: any) => {
         let branchName = '';
         let ingredientName = '';
+        let performedByName = '';
         
         // Handle branch
         if (typeof tx.branch === 'object' && tx.branch !== null) {
-          // Branch is already an object with name
           branchName = tx.branch.name || `Branch #${tx.branch.id || '?'}`;
         } else if (tx.branch) {
-          // Branch is an ID, look it up
           const branchId = typeof tx.branch === 'number' ? tx.branch : parseInt(tx.branch);
           branchName = branchMap.get(branchId) || `Branch #${branchId}`;
         }
         
         // Handle ingredient
         if (typeof tx.ingredient === 'object' && tx.ingredient !== null) {
-          // Ingredient is already an object with name
           ingredientName = tx.ingredient.name || `Ingredient #${tx.ingredient.id || '?'}`;
         } else if (tx.ingredient) {
-          // Ingredient is an ID, look it up
           const ingredientId = typeof tx.ingredient === 'number' ? tx.ingredient : parseInt(tx.ingredient);
           ingredientName = ingredientMap.get(ingredientId) || `Ingredient #${ingredientId}`;
         }
         
-        console.log(`Transaction ${tx.id}: Branch ${tx.branch} -> ${branchName}, Ingredient ${tx.ingredient} -> ${ingredientName}`);
+        // Handle performed_by (who created the transaction)
+        if (typeof tx.performed_by === 'object' && tx.performed_by !== null) {
+          performedByName = tx.performed_by.username || tx.performed_by.email || `User #${tx.performed_by.id || '?'}`;
+        } else if (tx.performed_by) {
+          performedByName = `User #${tx.performed_by}`;
+        } else {
+          performedByName = 'System';
+        }
         
         return {
           ...tx,
           branch_name: branchName,
           ingredient_name: ingredientName,
+          performed_by_name: performedByName,
         };
       });
       
@@ -373,7 +373,7 @@ const InventoryTransactions: React.FC = () => {
     }
   };
 
-  // Initial data load - FIXED to ensure proper order
+  // Initial data load
   const fetchData = async () => {
     try {
       // First load user's branch
@@ -426,7 +426,6 @@ const InventoryTransactions: React.FC = () => {
       location: '',
       reason: '',
     });
-    setEditingId(null);
   };
 
   // Open modal for create
@@ -439,34 +438,6 @@ const InventoryTransactions: React.FC = () => {
     // Refresh ingredients when opening modal
     loadIngredients(userBranch || undefined);
     setShowModal(true);
-  };
-
-  // Open modal for edit
-  const openEditModal = async (record: Transaction) => {
-    if (!canManage) {
-      setActionMsg({ type: 'error', text: "You don't have permission to edit transactions." });
-      return;
-    }
-    
-    try {
-      const fullRecord = await getTransaction(record.id);
-      setFormData({
-        branch: userBranch ? userBranch.toString() : (typeof fullRecord.branch === 'object' ? fullRecord.branch.id.toString() : fullRecord.branch.toString()),
-        ingredient: typeof fullRecord.ingredient === 'object' ? fullRecord.ingredient.id.toString() : fullRecord.ingredient.toString(),
-        transaction_type: fullRecord.transaction_type,
-        quantity: fullRecord.quantity,
-        unit: fullRecord.unit,
-        status: fullRecord.status,
-        location: fullRecord.location || '',
-        reason: fullRecord.reason || '',
-      });
-      // Refresh ingredients when opening modal
-      await loadIngredients(userBranch || undefined);
-      setEditingId(record.id);
-      setShowModal(true);
-    } catch (error: any) {
-      setActionMsg({ type: 'error', text: error?.detail || 'Failed to load transaction.' });
-    }
   };
 
   // Handle form submit
@@ -496,13 +467,8 @@ const InventoryTransactions: React.FC = () => {
         reason: formData.reason || '',
       };
 
-      if (editingId) {
-        await updateTransaction(editingId, data);
-        setActionMsg({ type: 'success', text: 'Transaction updated successfully!' });
-      } else {
-        await createTransaction(data);
-        setActionMsg({ type: 'success', text: 'Transaction created successfully!' });
-      }
+      await createTransaction(data);
+      setActionMsg({ type: 'success', text: 'Transaction created successfully!' });
       
       setShowModal(false);
       resetForm();
@@ -542,7 +508,8 @@ const InventoryTransactions: React.FC = () => {
       (item.ingredient_name || '').toLowerCase().includes(searchLower) ||
       (item.branch_name || '').toLowerCase().includes(searchLower) ||
       typeLabel.toLowerCase().includes(searchLower) ||
-      item.reason.toLowerCase().includes(searchLower)
+      item.reason.toLowerCase().includes(searchLower) ||
+      (item.performed_by_name || '').toLowerCase().includes(searchLower)
     );
   });
 
@@ -727,6 +694,9 @@ const InventoryTransactions: React.FC = () => {
                             📝 {item.reason}
                           </span>
                         )}
+                        <span className="text-slate-500 text-xs">
+                          👤 {item.performed_by_name || 'System'}
+                        </span>
                       </div>
                     </div>
 
@@ -751,16 +721,9 @@ const InventoryTransactions: React.FC = () => {
                         <span className="text-[10px]">{new Date(item.timestamp).toLocaleTimeString()}</span>
                       </div>
 
-                      {/* Actions */}
+                      {/* Actions - Only Delete, no Edit */}
                       {canManage && (
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button 
-                            onClick={() => openEditModal(item)}
-                            className="p-1.5 text-slate-400 hover:text-blue-400 transition-colors rounded-lg hover:bg-white/5"
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
                           <button 
                             onClick={() => handleDelete(item.id, item.ingredient_name || '', typeInfo.label)}
                             className="p-1.5 text-slate-400 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5"
@@ -779,7 +742,7 @@ const InventoryTransactions: React.FC = () => {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
+      {/* Create Modal - No Edit Mode */}
       {showModal && canManage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
           <div className="relative w-full max-w-2xl bg-slate-900 rounded-2xl border border-white/10 shadow-2xl p-6 md:p-8 animate-slideUp max-h-[90vh] overflow-y-auto">
@@ -795,7 +758,7 @@ const InventoryTransactions: React.FC = () => {
             </button>
             
             <h2 className="text-2xl font-bold text-slate-100 mb-6 pr-8">
-              {editingId ? 'Edit Transaction' : 'New Transaction'}
+              New Transaction
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -826,11 +789,6 @@ const InventoryTransactions: React.FC = () => {
                       Using your assigned branch: {userBranchName}
                     </p>
                   )}
-                  {branches.length === 0 && (
-                    <p className="text-xs text-red-400 mt-1">
-                      No branches found. Please check your connection.
-                    </p>
-                  )}
                 </div>
                 
                 {/* Ingredient */}
@@ -856,11 +814,6 @@ const InventoryTransactions: React.FC = () => {
                       ))
                     )}
                   </select>
-                  {ingredients.length === 0 && userBranch && (
-                    <p className="text-xs text-yellow-400 mt-1">
-                      No ingredients found for your branch. You may need to add ingredients first.
-                    </p>
-                  )}
                 </div>
 
                 {/* Transaction Type */}
@@ -958,10 +911,10 @@ const InventoryTransactions: React.FC = () => {
                   {formLoading ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      {editingId ? 'Updating...' : 'Creating...'}
+                      Creating...
                     </span>
                   ) : (
-                    editingId ? 'Update Transaction' : 'Save Transaction'
+                    'Create Transaction'
                   )}
                 </button>
                 <button
