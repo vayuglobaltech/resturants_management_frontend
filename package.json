@@ -9,12 +9,24 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.3.2",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@heroicons/react": "^2.2.0",
+    "@mui/icons-material": "^9.1.1",
+    "@mui/material": "^9.1.2",
+    "@tanstack/react-query": "^5.101.2",
+    "antd": "^6.5.0",
+    "axios": "^1.18.1",
+    "formik": "^2.4.9",
     "framer-motion": "^12.42.0",
     "lucide-react": "^1.21.0",
     "next": "16.2.9",
     "next-pwa": "^5.6.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-hot-toast": "^2.6.0",
+    "yup": "^1.7.1"
     "react-hook-form": "^7.80.0",
     "react-hot-toast": "^2.6.0",
     "tailwindcss-animate": "^1.0.7"
