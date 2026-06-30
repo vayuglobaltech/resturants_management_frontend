@@ -403,7 +403,7 @@ export default function IngredientsPage() {
 
       {/* Create/Edit Modal */}
       {showModal && canManage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn mt-80">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn ">
           <div className="relative w-full max-w-2xl bg-slate-900 rounded-2xl border border-white/10 shadow-2xl p-6 md:p-8 animate-slideUp max-h-[90vh] overflow-y-auto">
             {/* Close button */}
             <button

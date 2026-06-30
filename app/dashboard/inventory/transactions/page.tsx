@@ -7,7 +7,6 @@ import { canManageTransactions, getRoleName } from "@/lib/permissions";
 import {
   getTransactions,
   createTransaction,
-  deleteTransaction,
   getBranches,
   getIngredients,
   getProfile
@@ -480,25 +479,7 @@ const InventoryTransactions: React.FC = () => {
     }
   };
 
-  // Handle delete
-  const handleDelete = async (id: number, ingredientName: string, type: string) => {
-    if (!canManage) {
-      setActionMsg({ type: 'error', text: "You don't have permission to delete transactions." });
-      return;
-    }
-    
-    if (!confirm(`Are you sure you want to delete this ${type} transaction for "${ingredientName}"?`)) {
-      return;
-    }
-    
-    try {
-      await deleteTransaction(id);
-      setActionMsg({ type: 'success', text: 'Transaction deleted successfully!' });
-      fetchTransactions();
-    } catch (error: any) {
-      setActionMsg({ type: 'error', text: error?.detail || 'Failed to delete transaction.' });
-    }
-  };
+
 
   // Filter data based on search
   const filteredData = transactions.filter(item => {
@@ -719,20 +700,7 @@ const InventoryTransactions: React.FC = () => {
                         {new Date(item.timestamp).toLocaleDateString()}
                         <br />
                         <span className="text-[10px]">{new Date(item.timestamp).toLocaleTimeString()}</span>
-                      </div>
-
-                      {/* Actions - Only Delete, no Edit */}
-                      {canManage && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button 
-                            onClick={() => handleDelete(item.id, item.ingredient_name || '', typeInfo.label)}
-                            className="p-1.5 text-slate-400 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5"
-                            title="Delete"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      )}
+                      </div>      
                     </div>
                   </div>
                 </div>
