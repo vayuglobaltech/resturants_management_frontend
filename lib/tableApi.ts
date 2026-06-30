@@ -6,7 +6,7 @@ import { apiFetch } from "./api";
 // path('tables/<int:pk>/', views.TableRetrieveUpdateDestroyView.as_view(), name='table-detail'),
 // path('tables/deleted/', views.DeletedTableListView.as_view(), name='deleted-tables'),
 
-const TABLES_ENDPOINT = "/api/orders/";  // No /api/ prefix, matches your Django URLs
+const TABLES_ENDPOINT = "/api/orders/tables/";  // No /api/ prefix, matches your Django URLs
 
 
 export async function createTable(data: {
