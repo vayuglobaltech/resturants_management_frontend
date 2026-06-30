@@ -226,9 +226,10 @@ export async function deleteCategory(id: string | number) {
     { method: "DELETE" },
     true
   );
+  // 204 No Content – no JSON body
   if (res.status === 204) return null;
   const json = await res.json().catch(() => null);
-  if (res.ok === false && json) throw json;
+  if (!res.ok && json) throw json;
   return json;
 }
 
@@ -362,6 +363,16 @@ export async function createRecipe(data: any) {
   const json = await res.json();
   if (!res.ok) throw json;
   return json;
+}
+
+export async function getRecipeByProduct(productId: number) {
+  // Query recipes by product ID (returns a paginated list)
+  const res = await apiFetch(`/api/inventory/recipes/?product=${productId}`, {}, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  const results = json.results || json;
+  // Return the first recipe (there should be only one per product)
+  return results[0] || null;
 }
 
 export async function getRecipe(id: string | number) {
@@ -565,4 +576,12 @@ export async function deleteTransaction(id: string | number) {
     throw json;
   }
   return true;
+}
+// lib/api.ts
+
+export async function getBranchInventory(branchId: number) {
+  const res = await apiFetch(`/api/inventory/inventory/?branch=${branchId}`, {}, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json.results || json;
 }
