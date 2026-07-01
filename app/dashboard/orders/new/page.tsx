@@ -65,6 +65,7 @@ export default function NewOrderPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
@@ -94,7 +95,7 @@ export default function NewOrderPage() {
     };
     fetchData();
   }, []);
-
+  const specialInstructions = watch("special_instructions");
   // Filter menu items by search
   const filteredItems = useMemo(() => {
     if (!searchTerm.trim()) return menuItems;
@@ -360,8 +361,13 @@ export default function NewOrderPage() {
                     Special Instructions
                   </label>
                   <textarea
-                    {...register("special_instructions")}
+                    // {...register("special_instructions")}
+                    value={specialInstructions}
+                    onChange={(e) =>
+                      setValue("special_instructions", e.target.value)
+                    }
                     rows={2}
+                    
                     placeholder="e.g. No onions, extra cheese..."
                     className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                   />

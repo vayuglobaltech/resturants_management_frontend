@@ -64,6 +64,42 @@ export default function DashboardOverview() {
           .
         </p>
       </div>
+
+      {/* ─── Applications & Modules (from kitchen branch) ─── */}
+      <h2 className="text-xl font-bold text-slate-200 mt-10 mb-4">
+        Applications & Modules
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <a
+          href="/dashboard/inventory"
+          className="group flex flex-col p-6 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 hover:shadow-[0_8px_30px_rgba(99,102,241,0.15)] hover:-translate-y-1 transition-all duration-300 backdrop-blur-md cursor-pointer"
+        >
+          <div className="flex items-center gap-4 mb-3">
+            <span className="text-4xl group-hover:scale-110 transition-transform duration-300">📦</span>
+            <h3 className="text-xl font-bold text-slate-100 group-hover:text-indigo-300 transition-colors">
+              Inventory System
+            </h3>
+          </div>
+          <p className="text-sm text-slate-400">
+            Manage product categories, track ingredients, monitor physical stock levels, and control restaurant-wide availability.
+          </p>
+        </a>
+
+        <a
+          href="/dashboard/kitchen"
+          className="group flex flex-col p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 hover:shadow-[0_8px_30px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300 backdrop-blur-md cursor-pointer"
+        >
+          <div className="flex items-center gap-4 mb-3">
+            <span className="text-4xl group-hover:scale-110 transition-transform duration-300">🍳</span>
+            <h3 className="text-xl font-bold text-slate-100 group-hover:text-emerald-300 transition-colors">
+              Kitchen Stations
+            </h3>
+          </div>
+          <p className="text-sm text-slate-400">
+            Manage kitchen stations, track capacity, and monitor station availability across branches.
+          </p>
+        </a>
+      </div>
     </div>
   );
 }

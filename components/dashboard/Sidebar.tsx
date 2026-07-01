@@ -19,7 +19,8 @@ import {
   List,
   Archive,
   Layers,
-  Folder,        // ← added for category icon
+  Folder,
+  CookingPot,        // ← added for category icon
 } from "lucide-react";
 import { listMenuItems } from "@/lib/menuApi";
 import { listOrders, listTables } from "@/lib/ordersApi";
@@ -65,7 +66,9 @@ const SUB_FEATURES: Record<
       href: "/dashboard/inventory/transactions",
     },
   ],
-  kitchen: [{ label: "Queue", icon: Utensils, href: "/dashboard/kitchen" }],
+  kitchen: [{ label: "Queue", icon: Utensils, href: "/dashboard/kitchen" },
+    { label: "Stations", icon: CookingPot, href: "/dashboard/kitchen/kitchen-stations" },
+  ],
   tables: [
     { label: "All Tables", icon: Table, href: "/dashboard/tables" },
     { label: "Add Table", icon: Plus, href: "/dashboard/tables/add" },
@@ -191,10 +194,10 @@ export function DashboardSidebar({
         </div>
         {items.map((item) => {
           const isActive =
-            pathname === item.href ||
-            (pathname.startsWith(item.href + "/") &&
-              item.href !== "/dashboard" &&
-              item.href !== "/dashboard/inventory");
+            pathname === item.href
+            // (pathname.startsWith(item.href + "/") &&
+            //   item.href !== "/dashboard" &&
+            //   item.href !== "/dashboard/inventory");
           return (
             <Link
               key={item.href}

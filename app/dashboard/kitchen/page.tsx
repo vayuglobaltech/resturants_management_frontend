@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { listOrders, updateOrder } from "@/lib/ordersApi";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Loader2, Clock, ChefHat, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Clock, ChefHat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 

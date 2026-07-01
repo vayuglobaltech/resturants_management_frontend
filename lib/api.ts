@@ -1,4 +1,6 @@
 // API base URL - update this to match your backend
+import { CreateTransactionData, TransactionFilters } from '@/types/index';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // ─── Token Storage ────────────────────────────────────────────────────────────
@@ -546,6 +548,35 @@ export async function getTransaction(id: string | number) {
   return json;
 }
 
+
+
+
+
+
+
+export async function updateTransaction(id: string | number, data: Partial<CreateTransactionData>) {
+  const res = await apiFetch(
+    `/api/inventory/transactions/${id}/`,
+    { method: 'PATCH', body: JSON.stringify(data) },
+    true
+  );
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function deleteTransaction(id: string | number) {
+  const res = await apiFetch(
+    `/api/inventory/transactions/${id}/`,
+    { method: 'DELETE' },
+    true
+  );
+  if (!res.ok) {
+    const json = await res.json();
+    throw json;
+  }
+  return true;
+}
 // lib/api.ts
 
 export async function getBranchInventory(branchId: number) {
