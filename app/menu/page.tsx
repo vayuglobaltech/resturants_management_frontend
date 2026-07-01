@@ -17,6 +17,7 @@ import {
 const EMPTY: MenuItemPayload = {
   name: "",
   description: "",
+  sku: "",
   price: "",
   cost_price: "",
   category: 0,
@@ -91,6 +92,7 @@ export default function MenuPage() {
     setForm({
       name: item.name,
       description: item.description,
+      sku: item.sku,
       price: item.price,
       cost_price: item.cost_price,
       category: item.category,

@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { DashboardNavbar } from "@/components/dashboard/Navbar";
 import { DashboardSidebar } from "@/components/dashboard/Sidebar";
 import { cn } from "@/lib/utils";
+import { ToastProvider } from "@/components/ui/Toast";
 
 const getFeatureFromPath = (path: string): string => {
   if (path === "/dashboard") return "dashboard";
@@ -74,7 +75,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             sidebarCollapsed ? "md:ml-16" : "md:ml-64"
           )}
         >
+          <ToastProvider>
           {children}
+          </ToastProvider>
         </main>
       </div>
     </div>
