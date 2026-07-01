@@ -7,6 +7,7 @@ import { Plus, Table as TableIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
+import { useCanManage } from "@/hooks/useCanManage";
 
 const TABLE_STATUSES = ["AVAILABLE", "OCCUPIED", "RESERVED", "OUT_OF_SERVICE"];
 
@@ -18,6 +19,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function TablesPage() {
+  const canManage=useCanManage();
   const [tables, setTables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -67,11 +69,13 @@ export default function TablesPage() {
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <TableIcon className="h-6 w-6 text-indigo-400" /> All Tables
         </h1>
+        {canManage && (
         <Link href="/dashboard/tables/add">
           <Button className="gap-1.5">
             <Plus className="h-4 w-4" /> Add Table
           </Button>
         </Link>
+        )} 
       </div>
 
       {tables.length === 0 ? (
