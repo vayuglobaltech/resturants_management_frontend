@@ -194,10 +194,10 @@ export function DashboardSidebar({
         </div>
         {items.map((item) => {
           const isActive =
-            pathname === item.href ||
-            (pathname.startsWith(item.href + "/") &&
-              item.href !== "/dashboard" &&
-              item.href !== "/dashboard/inventory");
+            pathname === item.href
+            // (pathname.startsWith(item.href + "/") &&
+            //   item.href !== "/dashboard" &&
+            //   item.href !== "/dashboard/inventory");
           return (
             <Link
               key={item.href}
