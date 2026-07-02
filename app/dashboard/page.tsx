@@ -33,6 +33,7 @@ export default function DashboardOverview() {
       ? user.role.name
       : "waiter";
   const items = stats[roleName as keyof typeof stats] || stats.admin;
+  const canViewModules = ["admin", "branch_manager"].includes(roleName);
 
   return (
     <div className="space-y-6">
@@ -64,7 +65,8 @@ export default function DashboardOverview() {
           .
         </p>
       </div>
-
+{canViewModules && (
+  <div>
       {/* ─── Applications & Modules (from kitchen branch) ─── */}
       <h2 className="text-xl font-bold text-slate-200 mt-10 mb-4">
         Applications & Modules
@@ -100,6 +102,8 @@ export default function DashboardOverview() {
           </p>
         </a>
       </div>
+      </div>
+)}
     </div>
   );
 }

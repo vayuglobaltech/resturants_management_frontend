@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createTable } from "@/lib/tableApi";
 import { getBranches } from "@/lib/api"; // Import getBranches
 import { ArrowLeft, Plus, Users, MapPin, Hash, ChevronRight, Store } from "lucide-react";
+import { useCanManage } from "@/hooks/useCanManage";
 
 // In your AddTablePage, update the TABLE_STATUSES to match exactly
 // Make sure the values match the choices in your Django model
@@ -199,7 +200,7 @@ export default function AddTablePage() {
     };
     fetchBranches();
   }, []);
-
+  const canManage = useCanManage();
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -240,6 +241,8 @@ export default function AddTablePage() {
   };
 
   return (
+    <div>
+      {canManage ?
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-2 text-sm text-slate-400">
         <Link href="/dashboard/tables" className="hover:text-white transition-colors">
@@ -378,5 +381,11 @@ export default function AddTablePage() {
         </CardContent>
       </Card>
     </div>
+: (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <p className="text-slate-400 text-sm">You do not have permission to manage tables.</p>
+  </div>
+)}
+    </div>
   );
-}
+};

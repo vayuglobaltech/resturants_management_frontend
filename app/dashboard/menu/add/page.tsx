@@ -38,6 +38,7 @@ export default function AddMenuItemPage() {
     register,
     handleSubmit,
     formState: { errors },
+    setError,
   } = useForm<FormData>({
     defaultValues: {
       name: "",
@@ -72,9 +73,10 @@ export default function AddMenuItemPage() {
         sku: data.sku,
         description: data.description,
         price: data.price,
-        cost_price: data.cost_price || undefined,
+        cost_price: data.cost_price || "0.00",
         category: parseInt(data.category),
         prep_time_minutes: data.prep_time_minutes,
+        is_available: true,
       };
       await createMenuItem(payload);
       toast.success("Menu item created successfully!");
@@ -86,7 +88,49 @@ export default function AddMenuItemPage() {
       } else {
         toast.error("Failed to create menu item.");
       }
-    } finally {
+    }
+    
+  //   } catch (error: any) {
+    
+  //   if (error && typeof error === "object") {
+  //     if (error.sku) {  
+  //       const skuError = Array.isArray(error.sku) ? error.sku[0] : error.sku;
+        
+  //       // Set error on the SKU field
+  //       setError("sku", {  // ← NEW: Show error below SKU input
+  //         type: "manual",
+  //         message: skuError
+  //       });
+        
+  //       // Also show toast with a clearer message
+  //       if (skuError.includes("already exists")) {
+  //         toast.error("This SKU is already in use. Please use a unique SKU.");
+  //       } else {
+  //         toast.error(skuError);
+  //       }
+  //     } else {
+  //       // Handle other field errors
+  //       const messages = Object.entries(error)
+  //         .filter(([_, value]) => value !== null && value !== undefined)
+  //         .map(([key, value]) => {
+  //           if (Array.isArray(value)) {
+  //             return `${key}: ${value.join(" ")}`;
+  //           }
+  //           return `${key}: ${value}`;
+  //         });
+        
+  //       if (messages.length > 0) {
+  //         toast.error(messages.join(" | "));
+  //       } else {
+  //         toast.error("Failed to create menu item.");
+  //       }
+  //     }
+  //   } else {
+  //     toast.error("Failed to create menu item.");
+  //   }
+  // }
+  
+   finally {
       setLoading(false);
     }
   };
