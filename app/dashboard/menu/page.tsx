@@ -76,11 +76,14 @@ export default function MenuPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold text-white">Menu Management</h1>
-        <Link href="/dashboard/menu/add">
+        {canManage && (
+          
+          <Link href="/dashboard/menu/add">
           <Button className="gap-1.5">
             <Plus className="h-4 w-4" /> Add Item
           </Button>
         </Link>
+        )}
       </div>
 
       {filteredItems.length === 0 ? (
