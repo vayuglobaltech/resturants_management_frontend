@@ -9,6 +9,7 @@ import { Menu, LogOut, ChevronDown, User, Settings, Sparkles } from "lucide-reac
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "../NotificationBell";
 
 const FEATURES_BY_ROLE: Record<string, { id: string; label: string }[]> = {
   admin: [
@@ -144,6 +145,8 @@ export function DashboardNavbar({
 
         {/* Right section */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Notification Bell */}
+          <NotificationBell/>
           {/* Mobile feature dropdown toggle */}
           <div className="md:hidden flex items-center">
             <button
