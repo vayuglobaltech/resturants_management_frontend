@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { KanbanBoard } from "@/components/orders/KanbanBoard";
-import { listOrders } from "@/lib/ordersApi";
+import { listOrders, getTable } from "@/lib/ordersApi";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +19,8 @@ import {
   CheckCircle2,
   DollarSign,
   Timer,
+  X,
+  Table as TableIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -30,6 +33,7 @@ interface Order {
   status: string;
   total_amount: string;
   table_number_display?: number;
+  table?: number;
   items?: any[];
   created_at: string;
 }
@@ -61,6 +65,8 @@ function StatCard({ title, value, icon, color = "text-indigo-400", subtitle }: S
 
 export default function OrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,9 +74,25 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
+  // ─── Read table filter from URL query ──────────────────────────────────
+  const tableId = searchParams.get("table");
+  const [activeTableName, setActiveTableName] = useState<string | null>(null);
+
+  // Fetch table name when tableId is present (for display)
+  useEffect(() => {
+    if (tableId) {
+      getTable(tableId)
+        .then((t: any) => setActiveTableName(`Table ${t.table_number || t.name || t.id}`))
+        .catch(() => setActiveTableName(`Table #${tableId}`));
+    } else {
+      setActiveTableName(null);
+    }
+  }, [tableId]);
+
   const fetchOrders = async () => {
     try {
-      const data = await listOrders();
+      // Pass tableId to API for server-side filtering
+      const data = await listOrders(tableId || undefined);
       const allOrders = data.results || data || [];
       setOrders(allOrders);
       applyFilters(allOrders, searchTerm, statusFilter, sortBy);
@@ -83,8 +105,9 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
+    setLoading(true);
     fetchOrders();
-  }, []);
+  }, [tableId]);
 
   // Apply filters and sorting
   const applyFilters = (
@@ -157,6 +180,10 @@ export default function OrdersPage() {
     fetchOrders();
   };
 
+  const clearTableFilter = () => {
+    router.push("/dashboard/orders");
+  };
+
   // ─── Compute Stats ────────────────────────────────────────────────────────
 
   const stats = {
@@ -178,6 +205,8 @@ export default function OrdersPage() {
     );
   }
 
+  const isManager = user?.role === "admin" || user?.role === "branch_manager";
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* ─── Header ────────────────────────────────────────────────────────── */}
@@ -195,8 +224,26 @@ export default function OrdersPage() {
         </Link>
       </div>
 
+      {/* ─── Active Table Filter Banner ────────────────────────────────────── */}
+      {tableId && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+          <TableIcon className="h-5 w-5 text-indigo-400 flex-shrink-0" />
+          <span className="text-sm text-indigo-300 font-medium">
+            Filtering orders for{" "}
+            <span className="text-white font-semibold">{activeTableName || `Table #${tableId}`}</span>
+          </span>
+          <button
+            onClick={clearTableFilter}
+            className="ml-auto flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+            Clear filter
+          </button>
+        </div>
+      )}
+
       {/* ─── KPI Cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className={cn("grid grid-cols-2 gap-4", isManager ? "md:grid-cols-5" : "md:grid-cols-3")}>
         <StatCard
           title="Pending"
           value={stats.pending}
@@ -215,20 +262,24 @@ export default function OrdersPage() {
           icon={<CheckCircle2 className="h-5 w-5" />}
           color="text-emerald-400"
         />
-        <StatCard
-          title="Revenue"
-          value={`$${stats.revenue.toFixed(2)}`}
-          icon={<DollarSign className="h-5 w-5" />}
-          color="text-green-400"
-          subtitle="Total sales"
-        />
-        <StatCard
-          title="Avg Time"
-          value={stats.avgTime}
-          icon={<Timer className="h-5 w-5" />}
-          color="text-blue-400"
-          subtitle="To delivery"
-        />
+        {isManager && (
+          <>
+            <StatCard
+              title="Revenue"
+              value={`$${stats.revenue.toFixed(2)}`}
+              icon={<DollarSign className="h-5 w-5" />}
+              color="text-green-400"
+              subtitle="Total sales"
+            />
+            <StatCard
+              title="Avg Time"
+              value={stats.avgTime}
+              icon={<Timer className="h-5 w-5" />}
+              color="text-blue-400"
+              subtitle="To delivery"
+            />
+          </>
+        )}
       </div>
 
       {/* ─── Controls ──────────────────────────────────────────────────────── */}

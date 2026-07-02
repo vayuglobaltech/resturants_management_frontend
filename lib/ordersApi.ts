@@ -1,8 +1,12 @@
 import { apiFetch } from "./api";
 
-export async function listOrders() {
+export async function listOrders(tableId?: string | number) {
   try {
-    const res = await apiFetch("/api/orders/", {}, true);
+    let url = "/api/orders/";
+    if (tableId) {
+      url += `?table=${tableId}`;
+    }
+    const res = await apiFetch(url, {}, true);
     if (!res.ok) throw new Error(`API error ${res.status}`);
     const json = await res.json();
     // Return array if possible
