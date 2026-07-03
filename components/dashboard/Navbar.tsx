@@ -25,6 +25,7 @@ const FEATURES_BY_ROLE: Record<string, { id: string; label: string }[]> = {
   ],
   branch_manager: [
     { id: "dashboard", label: "Dashboard" },
+    { id: "users", label: "Employee" },
     { id: "menu", label: "Menu" },
     { id: "orders", label: "Orders" },
     { id: "inventory", label: "Inventory" },
