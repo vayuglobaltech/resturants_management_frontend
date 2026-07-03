@@ -22,6 +22,7 @@ const FEATURES_BY_ROLE: Record<string, { id: string; label: string }[]> = {
     { id: "payments", label: "Payments" },
     { id: "users", label: "Users" },
     { id: "reports", label: "Reports" },
+    { id: "discounts", label: "Discounts" }
   ],
   branch_manager: [
     { id: "dashboard", label: "Dashboard" },
@@ -32,6 +33,7 @@ const FEATURES_BY_ROLE: Record<string, { id: string; label: string }[]> = {
     { id: "kitchen", label: "Kitchen" },
     { id: "tables", label: "Tables" },
     { id: "reports", label: "Reports" },
+    { id: "discounts", label: "Discounts" }
   ],
   waiter: [
     { id: "dashboard", label: "Dashboard" },

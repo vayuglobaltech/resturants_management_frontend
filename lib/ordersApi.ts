@@ -84,3 +84,56 @@ export async function deleteOrderItem(id: number) {
   }
   return res;
 }
+
+// Add this function
+
+export async function getActiveDiscounts() {
+  const res = await apiFetch("/api/orders/discounts/active/", {}, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json.results !== undefined ? json.results : json;
+}
+
+
+// ─── Discount Management (Full CRUD) ─────────────────────────────────────
+
+export async function getDiscounts() {
+  const res = await apiFetch("/api/orders/discounts/", {}, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json.results !== undefined ? json.results : json;
+}
+
+export async function createDiscount(data: any) {
+  const res = await apiFetch(
+    "/api/orders/discounts/",
+    { method: "POST", body: JSON.stringify(data) },
+    true
+  );
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function updateDiscount(id: number, data: any) {
+  const res = await apiFetch(
+    `/api/orders/discounts/${id}/`,
+    { method: "PATCH", body: JSON.stringify(data) },
+    true
+  );
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function deleteDiscount(id: number) {
+  const res = await apiFetch(
+    `/api/orders/discounts/${id}/`,
+    { method: "DELETE" },
+    true
+  );
+  if (res.status === 204) return null;
+  const json = await res.json().catch(() => null);
+  if (!res.ok && json) throw json;
+  return json;
+}
