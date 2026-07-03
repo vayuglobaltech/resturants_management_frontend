@@ -1,0 +1,748 @@
+// app/dashboard/reports/insights/page.tsx
+"use client";
+
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { getBranches } from "@/lib/api";
+import {
+  getDailySalesSummary,
+  getHourlySalesAnalytics,
+  getProductSalesAnalytics,
+  getDailySalesTrend,
+} from "@/lib/accountingApi";
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Package,
+  Clock,
+  Crown,
+  Flame,
+  ArrowDown,
+  Users,
+  Calendar,
+  RefreshCw,
+  Store,
+  BarChart3,
+  Activity,
+  Receipt,
+  AlertTriangle,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import toast from "react-hot-toast";
+
+// ─── Helper functions ──────────────────────────────────────────────────────
+const safeNumber = (value: any): number => {
+  if (value === undefined || value === null) return 0;
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  return isNaN(num) ? 0 : num;
+};
+
+const formatCurrency = (value: any): string => {
+  return `$${safeNumber(value).toFixed(2)}`;
+};
+
+const formatCompactCurrency = (value: any): string => {
+  const num = safeNumber(value);
+  if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `$${(num / 1000).toFixed(1)}K`;
+  return `$${num.toFixed(2)}`;
+};
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface HourlyData {
+  hour: number;
+  orders: number;
+  revenue: number;
+  label: string;
+}
+
+interface ProductSales {
+  id: number;
+  name: string;
+  quantity: number;
+  revenue: number;
+  percentage: number;
+}
+
+interface DailyTrendData {
+  date: string;
+  orders: number;
+  revenue: number;
+}
+
+// ─── Stat Card ──────────────────────────────────────────────────────────────
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  subtitle?: string;
+  color?: string;
+  trend?: number;
+}
+
+function StatCard({ title, value, icon, subtitle, color = "text-indigo-400", trend }: StatCardProps) {
+  return (
+    <Card className="bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.05] transition-colors">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn("p-2.5 rounded-xl bg-white/5", color)}>{icon}</div>
+            <div>
+              <p className="text-sm text-slate-400 font-medium">{title}</p>
+              <p className="text-2xl font-bold text-white">{value}</p>
+            </div>
+          </div>
+          {trend !== undefined && (
+            <div className={cn(
+              "flex items-center gap-1 text-sm font-medium",
+              trend >= 0 ? "text-emerald-400" : "text-red-400"
+            )}>
+              {trend >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              {Math.abs(trend)}%
+            </div>
+          )}
+        </div>
+        {subtitle && <p className="text-xs text-slate-500 mt-2">{subtitle}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Peak Hours Chart ──────────────────────────────────────────────────────
+
+// app/dashboard/reports/insights/page.tsx - Update the PeakHoursChart component
+
+// ─── Peak Hours Chart ──────────────────────────────────────────────────────
+
+interface PeakHoursChartProps {
+  data: HourlyData[];
+}
+
+function PeakHoursChart({ data }: PeakHoursChartProps) {
+  // If no data or all zeros, show empty state
+  const hasData = data.length > 0 && data.some(d => d.orders > 0);
+  const maxOrders = hasData ? Math.max(...data.map(d => d.orders)) : 1;
+
+  return (
+    <Card className="bg-white/[0.03] border-white/[0.06]">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Peak Hours</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Order volume by hour</p>
+          </div>
+          <Clock className="h-5 w-5 text-slate-400" />
+        </div>
+
+        {!hasData ? (
+          <div className="text-center py-8">
+            <Clock className="h-8 w-8 text-slate-500 mx-auto mb-2" />
+            <p className="text-sm text-slate-400">No hourly data available</p>
+            <p className="text-xs text-slate-500 mt-1">Try selecting a different date range</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-end justify-between h-40 gap-1 pt-2">
+              {data.map((item, index) => {
+                // Calculate height as percentage of max
+                const heightPercent = maxOrders > 0 ? (item.orders / maxOrders) * 100 : 0;
+                // Minimum height for visibility
+                const barHeight = Math.max(heightPercent, 4);
+                const isPeak = item.orders === maxOrders && maxOrders > 0;
+                const isOffPeak = item.orders === 0;
+                
+                // Format hour label
+                const hourLabel = item.hour === 0 ? '12 AM' :
+                                 item.hour < 12 ? `${item.hour} AM` :
+                                 item.hour === 12 ? '12 PM' :
+                                 `${item.hour - 12} PM`;
+                
+                return (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full flex flex-col items-center">
+                      {/* Revenue value on top */}
+                      <span className="text-[10px] text-slate-400 mb-0.5">
+                        {item.orders}
+                      </span>
+                      {/* Bar */}
+                      <div 
+                        className={cn(
+                          "w-full rounded-t transition-all duration-500 cursor-pointer",
+                          isPeak ? "bg-gradient-to-t from-emerald-500 to-emerald-400" :
+                          isOffPeak ? "bg-slate-500/20" : "bg-indigo-500/40 hover:bg-indigo-500/60"
+                        )}
+                        style={{ 
+                          height: `${barHeight}%`,
+                          minHeight: isOffPeak ? '4px' : '6px',
+                          maxHeight: '100%'
+                        }}
+                        title={`${hourLabel}: ${item.orders} orders, ${formatCompactCurrency(item.revenue)}`}
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-500 truncate w-full text-center mt-1">
+                      {hourLabel}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Peak hour summary */}
+            {maxOrders > 0 && (
+              <div className="pt-3 border-t border-white/[0.06]">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-400">Peak Hour:</span>
+                  <span className="text-emerald-400 font-bold">
+                    {(() => {
+                      const peak = data.find(d => d.orders === maxOrders);
+                      if (!peak) return 'N/A';
+                      return peak.hour === 0 ? '12 AM' :
+                             peak.hour < 12 ? `${peak.hour} AM` :
+                             peak.hour === 12 ? '12 PM' :
+                             `${peak.hour - 12} PM`;
+                    })()}
+                  </span>
+                  <span className="text-slate-400">Orders:</span>
+                  <span className="text-white font-bold">{maxOrders}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm mt-1">
+                  <span className="text-slate-400">Revenue at Peak:</span>
+                  <span className="text-emerald-400 font-bold">
+                    {formatCompactCurrency(data.find(d => d.orders === maxOrders)?.revenue || 0)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+// ─── Top Products Component ──────────────────────────────────────────────
+
+interface TopProductsProps {
+  title: string;
+  products: ProductSales[];
+  icon: React.ReactNode;
+  color: string;
+  accentColor: string;
+}
+
+function TopProducts({ title, products, icon, color, accentColor }: TopProductsProps) {
+  return (
+    <Card className="bg-white/[0.03] border-white/[0.06]">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-white">{title}</h3>
+            <p className="text-xs text-slate-400 mt-0.5">By revenue</p>
+          </div>
+          {icon}
+        </div>
+
+        {products.length === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-sm text-slate-400">No data available</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {products.slice(0, 5).map((product, index) => (
+              <div key={product.id || index} className="flex items-center gap-3">
+                <div className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                  index === 0 ? "bg-yellow-500/20 text-yellow-400" :
+                  index === 1 ? "bg-slate-400/20 text-slate-300" :
+                  index === 2 ? "bg-amber-700/20 text-amber-600" :
+                  "bg-white/5 text-slate-400"
+                )}>
+                  {index + 1}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-white truncate">{product.name}</span>
+                    <span className="text-sm font-bold text-white">{formatCompactCurrency(product.revenue)}</span>
+                  </div>
+                  <div className="w-full bg-white/5 rounded-full h-1.5 mt-1">
+                    <div 
+                      className={cn("h-1.5 rounded-full transition-all", accentColor)}
+                      style={{ width: `${Math.min(product.percentage, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {products.length > 5 && (
+              <p className="text-xs text-slate-500 text-center mt-2">
+                +{products.length - 5} more items
+              </p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Daily Sales Trend Component ──────────────────────────────────────────
+
+interface DailySalesTrendProps {
+  data: DailyTrendData[];
+}
+
+function DailySalesTrend({ data }: DailySalesTrendProps) {
+  const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
+
+  return (
+    <Card className="bg-white/[0.03] border-white/[0.06]">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Daily Sales Trend</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Revenue trend over time</p>
+          </div>
+          <BarChart3 className="h-5 w-5 text-slate-400" />
+        </div>
+
+        {data.length === 0 || data.every(d => d.revenue === 0) ? (
+          <div className="text-center py-8">
+            <BarChart3 className="h-8 w-8 text-slate-500 mx-auto mb-2" />
+            <p className="text-sm text-slate-400">No daily trend data available</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-end justify-between h-32 gap-1">
+              {data.map((item, index) => {
+                const height = maxRevenue > 0 ? (item.revenue / maxRevenue) * 100 : 0;
+                const isHighest = item.revenue === maxRevenue && maxRevenue > 0;
+                
+                return (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-1">
+                    <div 
+                      className={cn(
+                        "w-full rounded-t transition-all duration-500",
+                        isHighest ? "bg-gradient-to-t from-emerald-500 to-emerald-400" : "bg-indigo-500/40 hover:bg-indigo-500/60"
+                      )}
+                      style={{ 
+                        height: `${Math.max(height * 0.9, 4)}%`,
+                        minHeight: '4px'
+                      }}
+                      title={`${item.date}: ${formatCompactCurrency(item.revenue)}`}
+                    />
+                    <span className="text-[10px] text-slate-500 truncate w-full text-center">
+                      {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Main Page ──────────────────────────────────────────────────────────────
+
+export default function InsightsPage() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [dateRange, setDateRange] = useState({
+    start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+  });
+  
+  // Stats
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    averageOrderValue: 0,
+    peakHour: '',
+    peakHourOrders: 0,
+  });
+  
+  // Hourly data
+  const [hourlyData, setHourlyData] = useState<HourlyData[]>([]);
+  
+  // Product data
+  const [bestSellers, setBestSellers] = useState<ProductSales[]>([]);
+  const [leastSellers, setLeastSellers] = useState<ProductSales[]>([]);
+  
+  // Daily trend data
+  const [dailyTrendData, setDailyTrendData] = useState<DailyTrendData[]>([]);
+  
+  // Busiest day
+  const [busiestDay, setBusiestDay] = useState<string>('');
+
+  const isMounted = useRef(true);
+
+  // Fetch branches on mount
+  useEffect(() => {
+    isMounted.current = true;
+    fetchBranches();
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const fetchBranches = async () => {
+    try {
+      const data = await getBranches();
+      const branchList = data.results || data || [];
+      setBranches(branchList);
+      setSelectedBranch(null);
+      
+      // After branches are loaded, fetch insights
+      await fetchInsights();
+    } catch (error) {
+      console.error("Failed to fetch branches:", error);
+      setError("Failed to load branches");
+      toast.error("Failed to load branches");
+      if (isMounted.current) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const fetchInsights = useCallback(async () => {
+    if (!isMounted.current) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const startDate = dateRange.start_date;
+      const endDate = dateRange.end_date;
+      
+      // Fetch product sales analytics from API
+      const productData = await getProductSalesAnalytics(
+        startDate,
+        endDate,
+        selectedBranch || undefined,
+        10
+      );
+      
+      // Process product data
+      const products = productData.results || productData || [];
+      const totalProductRevenue = products.reduce((sum: number, p: any) => sum + safeNumber(p.revenue), 0);
+      
+      const productSales: ProductSales[] = products.map((p: any) => ({
+        id: p.id,
+        name: p.name || `Product #${p.id}`,
+        quantity: safeNumber(p.quantity),
+        revenue: safeNumber(p.revenue),
+        percentage: totalProductRevenue > 0 ? (safeNumber(p.revenue) / totalProductRevenue) * 100 : 0,
+      }));
+      
+      // Sort by revenue
+      const sorted = [...productSales].sort((a, b) => b.revenue - a.revenue);
+      setBestSellers(sorted);
+      setLeastSellers([...sorted].reverse());
+      
+      // Fetch hourly sales analytics from API
+      const hourlyDataResponse = await getHourlySalesAnalytics(
+        startDate,
+        endDate,
+        selectedBranch || undefined
+      );
+      
+      // Process hourly data
+      const hourlyResults = hourlyDataResponse.results || hourlyDataResponse || [];
+      const hourlyDataArray: HourlyData[] = hourlyResults.map((h: any) => ({
+        hour: h.hour,
+        orders: safeNumber(h.orders),
+        revenue: safeNumber(h.revenue),
+        label: `${h.hour}:00`,
+      }));
+      
+      setHourlyData(hourlyDataArray);
+      
+      // Fetch daily sales trend from API
+      const trendData = await getDailySalesTrend(
+        startDate,
+        endDate,
+        selectedBranch || undefined
+      );
+      
+      // Process daily trend data
+      const trendResults = trendData.results || trendData || [];
+      const dailyTrend: DailyTrendData[] = trendResults.map((d: any) => ({
+        date: d.date,
+        orders: safeNumber(d.orders),
+        revenue: safeNumber(d.revenue),
+      }));
+      
+      setDailyTrendData(dailyTrend);
+      
+      // Find busiest day (highest orders)
+      if (dailyTrend.length > 0) {
+        const busiest = dailyTrend.reduce((max, curr) => 
+          curr.orders > max.orders ? curr : max
+        );
+        setBusiestDay(new Date(busiest.date).toLocaleDateString('en-US', { 
+          weekday: 'long',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        }));
+      }
+      
+      // Calculate stats
+      const totalOrders = hourlyDataArray.reduce((sum, h) => sum + h.orders, 0);
+      const totalRevenue = hourlyDataArray.reduce((sum, h) => sum + h.revenue, 0);
+      
+      // Find peak hour
+      const peakHour = hourlyDataArray.reduce((max, curr) => 
+        curr.orders > max.orders ? curr : max
+      );
+      
+      setStats({
+        totalRevenue: totalRevenue,
+        totalOrders: totalOrders,
+        averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+        peakHour: `${peakHour.hour}:00`,
+        peakHourOrders: peakHour.orders,
+      });
+      
+      setIsInitialLoad(false);
+      
+    } catch (error) {
+      console.error("Failed to fetch insights:", error);
+      setError("Failed to load insights. Please try again.");
+      toast.error("Failed to load insights");
+    } finally {
+      if (isMounted.current) {
+        setLoading(false);
+      }
+    }
+  }, [dateRange.start_date, dateRange.end_date, selectedBranch]);
+
+  // Fetch data when dependencies change (only after initial load)
+  useEffect(() => {
+    if (!isInitialLoad && branches.length > 0) {
+      fetchInsights();
+    }
+  }, [dateRange.start_date, dateRange.end_date, selectedBranch, isInitialLoad]);
+
+  const handleBranchChange = (branchId: string) => {
+    if (branchId === "all") {
+      setSelectedBranch(null);
+    } else {
+      setSelectedBranch(parseInt(branchId));
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchInsights();
+  };
+
+  if (loading && isInitialLoad) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">Something went wrong</h2>
+          <p className="text-slate-400 mb-4">{error}</p>
+          <Button onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Business Insights</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Peak hours, best sellers, and performance metrics
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Branch and Date Filters */}
+      <Card className="bg-white/[0.03] border-white/[0.06]">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Store className="h-4 w-4 text-slate-400" />
+              <span className="text-sm text-slate-400 font-medium">Branch:</span>
+            </div>
+            <select
+              value={selectedBranch === null ? "all" : selectedBranch.toString()}
+              onChange={(e) => handleBranchChange(e.target.value)}
+              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
+            >
+              <option value="all">All Branches</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+            
+            <div className="flex items-center gap-2 ml-4">
+              <Calendar className="h-4 w-4 text-slate-400" />
+              <span className="text-sm text-slate-400 font-medium">From:</span>
+            </div>
+            <input
+              type="date"
+              value={dateRange.start_date}
+              onChange={(e) => setDateRange({ ...dateRange, start_date: e.target.value })}
+              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <span className="text-sm text-slate-400">to</span>
+            <input
+              type="date"
+              value={dateRange.end_date}
+              onChange={(e) => setDateRange({ ...dateRange, end_date: e.target.value })}
+              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Total Revenue"
+          value={formatCurrency(stats.totalRevenue)}
+          icon={<DollarSign className="h-5 w-5" />}
+          color="text-emerald-400"
+          subtitle={`${dateRange.start_date} to ${dateRange.end_date}`}
+        />
+        <StatCard
+          title="Total Orders"
+          value={stats.totalOrders}
+          icon={<Receipt className="h-5 w-5" />}
+          color="text-blue-400"
+          subtitle="In selected period"
+        />
+        <StatCard
+          title="Average Order Value"
+          value={formatCurrency(stats.averageOrderValue)}
+          icon={<TrendingUp className="h-5 w-5" />}
+          color="text-purple-400"
+          subtitle="Per order average"
+        />
+        <StatCard
+          title="Peak Hour"
+          value={stats.peakHour}
+          icon={<Clock className="h-5 w-5" />}
+          color="text-amber-400"
+          subtitle={`${stats.peakHourOrders} orders average`}
+        />
+      </div>
+
+      {/* Peak Hours Chart */}
+      <PeakHoursChart data={hourlyData} />
+
+      {/* Daily Sales Trend */}
+      <DailySalesTrend data={dailyTrendData} />
+
+      {/* Best Sellers and Least Sellers */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TopProducts
+          title="Best Sellers"
+          products={bestSellers}
+          icon={<Crown className="h-5 w-5 text-yellow-400" />}
+          color="text-yellow-400"
+          accentColor="bg-yellow-500"
+        />
+        <TopProducts
+          title="Least Sellers"
+          products={leastSellers}
+          icon={<ArrowDown className="h-5 w-5 text-red-400" />}
+          color="text-red-400"
+          accentColor="bg-red-500"
+        />
+      </div>
+
+      {/* Additional Insights */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-white/[0.03] border-white/[0.06]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-400">Avg Daily Orders</p>
+                <p className="text-xl font-bold text-white">
+                  {Math.round(stats.totalOrders / Math.max(1, 
+                    Math.ceil((new Date(dateRange.end_date).getTime() - new Date(dateRange.start_date).getTime()) / (1000 * 60 * 60 * 24))
+                  ))}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/[0.03] border-white/[0.06]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
+                <Activity className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-400">Busiest Day</p>
+                <p className="text-xl font-bold text-white">
+                  {busiestDay || 'No data'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/[0.03] border-white/[0.06]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-400">Revenue Per Day</p>
+                <p className="text-xl font-bold text-white">
+                  {formatCurrency(stats.totalRevenue / Math.max(1, 
+                    Math.ceil((new Date(dateRange.end_date).getTime() - new Date(dateRange.start_date).getTime()) / (1000 * 60 * 60 * 24))
+                  ))}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

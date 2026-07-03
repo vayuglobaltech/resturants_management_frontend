@@ -352,7 +352,7 @@ export default function NewPaymentPage() {
             </div>
           </div>
         </div>
-
+        
         {/* ─── Main Content: Tables Left | Payment Details Right ─── */}
         {!showBillSplash && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

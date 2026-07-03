@@ -109,3 +109,48 @@ export interface TransactionFilters {
   status?: string;
   ordering?: string;
 }
+
+// types/index.ts (add these to your existing types file)
+
+export interface AccountingSummary {
+  todayRevenue: number;
+  monthlyRevenue: number;
+  totalCOGS: number;
+  grossProfit: number;
+  grossProfitMargin: number;
+  pendingExpenses: number;
+  pendingAdjustments: number;
+  dailySales: DailySalesSummary;
+}
+
+export interface ShiftClosingFormData {
+  shift_date: string;
+  shift_number: number;
+  branch: number;
+  cashier?: number;
+}
+
+export interface ExpenseFormData {
+  category: string;
+  description: string;
+  amount: number;
+  expense_date: string;
+  payment_method: string;
+  receipt_number?: string;
+  vendor_name?: string;
+  branch: number;
+}
+
+export interface InventoryAdjustmentFormData {
+  ingredient: number;
+  system_quantity: number;
+  physical_quantity: number;
+  variance_quantity: number;
+  unit: string;
+  unit_cost: number;
+  variance_cost: number;
+  adjustment_reason: string;
+  notes?: string;
+  adjustment_date: string;
+  branch: number;
+}
