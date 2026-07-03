@@ -177,7 +177,7 @@ export default function NewPaymentPage() {
     (sum, order) => sum + parseFloat(order.total_amount || 0),
     0
   );
-  const tax = subtotal * 0.15;
+  const tax = subtotal * 0.08;
   const grandTotal = subtotal + tax;
 
   // ─── 5. Auto‑fill amount when table changes ──────────────────────────
@@ -623,7 +623,7 @@ export default function NewPaymentPage() {
                                 <span>${subtotal.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between items-center text-slate-300 text-sm">
-                                <span>Tax (15%)</span>
+                                <span>Tax (8%)</span>
                                 <span>${tax.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between items-center pt-2 text-white text-lg font-bold border-t border-white/10">

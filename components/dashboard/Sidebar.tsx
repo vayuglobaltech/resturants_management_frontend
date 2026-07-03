@@ -83,6 +83,10 @@ const SUB_FEATURES: Record<
   ],
   reports: [
     { label: "Sales Report", icon: BarChart3, href: "/dashboard/reports" },
+    { label: "Gross Profit", icon: BarChart3, href: "/dashboard/reports/gross-profit" },  
+    {label: "Sales Analytics", icon: BarChart3, href: "/dashboard/reports/daily-sales"},
+    {label:  "Transaction reports", icon: BarChart3, href: "/dashboard/reports/transactions"},
+    {label: "Insights", icon: BarChart3, href: "/dashboard/reports/insights"},
   ],
 };
 
