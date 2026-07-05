@@ -25,7 +25,9 @@ import {
   PartyPopper,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { useReactToPrint } from "react-to-print";
+// import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { listOrders, getOrder, listTables } from "@/lib/ordersApi";
@@ -58,13 +60,7 @@ export default function NewPaymentPage() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const splashRef = useRef<HTMLDivElement>(null);
-
-  const handlePrint = useReactToPrint({
-    contentRef: invoiceRef,
-    onAfterPrint: () => {
-      toast.success("PDF downloaded successfully!");
-    },
-  });
+  // const [isPrintReady, setIsPrintReady] = useState(false);
 
   const {
     register,
@@ -90,6 +86,38 @@ export default function NewPaymentPage() {
   const customerName = watch("customer_name");
   const paymentMethod = watch("payment_method");
 
+ const handleDownloadPDF = async () => {
+  console.log("📄 PDF button clicked");
+
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  // Try ref first, fallback to ID
+  const element = invoiceRef.current || document.getElementById("invoice-content");
+  if (!element) {
+    toast.error("Invoice content not ready. Please try again.");
+    return;
+  }
+
+  try {
+    const dataUrl = await toPng(element, {
+      quality: 1,
+      pixelRatio: 2,
+      backgroundColor: "#ffffff",
+    });
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const img = new Image();
+    img.src = dataUrl;
+    await img.decode();
+    const pdfHeight = (img.height * pdfWidth) / img.width;
+    pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`invoice-${selectedOrder?.order_number || "receipt"}.pdf`);
+    toast.success("Invoice downloaded!");
+  } catch (error) {
+    console.error("❌ PDF generation failed:", error);
+    toast.error("Failed to generate PDF.");
+  }
+};
   // ─── 1. Fetch occupied tables ──────────────────────────────────────────
   useEffect(() => {
     const fetchTables = async () => {
@@ -97,7 +125,7 @@ export default function NewPaymentPage() {
         const data = await listTables();
         const allTables = Array.isArray(data) ? data : [];
         const occupiedTables = allTables.filter(
-          (t: any) => t.status === "OCCUPIED" || t.status === "PAYMENT_PENDING"
+          (t: any) => t.status === "OCCUPIED" || t.status === "PAYMENT_PENDING",
         );
         setTables(occupiedTables);
       } catch (error) {
@@ -126,7 +154,7 @@ export default function NewPaymentPage() {
           const tableOrders = Array.isArray(data) ? data : [];
 
           const eligibleOrders = tableOrders.filter(
-            (o: any) => o.status === "READY" || o.status === "DELIVERED"
+            (o: any) => o.status === "READY" || o.status === "DELIVERED",
           );
 
           setOrders(eligibleOrders);
@@ -175,10 +203,16 @@ export default function NewPaymentPage() {
   const combinedItems = orders.flatMap((order: any) => order.items || []);
   const subtotal = orders.reduce(
     (sum, order) => sum + parseFloat(order.total_amount || 0),
-    0
+    0,
   );
   const tax = subtotal * 0.08;
   const grandTotal = subtotal + tax;
+  // ─── Compute total discount from selected order ──────────────────────────
+  const totalDiscount =
+    selectedOrder?.discounts?.reduce(
+      (sum: number, d: any) => sum + Number(d.amount),
+      0,
+    ) || 0;
 
   // ─── 5. Auto‑fill amount when table changes ──────────────────────────
   useEffect(() => {
@@ -215,15 +249,14 @@ export default function NewPaymentPage() {
           method: "POST",
           body: JSON.stringify(payload),
         },
-        true
+        true,
       );
       const json = await res.json();
       if (!res.ok) throw json;
-      
+
       setPaymentSuccess(true);
       setShowBillSplash(true);
       toast.success("Payment processed successfully!");
-      
     } catch (error: any) {
       const messages = Object.values(error).flat().join(" ");
       toast.error(messages || "Failed to process payment.");
@@ -231,6 +264,15 @@ export default function NewPaymentPage() {
       setSubmitting(false);
     }
   };
+
+  // useEffect(() => {
+  //   if (showBillSplash && paymentSuccess) {
+  //     // Wait for DOM update
+  //     const timer = setTimeout(() => setIsPrintReady(true), 200);
+  //     return () => clearTimeout(timer);
+  //   }
+  //   setIsPrintReady(false);
+  // }, [showBillSplash, paymentSuccess]);
 
   const handleTableClick = (tableId: number) => {
     setSelectedTableId(String(tableId));
@@ -252,7 +294,9 @@ export default function NewPaymentPage() {
       ? `${user.first_name} ${user.last_name}`
       : user?.username || "Cashier";
 
-  const selectedTable = tables.find((t) => t.id === parseInt(selectedTableIdForm));
+  const selectedTable = tables.find(
+    (t) => t.id === parseInt(selectedTableIdForm),
+  );
 
   // Status badge component
   const StatusBadge = ({ status }: { status: string }) => {
@@ -265,7 +309,9 @@ export default function NewPaymentPage() {
       PAYMENT_PENDING: <Clock className="h-3 w-3" />,
     };
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${styles[status as keyof typeof styles] || styles.OCCUPIED}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${styles[status as keyof typeof styles] || styles.OCCUPIED}`}
+      >
         {icons[status as keyof typeof icons] || icons.OCCUPIED}
         {status?.replace("_", " ")}
       </span>
@@ -282,22 +328,27 @@ export default function NewPaymentPage() {
         onClick={() => handleTableClick(table.id)}
         className={`
           relative cursor-pointer rounded-xl p-4 transition-all duration-300
-          ${isSelected 
-            ? 'bg-indigo-500/20 border-2 border-indigo-400 shadow-lg shadow-indigo-500/20 scale-105' 
-            : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:scale-105'
+          ${
+            isSelected
+              ? "bg-indigo-500/20 border-2 border-indigo-400 shadow-lg shadow-indigo-500/20 scale-105"
+              : "bg-white/5 border border-white/10 hover:bg-white/10 hover:scale-105"
           }
         `}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`
+            <div
+              className={`
               p-2 rounded-lg
-              ${isOccupied ? 'bg-emerald-500/20' : 'bg-amber-500/20'}
-            `}>
-              <TableIcon className={`
+              ${isOccupied ? "bg-emerald-500/20" : "bg-amber-500/20"}
+            `}
+            >
+              <TableIcon
+                className={`
                 h-5 w-5
-                ${isOccupied ? 'text-emerald-400' : 'text-amber-400'}
-              `} />
+                ${isOccupied ? "text-emerald-400" : "text-amber-400"}
+              `}
+              />
             </div>
             <div>
               <h3 className="text-white font-semibold text-lg">
@@ -321,12 +372,14 @@ export default function NewPaymentPage() {
             )}
           </div>
         </div>
-        
+
         {/* Status indicator dot */}
-        <div className={`
+        <div
+          className={`
           absolute top-3 right-3 w-2 h-2 rounded-full
-          ${isOccupied ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400 animate-pulse'}
-        `} />
+          ${isOccupied ? "bg-emerald-400 animate-pulse" : "bg-amber-400 animate-pulse"}
+        `}
+        />
       </div>
     );
   };
@@ -337,14 +390,20 @@ export default function NewPaymentPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <Link href="/dashboard/payments">
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/5 gap-2 transition-all">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-400 hover:text-white hover:bg-white/5 gap-2 transition-all"
+            >
               <ArrowLeft className="h-4 w-4" /> Back to Payments
             </Button>
           </Link>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
               <Building2 className="h-4 w-4 text-indigo-400" />
-              <span className="text-sm text-white/70">{user?.branch?.name || "Main Branch"}</span>
+              <span className="text-sm text-white/70">
+                {user?.branch?.name || "Main Branch"}
+              </span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
               <User className="h-4 w-4 text-indigo-400" />
@@ -369,7 +428,9 @@ export default function NewPaymentPage() {
                 {loadingTables ? (
                   <div className="flex items-center justify-center py-8 bg-white/5 rounded-xl border border-white/10">
                     <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
-                    <span className="ml-3 text-slate-400">Loading tables...</span>
+                    <span className="ml-3 text-slate-400">
+                      Loading tables...
+                    </span>
                   </div>
                 ) : tables.length === 0 ? (
                   <div className="bg-white/5 rounded-xl border border-white/10 p-8 text-center">
@@ -406,7 +467,10 @@ export default function NewPaymentPage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="pt-6">
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                        <form
+                          onSubmit={handleSubmit(onSubmit)}
+                          className="space-y-4"
+                        >
                           {/* Hidden table field */}
                           <input type="hidden" {...register("table")} />
 
@@ -423,25 +487,40 @@ export default function NewPaymentPage() {
 
                           {/* Order Selection */}
                           <div>
-                            <label htmlFor="order" className="block text-sm font-medium text-slate-300 mb-1.5">
-                              Select Order <span className="text-red-400">*</span>
+                            <label
+                              htmlFor="order"
+                              className="block text-sm font-medium text-slate-300 mb-1.5"
+                            >
+                              Select Order{" "}
+                              <span className="text-red-400">*</span>
                             </label>
                             {loadingOrders ? (
                               <div className="flex items-center justify-center py-3 bg-white/5 rounded-lg border border-white/10">
                                 <Loader2 className="h-5 w-5 text-indigo-400 animate-spin" />
-                                <span className="ml-2 text-sm text-slate-400">Loading orders...</span>
+                                <span className="ml-2 text-sm text-slate-400">
+                                  Loading orders...
+                                </span>
                               </div>
                             ) : orders.length > 0 ? (
                               <div className="relative">
                                 <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                                 <select
                                   id="order"
-                                  {...register("order", { required: "Please select an order" })}
+                                  {...register("order", {
+                                    required: "Please select an order",
+                                  })}
                                   className="w-full pl-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-white/10"
                                 >
                                   {orders.map((order) => (
-                                    <option key={order.id} value={order.id} className="bg-slate-800 py-2">
-                                      #{order.order_number} — ${parseFloat(order.total_amount).toFixed(2)}
+                                    <option
+                                      key={order.id}
+                                      value={order.id}
+                                      className="bg-slate-800 py-2"
+                                    >
+                                      #{order.order_number} — $
+                                      {parseFloat(order.total_amount).toFixed(
+                                        2,
+                                      )}
                                     </option>
                                   ))}
                                 </select>
@@ -449,19 +528,25 @@ export default function NewPaymentPage() {
                             ) : (
                               <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400">
                                 <AlertCircle className="h-4 w-4" />
-                                <span className="text-sm">No eligible orders found</span>
+                                <span className="text-sm">
+                                  No eligible orders found
+                                </span>
                               </div>
                             )}
                             {errors.order && (
                               <p className="text-sm text-red-400 mt-1.5 flex items-center gap-1">
-                                <AlertCircle className="h-3.5 w-3.5" /> {errors.order.message}
+                                <AlertCircle className="h-3.5 w-3.5" />{" "}
+                                {errors.order.message}
                               </p>
                             )}
                           </div>
 
                           {/* Customer Name */}
                           <div>
-                            <label htmlFor="customer_name" className="block text-sm font-medium text-slate-300 mb-1.5">
+                            <label
+                              htmlFor="customer_name"
+                              className="block text-sm font-medium text-slate-300 mb-1.5"
+                            >
                               Customer Name
                             </label>
                             <div className="relative">
@@ -478,8 +563,12 @@ export default function NewPaymentPage() {
 
                           {/* Grand Total */}
                           <div>
-                            <label htmlFor="amount" className="block text-sm font-medium text-slate-300 mb-1.5">
-                              Grand Total <span className="text-red-400">*</span>
+                            <label
+                              htmlFor="amount"
+                              className="block text-sm font-medium text-slate-300 mb-1.5"
+                            >
+                              Grand Total{" "}
+                              <span className="text-red-400">*</span>
                             </label>
                             <div className="relative">
                               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -487,13 +576,17 @@ export default function NewPaymentPage() {
                                 id="amount"
                                 type="number"
                                 step="0.01"
-                                {...register("amount", { required: "Amount is required", min: 0.01 })}
+                                {...register("amount", {
+                                  required: "Amount is required",
+                                  min: 0.01,
+                                })}
                                 className="w-full pl-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                               />
                             </div>
                             {errors.amount && (
                               <p className="text-sm text-red-400 mt-1.5 flex items-center gap-1">
-                                <AlertCircle className="h-3.5 w-3.5" /> {errors.amount.message}
+                                <AlertCircle className="h-3.5 w-3.5" />{" "}
+                                {errors.amount.message}
                               </p>
                             )}
                           </div>
@@ -501,8 +594,12 @@ export default function NewPaymentPage() {
                           {/* Payment Method & Status Row */}
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label htmlFor="payment_method" className="block text-sm font-medium text-slate-300 mb-1.5">
-                                Payment Method <span className="text-red-400">*</span>
+                              <label
+                                htmlFor="payment_method"
+                                className="block text-sm font-medium text-slate-300 mb-1.5"
+                              >
+                                Payment Method{" "}
+                                <span className="text-red-400">*</span>
                               </label>
                               <div className="relative">
                                 <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -514,16 +611,25 @@ export default function NewPaymentPage() {
                                 </div>
                                 <select
                                   id="payment_method"
-                                  {...register("payment_method", { required: "Method is required" })}
+                                  {...register("payment_method", {
+                                    required: "Method is required",
+                                  })}
                                   className="w-full pl-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-white/10"
                                 >
-                                  <option value="CASH" className="bg-slate-800">💰 Cash</option>
-                                  <option value="QR" className="bg-slate-800">📱 QR</option>
+                                  <option value="CASH" className="bg-slate-800">
+                                    💰 Cash
+                                  </option>
+                                  <option value="QR" className="bg-slate-800">
+                                    📱 QR
+                                  </option>
                                 </select>
                               </div>
                             </div>
                             <div>
-                              <label htmlFor="status" className="block text-sm font-medium text-slate-300 mb-1.5">
+                              <label
+                                htmlFor="status"
+                                className="block text-sm font-medium text-slate-300 mb-1.5"
+                              >
                                 Status <span className="text-red-400">*</span>
                               </label>
                               <select
@@ -531,17 +637,35 @@ export default function NewPaymentPage() {
                                 {...register("status")}
                                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-white/10"
                               >
-                                <option value="COMPLETED" className="bg-slate-800">✅ Completed</option>
-                                <option value="PENDING" className="bg-slate-800">⏳ Pending</option>
-                                <option value="FAILED" className="bg-slate-800">❌ Failed</option>
+                                <option
+                                  value="COMPLETED"
+                                  className="bg-slate-800"
+                                >
+                                  ✅ Completed
+                                </option>
+                                <option
+                                  value="PENDING"
+                                  className="bg-slate-800"
+                                >
+                                  ⏳ Pending
+                                </option>
+                                <option value="FAILED" className="bg-slate-800">
+                                  ❌ Failed
+                                </option>
                               </select>
                             </div>
                           </div>
 
                           {/* Transaction ID */}
                           <div>
-                            <label htmlFor="transaction_id" className="block text-sm font-medium text-slate-300 mb-1.5">
-                              Transaction ID <span className="text-slate-500 text-xs">(optional)</span>
+                            <label
+                              htmlFor="transaction_id"
+                              className="block text-sm font-medium text-slate-300 mb-1.5"
+                            >
+                              Transaction ID{" "}
+                              <span className="text-slate-500 text-xs">
+                                (optional)
+                              </span>
                             </label>
                             <input
                               id="transaction_id"
@@ -567,7 +691,6 @@ export default function NewPaymentPage() {
                               <>
                                 <DollarSign className="h-5 w-5" />
                                 Create bill
-                                
                               </>
                             )}
                           </Button>
@@ -584,7 +707,9 @@ export default function NewPaymentPage() {
                           <div className="p-2 bg-emerald-500/20 rounded-lg">
                             <ShoppingBag className="h-5 w-5 text-emerald-400" />
                           </div>
-                          <span className="text-lg font-semibold">Order Items</span>
+                          <span className="text-lg font-semibold">
+                            Order Items
+                          </span>
                           <span className="ml-auto text-sm text-slate-400">
                             {combinedItems.length} items
                           </span>
@@ -607,15 +732,21 @@ export default function NewPaymentPage() {
                                     <span className="text-sm font-medium text-white bg-indigo-500/20 px-2.5 py-1 rounded">
                                       {item.quantity}×
                                     </span>
-                                    <span className="text-white">{item.product_name}</span>
+                                    <span className="text-white">
+                                      {item.product_name}
+                                    </span>
                                   </div>
                                   <span className="text-slate-300 font-medium">
-                                    ${(parseFloat(item.price_at_order) * item.quantity).toFixed(2)}
+                                    $
+                                    {(
+                                      parseFloat(item.price_at_order) *
+                                      item.quantity
+                                    ).toFixed(2)}
                                   </span>
                                 </div>
                               ))}
                             </div>
-                            
+
                             {/* Totals */}
                             <div className="space-y-2 pt-4 border-t border-white/10">
                               <div className="flex justify-between items-center text-slate-300 text-sm">
@@ -628,7 +759,9 @@ export default function NewPaymentPage() {
                               </div>
                               <div className="flex justify-between items-center pt-2 text-white text-lg font-bold border-t border-white/10">
                                 <span>Grand Total</span>
-                                <span className="text-emerald-400">${grandTotal.toFixed(2)}</span>
+                                <span className="text-emerald-400">
+                                  ${grandTotal.toFixed(2)}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -640,16 +773,18 @@ export default function NewPaymentPage() {
                         )}
                       </CardContent>
                     </Card>
-
-                  
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full min-h-[400px] bg-white/5 rounded-xl border border-white/10">
                   <div className="text-center text-slate-400">
                     <TableIcon className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                    <p className="text-lg font-medium text-white/60">Select a table to start</p>
-                    <p className="text-sm mt-1">Choose an occupied table from the left panel</p>
+                    <p className="text-lg font-medium text-white/60">
+                      Select a table to start
+                    </p>
+                    <p className="text-sm mt-1">
+                      Choose an occupied table from the left panel
+                    </p>
                   </div>
                 </div>
               )}
@@ -660,11 +795,11 @@ export default function NewPaymentPage() {
 
       {/* ─── BILL SPLASH OVERLAY ─── */}
       {showBillSplash && paymentSuccess && (
-        <div 
+        <div
           className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-lg"
           onClick={closeBillSplash}
         >
-          <div 
+          <div
             ref={splashRef}
             className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto animate-in slide-up duration-500"
             onClick={(e) => e.stopPropagation()}
@@ -677,8 +812,12 @@ export default function NewPaymentPage() {
                     <PartyPopper className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-xl">Payment Successful! 🎉</h3>
-                    <p className="text-emerald-100 text-sm">Transaction #{selectedOrder?.order_number || 'N/A'}</p>
+                    <h3 className="text-white font-bold text-xl">
+                      Payment Successful! 🎉
+                    </h3>
+                    <p className="text-emerald-100 text-sm">
+                      Transaction #{selectedOrder?.order_number || "N/A"}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -693,7 +832,7 @@ export default function NewPaymentPage() {
 
             {/* Invoice content */}
             <div className="p-6 bg-gray-50">
-              <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100">
+              <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100" ref={invoiceRef}>
                 <InvoicePreview
                   tableNumber={selectedTable?.table_number || null}
                   items={combinedItems}
@@ -705,20 +844,26 @@ export default function NewPaymentPage() {
                   paymentMethod={paymentMethod}
                   orderNumber={selectedOrder?.order_number}
                   date={new Date().toISOString()}
+                  discounts={selectedOrder.discounts || []}
+                  totalDiscount={totalDiscount}
                 />
               </div>
             </div>
 
             {/* Action buttons */}
+            {/* Action buttons */}
             <div className="sticky bottom-0 bg-white p-5 rounded-b-2xl border-t border-gray-100">
               <div className="flex flex-wrap gap-3 justify-center">
-                <Button
-                  onClick={handlePrint}
-                  className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg shadow-indigo-500/25 px-6"
-                >
-                  <Download className="h-4 w-4" />
-                  Save as PDF
-                </Button>
+                 <Button
+  className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg shadow-indigo-500/25 px-6"
+  onClick={(e) => {
+    e.stopPropagation();
+    handleDownloadPDF();
+  }}
+>
+  <Download className="h-4 w-4" />
+  Save as PDF
+</Button>
                 <Button
                   onClick={closeBillSplash}
                   variant="outline"
@@ -728,7 +873,6 @@ export default function NewPaymentPage() {
                   Close
                 </Button>
               </div>
-              
               <div className="mt-3 text-center">
                 <p className="text-xs text-slate-400">
                   Thank you for your payment! Receipt generated successfully.
@@ -745,23 +889,23 @@ export default function NewPaymentPage() {
           width: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.05);
+          background: rgba(255, 255, 255, 0.05);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(99,102,241,0.5);
+          background: rgba(99, 102, 241, 0.5);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(99,102,241,0.8);
+          background: rgba(99, 102, 241, 0.8);
         }
 
         @keyframes slide-up {
-          from { 
+          from {
             opacity: 0;
             transform: translateY(30px) scale(0.95);
           }
-          to { 
+          to {
             opacity: 1;
             transform: translateY(0) scale(1);
           }

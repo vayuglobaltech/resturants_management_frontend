@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getOrder, updateOrder, addOrderItem, deleteOrderItem } from "@/lib/ordersApi";
+import { getOrder, updateOrder, addOrderItem, deleteOrderItem, getActiveDiscounts } from "@/lib/ordersApi";
 import { getRecipeByProduct, getBranchInventory } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useCanManage, useCanModifyOrders } from "@/hooks/usePermissions";
@@ -67,18 +67,29 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [recipeData, setRecipeData] = useState<Record<number, any>>({});
   const [inventoryData, setInventoryData] = useState<Record<number, number>>({});
 
-  // Add item state
+  // ─── Add item state ──────────────────────────────────────────────────
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItemProduct, setNewItemProduct] = useState("");
   const [newItemQty, setNewItemQty] = useState(1);
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [fetchingMenu, setFetchingMenu] = useState(false);
 
+  // ─── Discount state ──────────────────────────────────────────────────
+  const [discounts, setDiscounts] = useState<any[]>([]);
+  const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
+  const [updatingDiscount, setUpdatingDiscount] = useState(false);
+
   const fetchOrder = async () => {
     try {
       const data = await getOrder(id);
       setOrder(data);
       setSelectedStatus(data.status);
+      // If order already has a discount, pre‑select it
+      if (data.discounts && data.discounts.length > 0) {
+        setSelectedDiscountId(String(data.discounts[0].discount));
+      } else {
+        setSelectedDiscountId("");
+      }
     } catch (error) {
       console.error("Failed to fetch order details:", error);
       toast.error("Order not found.");
@@ -91,6 +102,21 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     fetchOrder();
   }, [id]);
+
+  // ─── Fetch active discounts (only for cashier/manager/admin) ──────
+  const canApplyDiscount = user && ["admin", "branch_manager", "cashier"].includes(user.role?.name);
+  useEffect(() => {
+    if (!canApplyDiscount) return;
+    const fetchDiscounts = async () => {
+      try {
+        const data = await getActiveDiscounts();
+        setDiscounts(data);
+      } catch (error) {
+        console.error("Failed to fetch discounts:", error);
+      }
+    };
+    fetchDiscounts();
+  }, [canApplyDiscount]);
 
   const role = user?.role && typeof user.role === "object" ? user.role.name : null;
 
@@ -129,6 +155,27 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       toast.error(msg);
     } finally {
       setUpdating(false);
+    }
+  };
+
+  // ─── Handle discount change ──────────────────────────────────────────
+  const handleDiscountChange = async (discountId: string) => {
+    setUpdatingDiscount(true);
+    try {
+      await updateOrder(id, { discount_id: discountId ? parseInt(discountId) : null });
+      toast.success("Discount updated");
+      fetchOrder(); // refresh order details
+    } catch (error: any) {
+      const msg = error?.detail || error?.message || "Failed to update discount.";
+      toast.error(msg);
+      // revert selection
+      if (order?.discounts?.length > 0) {
+        setSelectedDiscountId(String(order.discounts[0].discount));
+      } else {
+        setSelectedDiscountId("");
+      }
+    } finally {
+      setUpdatingDiscount(false);
     }
   };
 
@@ -237,6 +284,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   const statusColor = STATUS_COLORS[order.status] || "bg-slate-500/20 text-slate-400 border-slate-500/30";
 
+  // ─── Compute discount total ──────────────────────────────────
+  const totalDiscount = order.discounts?.reduce((sum: number, d: any) => sum + parseFloat(d.amount), 0) || 0;
+
+  // ─── Check if the current user can apply discounts ────────────────
+  const canApplyDiscountHere = user && ["admin", "branch_manager", "cashier"].includes(user.role?.name);
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
@@ -308,7 +361,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {/* ─── Add Item Form ─── */}
+              {/* Add Item Form */}
               {showAddItem && canModify && (
                 <div className="p-4 border-b border-white/5 bg-white/[0.03]">
                   <div className="flex flex-wrap items-end gap-3">
@@ -356,7 +409,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 </div>
               )}
 
-              {/* ─── Order Items List ─── */}
+              {/* Order Items List */}
               <div className="divide-y divide-white/[0.05]">
                 {order.items && order.items.length > 0 ? (
                   order.items.map((item: any) => {
@@ -465,41 +518,99 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Right Column: Order Summary */}
-        <div className="space-y-6">
-          <Card className="border-white/[0.05] bg-white/[0.02]">
-            <CardHeader className="pb-4 border-b border-white/[0.05]">
-              <CardTitle className="text-lg">Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400 flex items-center gap-2"><Hash className="h-4 w-4"/> Order ID</span>
-                <span className="text-white">{order.order_number}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400 flex items-center gap-2"><User className="h-4 w-4"/> Server/User</span>
-                <span className="text-white">{order.user_name || "Guest"}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400 flex items-center gap-2"><Clock className="h-4 w-4"/> Created At</span>
-                <span className="text-white">
-                  {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400 flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> Priority</span>
-                <span className="text-white">{order.priority}</span>
-              </div>
-              <div className="pt-4 border-t border-white/[0.05]">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-300 font-medium">Total Amount</span>
-                  <span className="text-xl font-bold text-emerald-400">
-                    ${parseFloat(order.total_amount || 0).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+<div className="space-y-6">
+  <Card className="border-white/[0.05] bg-white/[0.02]">
+    <CardHeader className="pb-4 border-b border-white/[0.05]">
+      <CardTitle className="text-lg">Order Summary</CardTitle>
+    </CardHeader>
+    <CardContent className="p-4 space-y-4">
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-slate-400 flex items-center gap-2"><Hash className="h-4 w-4"/> Order ID</span>
+        <span className="text-white">{order.order_number}</span>
+      </div>
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-slate-400 flex items-center gap-2"><User className="h-4 w-4"/> Server/User</span>
+        <span className="text-white">{order.user_name || "Guest"}</span>
+      </div>
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-slate-400 flex items-center gap-2"><Clock className="h-4 w-4"/> Created At</span>
+        <span className="text-white">
+          {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </span>
+      </div>
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-slate-400 flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> Priority</span>
+        <span className="text-white">{order.priority}</span>
+      </div>
+
+      {/* ─── Discounts Applied ─── */}
+      {order.discounts && order.discounts.length > 0 && (
+        <div className="pt-2 border-t border-white/5">
+          <h4 className="text-sm font-medium text-slate-400 mb-1">Discounts Applied</h4>
+          {order.discounts.map((disc: any) => (
+            <div key={disc.id} className="flex justify-between text-sm">
+              <span className="text-slate-300">{disc.discount_name}</span>
+              <span className="text-emerald-400">-${parseFloat(disc.amount).toFixed(2)}</span>
+            </div>
+          ))}
+          <div className="flex justify-between text-sm font-medium pt-1 border-t border-white/5">
+            <span className="text-slate-400">Total Discount</span>
+            <span className="text-emerald-400">-${totalDiscount.toFixed(2)}</span>
+          </div>
         </div>
+      )}
+
+      {/* ─── Apply Discount (Cashier/Manager/Admin only) ─── */}
+      {/* ─── Apply Discount (Cashier/Manager/Admin only) ─── */}
+{canApplyDiscountHere && (
+  <div className="pt-2 border-t border-white/5">
+    <div className="flex items-center gap-2">
+      <div className="flex-1">
+        <label className="block text-sm font-medium text-slate-300 mb-1">
+          Apply Discount
+        </label>
+        <select
+          value={selectedDiscountId}
+          onChange={(e) => handleDiscountChange(e.target.value)}
+          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          disabled={updatingDiscount}
+        >
+          <option value="">No discount</option>
+          {discounts.map((d) => (
+            <option key={d.id} value={String(d.id)}>
+              {d.name} ({d.type === "percentage" ? `${d.value}%` : `$${d.value}`})
+            </option>
+          ))}
+        </select>
+        {updatingDiscount && <p className="text-xs text-slate-500 mt-1">Updating...</p>}
+      </div>
+
+      {/* ─── Remove discount button ─── */}
+      {selectedDiscountId && (
+        <button
+          onClick={() => handleDiscountChange("")}
+          disabled={updatingDiscount}
+          className="mt-5 p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          title="Remove discount"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  </div>
+)}
+
+      <div className="pt-4 border-t border-white/[0.05]">
+        <div className="flex justify-between items-center">
+          <span className="text-slate-300 font-medium">Total Amount</span>
+          <span className="text-xl font-bold text-emerald-400">
+            ${parseFloat(order.total_amount || 0).toFixed(2)}
+          </span>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+</div>
       </div>
     </div>
   );
