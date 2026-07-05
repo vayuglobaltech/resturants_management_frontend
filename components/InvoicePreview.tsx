@@ -9,6 +9,12 @@ interface InvoiceItem {
   price_at_order: string;
 }
 
+interface InvoiceDiscount {
+  id: number;
+  discount_name: string;
+  amount: number;
+}
+
 interface InvoicePreviewProps {
   tableNumber: number | null;
   items: InvoiceItem[];
@@ -20,6 +26,8 @@ interface InvoicePreviewProps {
   paymentMethod: string;
   orderNumber?: string;
   date?: string;
+  discounts?: InvoiceDiscount[];
+  totalDiscount?: number;
 }
 
 export function InvoicePreview({
@@ -33,6 +41,8 @@ export function InvoicePreview({
   paymentMethod,
   orderNumber,
   date,
+  discounts = [],
+  totalDiscount = 0,
 }: InvoicePreviewProps) {
   if (!tableNumber || items.length === 0) {
     return (
@@ -123,9 +133,26 @@ export function InvoicePreview({
           <span>${subtotal.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-gray-600">
-          <span>Tax (8%)</span>
+          <span>Tax (15%)</span>
           <span>${tax.toFixed(2)}</span>
         </div>
+
+        {/* ─── Discounts ─── */}
+        {discounts.length > 0 && (
+          <div className="border-t border-gray-200 pt-2 space-y-1">
+            {discounts.map((d) => (
+              <div key={d.id} className="flex justify-between text-emerald-600">
+                <span>{d.discount_name}</span>
+                <span>-${Number(d.amount).toFixed(2)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between font-medium text-emerald-700">
+              <span>Total Discount</span>
+              <span>-${totalDiscount.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-300">
           <span>Grand Total</span>
           <span>${grandTotal.toFixed(2)}</span>
