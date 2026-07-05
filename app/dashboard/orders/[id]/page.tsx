@@ -78,6 +78,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [discounts, setDiscounts] = useState<any[]>([]);
   const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
   const [updatingDiscount, setUpdatingDiscount] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
 
   const fetchOrder = async () => {
     try {
@@ -158,22 +159,26 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  // ─── Handle discount change ──────────────────────────────────────────
-  const handleDiscountChange = async (discountId: string) => {
+  // ─── Handle apply discount ──────────────────────────────────────────
+  const handleApplyDiscount = async () => {
     setUpdatingDiscount(true);
     try {
-      await updateOrder(id, { discount_id: discountId ? parseInt(discountId) : null });
+      await updateOrder(id, { 
+        discount_id: selectedDiscountId ? parseInt(selectedDiscountId) : null,
+        promo_code: promoCode || null
+      });
       toast.success("Discount updated");
       fetchOrder(); // refresh order details
     } catch (error: any) {
-      const msg = error?.detail || error?.message || "Failed to update discount.";
-      toast.error(msg);
+      const msg = error?.detail || error?.promo_code || error?.message || "Failed to update discount.";
+      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
       // revert selection
       if (order?.discounts?.length > 0) {
         setSelectedDiscountId(String(order.discounts[0].discount));
       } else {
         setSelectedDiscountId("");
       }
+      setPromoCode("");
     } finally {
       setUpdatingDiscount(false);
     }
@@ -571,7 +576,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         </label>
         <select
           value={selectedDiscountId}
-          onChange={(e) => handleDiscountChange(e.target.value)}
+          onChange={(e) => setSelectedDiscountId(e.target.value)}
           className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           disabled={updatingDiscount}
         >
@@ -579,6 +584,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           {discounts.map((d) => (
             <option key={d.id} value={String(d.id)}>
               {d.name} ({d.type === "percentage" ? `${d.value}%` : `$${d.value}`})
+              {d.requires_code ? " 🔑" : ""}
             </option>
           ))}
         </select>
@@ -588,7 +594,19 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       {/* ─── Remove discount button ─── */}
       {selectedDiscountId && (
         <button
-          onClick={() => handleDiscountChange("")}
+          onClick={async () => {
+             setUpdatingDiscount(true);
+             try {
+                await updateOrder(id, { discount_id: null });
+                toast.success("Discount removed");
+                fetchOrder();
+                setPromoCode("");
+             } catch(error: any) {
+                toast.error("Failed to remove discount.");
+             } finally {
+                setUpdatingDiscount(false);
+             }
+          }}
           disabled={updatingDiscount}
           className="mt-5 p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
           title="Remove discount"
@@ -597,6 +615,33 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         </button>
       )}
     </div>
+
+    {/* ─── Promo Code Input ─── */}
+    {selectedDiscountId && discounts.find(d => String(d.id) === selectedDiscountId)?.requires_code && (
+      <div className="mt-2">
+        <label className="block text-xs font-medium text-slate-400 mb-1">
+          Promo Code
+        </label>
+        <input
+          type="text"
+          value={promoCode}
+          onChange={(e) => setPromoCode(e.target.value)}
+          placeholder="Enter promo code..."
+          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+    )}
+
+    {selectedDiscountId && (
+       <Button 
+         size="sm" 
+         className="w-full mt-3" 
+         onClick={handleApplyDiscount}
+         disabled={updatingDiscount}
+       >
+         Apply Discount
+       </Button>
+    )}
   </div>
 )}
 

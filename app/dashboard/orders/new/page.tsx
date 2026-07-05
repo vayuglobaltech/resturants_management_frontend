@@ -66,6 +66,7 @@ export default function NewOrderPage() {
   const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [loadingDiscounts, setLoadingDiscounts] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
 
   const {
     register,
@@ -200,7 +201,6 @@ export default function NewOrderPage() {
     try {
       const payload = {
         table: parseInt(selectedTableId),
-        branch: user?.branch?.id || 1,
         priority: false,
         special_instructions: data.special_instructions || "",
         items_data: cart.map((item) => ({
@@ -208,6 +208,7 @@ export default function NewOrderPage() {
           quantity: item.quantity,
         })),
         discount_id: selectedDiscountId ? parseInt(selectedDiscountId) : null,
+        promo_code: promoCode || null, 
       };
       await createOrder(payload);
       toast.success("Order created successfully!");
@@ -228,7 +229,14 @@ export default function NewOrderPage() {
     );
   }
 
-  const canApplyDiscount = user?.role?.name && ["admin", "branch_manager", "cashier"].includes(user.role.name);
+  // const roleName = typeof user?.role === 'object' ? user.role.name : user?.role;
+  // const canApplyDiscount = roleName && ["admin", "branch_manager", "cashier"].includes(roleName);
+  const roleName = typeof user?.role === 'object' ? user.role.name : user?.role;
+  const canApplyDiscount = roleName && ["admin", "branch_manager", "cashier"].includes(roleName);
+  const handleDiscountChange = (id: string) => {
+  setSelectedDiscountId(id);
+  setPromoCode(""); // reset promo code
+};
 
   return (
     <ProtectedOrder>
@@ -397,29 +405,42 @@ export default function NewOrderPage() {
 
                 {/* ─── Discount Dropdown ────────────────────────────────── */}
                 {canApplyDiscount && (
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
-                      Apply Discount
-                    </label>
-                    <select
-                      value={selectedDiscountId}
-                      onChange={(e) => setSelectedDiscountId(e.target.value)}
-                      className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      disabled={loadingDiscounts}
-                    >
-                      <option value="">No discount</option>
-                      {discounts.map((d) => (
-                        <option key={d.id} value={String(d.id)}>
-                          {d.name} ({d.type === "percentage" ? `${d.value}%` : `$${d.value}`})
-                        </option>
-                      ))}
-                    </select>
-                    {loadingDiscounts && (
-                      <p className="text-xs text-slate-500 mt-1">Loading discounts...</p>
-                    )}
-                  </div>
-                )}
+  <div>
+    <label className="block text-xs font-medium text-slate-400 mb-1">
+      Apply Discount
+    </label>
+    <select
+      value={selectedDiscountId}
+      onChange={(e) => handleDiscountChange(e.target.value)}
+      className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      disabled={loadingDiscounts}
+    >
+      <option value="">No discount</option>
+      {discounts.map((d) => (
+        <option key={d.id} value={String(d.id)}>
+          {d.name} ({d.type === "percentage" ? `${d.value}%` : `$${d.value}`})
+          {d.requires_code ? " 🔑" : ""}
+        </option>
+      ))}
+    </select>
 
+    {/* ─── Promo Code Input ─── */}
+    {selectedDiscountId && discounts.find(d => String(d.id) === selectedDiscountId)?.requires_code && (
+      <div className="mt-2">
+        <label className="block text-xs font-medium text-slate-400 mb-1">
+          Promo Code
+        </label>
+        <input
+          type="text"
+          value={promoCode}
+          onChange={(e) => setPromoCode(e.target.value)}
+          placeholder="Enter promo code..."
+          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+    )}
+  </div>
+)}
                 {/* ─── Special Instructions ────────────────────────────── */}
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">

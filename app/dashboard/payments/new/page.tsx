@@ -205,7 +205,7 @@ export default function NewPaymentPage() {
     (sum, order) => sum + parseFloat(order.total_amount || 0),
     0,
   );
-  const tax = subtotal * 0.08;
+  const tax = subtotal * 0.15;
   const grandTotal = subtotal + tax;
   // ─── Compute total discount from selected order ──────────────────────────
   const totalDiscount =
@@ -235,8 +235,8 @@ export default function NewPaymentPage() {
       const payload = {
         order: parseInt(data.order, 10),
         amount: parseFloat(data.amount),
-        subtotal: subtotal,
-        tax: tax,
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        tax: parseFloat(tax.toFixed(2)),
         payment_method: data.payment_method,
         status: data.status,
         transaction_id: data.transaction_id || undefined,
@@ -754,7 +754,7 @@ export default function NewPaymentPage() {
                                 <span>${subtotal.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between items-center text-slate-300 text-sm">
-                                <span>Tax (8%)</span>
+                                <span>Tax (15%)</span>
                                 <span>${tax.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between items-center pt-2 text-white text-lg font-bold border-t border-white/10">
