@@ -36,6 +36,22 @@ import { listTables } from "@/lib/ordersApi";
 import { format } from "date-fns";
 
 // Types
+
+// Add this after your imports and before the PaymentTransaction interface
+interface User {
+  id?: number;
+  branch?: number | { id: number } | null;
+  profile?: {
+    branch?: number | { id: number } | null;
+  };
+  role?: {
+    branch?: number | { id: number } | null;
+  };
+  // Add any other user properties your app uses
+  username?: string;
+  email?: string;
+  name?: string;
+}
 interface PaymentTransaction {
   id: number;
   type: "payment";
@@ -80,6 +96,7 @@ type Transaction = PaymentTransaction | InventoryTransaction;
 interface Branch {
   id: number;
   name: string;
+  
 }
 
 interface Ingredient {
@@ -153,7 +170,7 @@ const formatDateTime = (dateString: string | null | undefined): string => {
     return "Invalid date";
   }
 };
-
+ 
 export default function TransactionReportPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -188,37 +205,44 @@ export default function TransactionReportPage() {
   });
 
   // Get user's branch from user object
-  useEffect(() => {
-    if (user) {
-      let branchId = null;
-      if (user.branch) {
-        if (typeof user.branch === 'object' && 'id' in user.branch) {
-          branchId = user.branch.id;
-        } else if (typeof user.branch === 'number') {
-          branchId = user.branch;
-        }
-      } else if (user.profile?.branch) {
-        if (typeof user.profile.branch === 'object' && 'id' in user.profile.branch) {
-          branchId = user.profile.branch.id;
-        } else if (typeof user.profile.branch === 'number') {
-          branchId = user.profile.branch;
-        }
-      } else if (user.role?.branch) {
-        if (typeof user.role.branch === 'object' && 'id' in user.role.branch) {
-          branchId = user.role.branch.id;
-        } else if (typeof user.role.branch === 'number') {
-          branchId = user.role.branch;
-        }
+  // Helper function to extract branch ID
+  const extractBranchId = (user: User | null): number | null => {
+    if (!user) return null;
+
+    const getBranchId = (branchValue: unknown): number | null => {
+      if (!branchValue) return null;
+      
+      if (typeof branchValue === 'number') {
+        return branchValue;
       }
       
-      if (branchId) {
-        setUserBranchId(branchId);
-        // Set filter to user's branch by default
-        setFilters(prev => ({ ...prev, branch: String(branchId) }));
+      if (typeof branchValue === 'object' && branchValue !== null && 'id' in branchValue) {
+        return (branchValue as { id: number }).id;
       }
+      
+      return null;
+    };
+
+    return (
+      getBranchId(user.branch) ||
+      getBranchId(user.profile?.branch) ||
+      getBranchId(user.role?.branch)
+    );
+  };
+
+  // Get user's branch from user object
+  useEffect(() => {
+    const typedUser = user as User | null;
+    const branchId = extractBranchId(typedUser);
+    
+    if (branchId) {
+      setUserBranchId(branchId);
+      // Set filter to user's branch by default
+      setFilters(prev => ({ ...prev, branch: String(branchId) }));
     }
   }, [user]);
 
+  // Load all data
   // Load all data
   const loadData = async () => {
     setLoading(true);
@@ -229,7 +253,7 @@ export default function TransactionReportPage() {
       const branchesData = await getBranches();
       console.log("📊 Branches data received:", branchesData);
       
-      let branchesArray = [];
+      let branchesArray: Branch[] = [];
       if (Array.isArray(branchesData)) {
         branchesArray = branchesData;
       } else if (branchesData?.results && Array.isArray(branchesData.results)) {
@@ -252,16 +276,18 @@ export default function TransactionReportPage() {
       console.log("🔄 Loading ingredients...");
       const ingredientsData = await getIngredients();
       console.log("📊 Ingredients data:", ingredientsData);
-      setIngredients(Array.isArray(ingredientsData) ? ingredientsData : ingredientsData?.results || []);
+      const ingredientsArray = Array.isArray(ingredientsData) ? ingredientsData : ingredientsData?.results || [];
+      setIngredients(ingredientsArray);
 
       // Load tables
       console.log("🔄 Loading tables...");
       const tablesData = await listTables();
       console.log("📊 Tables data:", tablesData);
-      setTables(Array.isArray(tablesData) ? tablesData : tablesData?.results || []);
+      const tablesArray = Array.isArray(tablesData) ? tablesData : tablesData?.results || [];
+      setTables(tablesArray);
 
-      // Load transactions
-      await fetchTransactions();
+      // Load transactions with the loaded data
+      await fetchTransactionsWithData(branchesArray, ingredientsArray, tablesArray);
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Failed to load data");
@@ -270,107 +296,229 @@ export default function TransactionReportPage() {
     }
   };
 
-  // Fetch transactions
-  const fetchTransactions = async () => {
-    try {
-      const allTransactions: Transaction[] = [];
-      
-      // Create maps for lookups
-      const branchMap = new Map<number, string>();
-      branches.forEach((b: Branch) => branchMap.set(b.id, b.name));
-      
-      const ingredientMap = new Map<number, string>();
-      ingredients.forEach((i: Ingredient) => ingredientMap.set(i.id, i.name));
-      
-      const tableMap = new Map<number, string>();
-      tables.forEach((t: Table) => tableMap.set(t.id, t.table_number));
+  // Fetch transactions with provided data
+// Fetch transactions with provided data
+const fetchTransactionsWithData = async (
+  branchesData: Branch[], 
+  ingredientsData: Ingredient[], 
+  tablesData: Table[]
+) => {
+  try {
+    const allTransactions: Transaction[] = [];
+    
+    // Create maps for lookups using the provided data
+    const branchMap = new Map<number, string>();
+    branchesData.forEach((b: Branch) => branchMap.set(b.id, b.name));
+    
+    const ingredientMap = new Map<number, string>();
+    ingredientsData.forEach((i: Ingredient) => ingredientMap.set(i.id, i.name));
+    
+    const tableMap = new Map<number, string>();
+    tablesData.forEach((t: Table) => tableMap.set(t.id, t.table_number));
 
-      // Use the branch filter from state
-      const branchFilter = filters.branch;
+    const branchFilter = filters.branch;
 
-      // 1. Fetch Payment Transactions
-      try {
-        let paymentUrl = "/api/orders/payments/";
-        const params = new URLSearchParams();
-        
-        if (filters.dateFrom) params.append("date_from", filters.dateFrom);
-        if (filters.dateTo) params.append("date_to", filters.dateTo);
-        if (filters.status && filters.status !== "all" && filters.status !== "APPROVED" && filters.status !== "REJECTED") {
-          params.append("status", filters.status);
+    // Helper function to extract role from user object
+    const extractRole = (userObj: any): string => {
+      if (!userObj) return "";
+      
+      // Check multiple possible role locations
+      if (userObj.role) {
+        if (typeof userObj.role === 'object' && userObj.role.name) {
+          return userObj.role.name;
+        } else if (typeof userObj.role === 'string') {
+          return userObj.role;
         }
-        if (filters.payment_method) params.append("payment_method", filters.payment_method);
-        if (filters.table) params.append("table", filters.table);
-        if (branchFilter) params.append("branch", branchFilter);
+      }
+      
+      if (userObj.groups && userObj.groups.length > 0) {
+        return userObj.groups[0].name || userObj.groups[0];
+      }
+      
+      if (userObj.user_type) {
+        return userObj.user_type;
+      }
+      
+      if (userObj.role_name) {
+        return userObj.role_name;
+      }
+      
+      if (userObj.user_role) {
+        return userObj.user_role;
+      }
+      
+      return "";
+    };
+
+    // Helper function to extract username
+    const extractUsername = (userObj: any): string => {
+      if (!userObj) return "User";
+      return userObj.username || userObj.email || userObj.name || "User";
+    };
+
+    // 1. Fetch Payment Transactions
+    try {
+      let paymentUrl = "/api/orders/payments/";
+      const params = new URLSearchParams();
+      
+      if (filters.dateFrom) params.append("date_from", filters.dateFrom);
+      if (filters.dateTo) params.append("date_to", filters.dateTo);
+      if (filters.status && filters.status !== "all" && filters.status !== "APPROVED" && filters.status !== "REJECTED") {
+        params.append("status", filters.status);
+      }
+      if (filters.payment_method) params.append("payment_method", filters.payment_method);
+      if (filters.table) params.append("table", filters.table);
+      if (branchFilter) params.append("branch", branchFilter);
+      
+      if (params.toString()) paymentUrl += `?${params.toString()}`;
+
+      console.log("Fetching payments with URL:", paymentUrl);
+
+      const paymentRes = await apiFetch(paymentUrl, {}, true);
+      if (paymentRes.ok) {
+        const paymentData = await paymentRes.json();
+        const paymentsArray = Array.isArray(paymentData) ? paymentData : paymentData?.results || [];
         
-        if (params.toString()) paymentUrl += `?${params.toString()}`;
-
-        console.log("Fetching payments with URL:", paymentUrl);
-
-        const paymentRes = await apiFetch(paymentUrl, {}, true);
-        if (paymentRes.ok) {
-          const paymentData = await paymentRes.json();
-          const paymentsArray = Array.isArray(paymentData) ? paymentData : paymentData?.results || [];
+        // Debug: Log sample to see what's available
+        if (paymentsArray.length > 0) {
+          console.log("🔍 Sample payment performed_by:", paymentsArray[0].performed_by);
+          if (paymentsArray[0].performed_by && typeof paymentsArray[0].performed_by === 'object') {
+            console.log("🔍 Keys in performed_by:", Object.keys(paymentsArray[0].performed_by));
+          }
+        }
+        
+        const enrichedPayments: PaymentTransaction[] = paymentsArray.map((p: any) => {
+          // Better branch name extraction
+          let branchName = "Unknown Branch";
+          if (typeof p.branch === "object" && p.branch !== null) {
+            branchName = p.branch.name || "Unknown Branch";
+          } else if (typeof p.branch === "number") {
+            branchName = branchMap.get(p.branch) || "Unknown Branch";
+          }
           
-          const enrichedPayments: PaymentTransaction[] = paymentsArray.map((p: any) => ({
+          // Extract performed_by with role and username
+          let performedByName = "System";
+          if (p.performed_by) {
+            if (typeof p.performed_by === "object" && p.performed_by !== null) {
+              const username = extractUsername(p.performed_by);
+              const role = extractRole(p.performed_by);
+              
+              if (role) {
+                performedByName = `${role} - ${username}`;
+              } else {
+                performedByName = username;
+              }
+            } else if (typeof p.performed_by === "number") {
+              performedByName = `User #${p.performed_by}`;
+            } else if (typeof p.performed_by === "string") {
+              performedByName = p.performed_by;
+            }
+          }
+          
+          return {
             ...p,
             type: "payment",
-            branch_name: typeof p.branch === "object" ? p.branch?.name : branchMap.get(p.branch) || "Unknown Branch",
+            branch_name: branchName,
             order_number: typeof p.order === "object" ? p.order?.order_number : `Order #${p.order}`,
             table_number: typeof p.table === "object" ? `Table ${p.table?.table_number}` : tableMap.get(p.table) || `Table #${p.table}`,
-            performed_by_name: typeof p.performed_by === "object" ? p.performed_by?.username || p.performed_by?.email : "System",
-          }));
+            performed_by_name: performedByName,
+          };
+        });
 
-          allTransactions.push(...enrichedPayments);
-        }
-      } catch (error) {
-        console.error("Error fetching payments:", error);
+        allTransactions.push(...enrichedPayments);
       }
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+    }
 
-      // 2. Fetch Inventory Transactions
-      try {
-        const inventoryParams: Record<string, string> = {};
-        
-        if (branchFilter) inventoryParams.branch = branchFilter;
-        if (filters.ingredient) inventoryParams.ingredient = filters.ingredient;
-        if (filters.transaction_type && filters.transaction_type !== "all") {
-          inventoryParams.transaction_type = filters.transaction_type;
+    // 2. Fetch Inventory Transactions
+    try {
+      const inventoryParams: Record<string, string> = {};
+      
+      if (branchFilter) inventoryParams.branch = branchFilter;
+      if (filters.ingredient) inventoryParams.ingredient = filters.ingredient;
+      if (filters.transaction_type && filters.transaction_type !== "all") {
+        inventoryParams.transaction_type = filters.transaction_type;
+      }
+      if (filters.status && filters.status !== "all" && filters.status !== "COMPLETED" && filters.status !== "FAILED") {
+        inventoryParams.status = filters.status;
+      }
+      if (filters.dateFrom) inventoryParams.date_from = filters.dateFrom;
+      if (filters.dateTo) inventoryParams.date_to = filters.dateTo;
+
+      console.log("Fetching inventory with params:", inventoryParams);
+
+      const inventoryData = await getTransactions(inventoryParams);
+      const inventoryArray = Array.isArray(inventoryData) ? inventoryData : inventoryData?.results || [];
+      
+      // Debug: Log sample to see what's available
+      if (inventoryArray.length > 0) {
+        console.log("🔍 Sample inventory performed_by:", inventoryArray[0].performed_by);
+        if (inventoryArray[0].performed_by && typeof inventoryArray[0].performed_by === 'object') {
+          console.log("🔍 Keys in performed_by:", Object.keys(inventoryArray[0].performed_by));
         }
-        if (filters.status && filters.status !== "all" && filters.status !== "COMPLETED" && filters.status !== "FAILED") {
-          inventoryParams.status = filters.status;
+      }
+      
+      const enrichedInventory: InventoryTransaction[] = inventoryArray.map((i: any) => {
+        // Better branch name extraction
+        let branchName = "Unknown Branch";
+        if (typeof i.branch === "object" && i.branch !== null) {
+          branchName = i.branch.name || "Unknown Branch";
+        } else if (typeof i.branch === "number") {
+          branchName = branchMap.get(i.branch) || "Unknown Branch";
         }
-        if (filters.dateFrom) inventoryParams.date_from = filters.dateFrom;
-        if (filters.dateTo) inventoryParams.date_to = filters.dateTo;
-
-        console.log("Fetching inventory with params:", inventoryParams);
-
-        const inventoryData = await getTransactions(inventoryParams);
-        const inventoryArray = Array.isArray(inventoryData) ? inventoryData : inventoryData?.results || [];
         
-        const enrichedInventory: InventoryTransaction[] = inventoryArray.map((i: any) => ({
+        // Extract performed_by with role and username
+        let performedByName = "System";
+        if (i.performed_by) {
+          if (typeof i.performed_by === "object" && i.performed_by !== null) {
+            const username = extractUsername(i.performed_by);
+            const role = extractRole(i.performed_by);
+            
+            if (role) {
+              performedByName = `${role} - ${username}`;
+            } else {
+              performedByName = username;
+            }
+          } else if (typeof i.performed_by === "number") {
+            performedByName = `User #${i.performed_by}`;
+          } else if (typeof i.performed_by === "string") {
+            performedByName = i.performed_by;
+          }
+        }
+        
+        return {
           ...i,
           type: "inventory",
-          branch_name: typeof i.branch === "object" ? i.branch?.name : branchMap.get(i.branch) || "Unknown Branch",
+          branch_name: branchName,
           ingredient_name: typeof i.ingredient === "object" ? i.ingredient?.name : ingredientMap.get(i.ingredient) || "Unknown Ingredient",
-          performed_by_name: typeof i.performed_by === "object" ? i.performed_by?.username || i.performed_by?.email : "System",
-        }));
-
-        allTransactions.push(...enrichedInventory);
-      } catch (error) {
-        console.error("Error fetching inventory transactions:", error);
-      }
-
-      // Sort by timestamp (newest first)
-      allTransactions.sort((a, b) => {
-        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return dateB - dateA;
+          performed_by_name: performedByName,
+        };
       });
 
-      setTransactions(allTransactions);
+      allTransactions.push(...enrichedInventory);
     } catch (error) {
-      console.error("Error fetching transactions:", error);
-      toast.error("Failed to fetch transactions");
+      console.error("Error fetching inventory transactions:", error);
     }
+
+    // Sort by timestamp (newest first)
+    allTransactions.sort((a, b) => {
+      const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    setTransactions(allTransactions);
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    toast.error("Failed to fetch transactions");
+  }
+};
+
+
+  // Fetch transactions using current state data
+  const fetchTransactions = async () => {
+    await fetchTransactionsWithData(branches, ingredients, tables);
   };
 
   useEffect(() => {
