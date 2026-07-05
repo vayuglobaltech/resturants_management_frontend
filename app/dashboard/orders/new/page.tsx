@@ -18,7 +18,7 @@ import {
 import toast from "react-hot-toast";
 import { listTables } from "@/lib/ordersApi";
 import { listMenuItems } from "@/lib/menuApi";
-import { createOrder } from "@/lib/ordersApi";
+import { createOrder, getActiveDiscounts } from "@/lib/ordersApi";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -61,6 +61,13 @@ export default function NewOrderPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // ─── Discount State ──────────────────────────────────────────────────────
+  const [discounts, setDiscounts] = useState<any[]>([]);
+  const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [loadingDiscounts, setLoadingDiscounts] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -70,13 +77,14 @@ export default function NewOrderPage() {
   } = useForm<FormData>({
     defaultValues: {
       table: "",
-      special_instructions: "None",
+      special_instructions: "",
     },
   });
 
   const selectedTableId = watch("table");
+  const specialInstructions = watch("special_instructions");
 
-  // Fetch tables and menu items
+  // ─── Fetch Tables, Menu, and Discounts ──────────────────────────────────
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -94,17 +102,52 @@ export default function NewOrderPage() {
       }
     };
     fetchData();
-  }, []);
-  const specialInstructions = watch("special_instructions");
-  // Filter menu items by search
-  const filteredItems = useMemo(() => {
-    if (!searchTerm.trim()) return menuItems;
-    return menuItems.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [menuItems, searchTerm]);
 
-  // Add item to cart
+    // Fetch active discounts (only if user can apply discounts)
+    const fetchDiscounts = async () => {
+      const role = user?.role?.name;
+      if (!role || !["admin", "branch_manager", "cashier"].includes(role)) return;
+      setLoadingDiscounts(true);
+      try {
+        const data = await getActiveDiscounts();
+        setDiscounts(data);
+      } catch (error) {
+        console.error("Failed to fetch discounts:", error);
+      } finally {
+        setLoadingDiscounts(false);
+      }
+    };
+    fetchDiscounts();
+  }, []);
+
+  // ─── Compute Cart Total ──────────────────────────────────────────────────
+  const total = useMemo(() => {
+    return cart.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+  }, [cart]);
+
+  // ─── Compute Discount Amount ────────────────────────────────────────────
+  useEffect(() => {
+    if (selectedDiscountId) {
+      const discount = discounts.find((d) => String(d.id) === selectedDiscountId);
+      if (discount) {
+        let amount = 0;
+        if (discount.type === "percentage") {
+          amount = (discount.value / 100) * total;
+        } else {
+          amount = Math.min(discount.value, total);
+        }
+        setDiscountAmount(amount);
+      } else {
+        setDiscountAmount(0);
+      }
+    } else {
+      setDiscountAmount(0);
+    }
+  }, [selectedDiscountId, total, discounts]);
+
+  const grandTotal = total - discountAmount;
+
+  // ─── Cart Operations ─────────────────────────────────────────────────────
   const addToCart = (item: MenuItem) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
@@ -117,7 +160,6 @@ export default function NewOrderPage() {
     });
   };
 
-  // Update item quantity
   const updateQuantity = (id: number, delta: number) => {
     setCart((prev) => {
       const item = prev.find((i) => i.id === id);
@@ -132,17 +174,19 @@ export default function NewOrderPage() {
     });
   };
 
-  // Remove item from cart
   const removeItem = (id: number) => {
     setCart((prev) => prev.filter((i) => i.id !== id));
   };
 
-  // Calculate total
-  const total = useMemo(() => {
-    return cart.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
-  }, [cart]);
+  // ─── Filter Menu Items ──────────────────────────────────────────────────
+  const filteredItems = useMemo(() => {
+    if (!searchTerm.trim()) return menuItems;
+    return menuItems.filter((item) =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [menuItems, searchTerm]);
 
-  // Submit order
+  // ─── Submit Order ────────────────────────────────────────────────────────
   const onSubmit = async (data: FormData) => {
     if (!selectedTableId) {
       toast.error("Please select a table.");
@@ -157,13 +201,14 @@ export default function NewOrderPage() {
     try {
       const payload = {
         table: parseInt(selectedTableId),
-        branch: user?.branch?.id || 1,
         priority: false,
         special_instructions: data.special_instructions || "",
         items_data: cart.map((item) => ({
           menu_item: item.id,
           quantity: item.quantity,
         })),
+        discount_id: selectedDiscountId ? parseInt(selectedDiscountId) : null,
+        promo_code: promoCode || null, 
       };
       await createOrder(payload);
       toast.success("Order created successfully!");
@@ -184,6 +229,15 @@ export default function NewOrderPage() {
     );
   }
 
+  // const roleName = typeof user?.role === 'object' ? user.role.name : user?.role;
+  // const canApplyDiscount = roleName && ["admin", "branch_manager", "cashier"].includes(roleName);
+  const roleName = typeof user?.role === 'object' ? user.role.name : user?.role;
+  const canApplyDiscount = roleName && ["admin", "branch_manager", "cashier"].includes(roleName);
+  const handleDiscountChange = (id: string) => {
+  setSelectedDiscountId(id);
+  setPromoCode(""); // reset promo code
+};
+
   return (
     <ProtectedOrder>
       <div className="space-y-6">
@@ -192,21 +246,6 @@ export default function NewOrderPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* ─── Left Panel: Menu Browser ─── */}
           <div className="flex-1 space-y-4">
-
-            <div>
-  <label htmlFor="special_instructions" className="block text-sm font-medium text-slate-300 mb-1">
-    Special Instructions
-  </label>
-  <textarea
-    id="special_instructions"
-    {...register("special_instructions")}
-    rows={2}
-    placeholder="e.g., No onions, extra cheese…"
-    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-  />
-</div>
-
-
             {/* Table selector */}
             <div>
               <label htmlFor="table" className="block text-sm font-medium text-slate-300 mb-1">
@@ -344,35 +383,78 @@ export default function NewOrderPage() {
                       ))}
                     </div>
 
-                    <div className="pt-3 border-t border-white/5">
-                      <div className="flex justify-between text-white font-semibold">
-                        <span>Total</span>
-                        <span className="text-indigo-400">
-                          ${total.toFixed(2)}
-                        </span>
+                    {/* ─── Totals ────────────────────────────────────────── */}
+                    <div className="pt-3 border-t border-white/5 space-y-1">
+                      <div className="flex justify-between text-white">
+                        <span>Subtotal</span>
+                        <span>${total.toFixed(2)}</span>
+                      </div>
+                      {discountAmount > 0 && (
+                        <div className="flex justify-between text-emerald-400">
+                          <span>Discount</span>
+                          <span>-${discountAmount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-white font-bold text-lg pt-1 border-t border-white/5">
+                        <span>Grand Total</span>
+                        <span className="text-indigo-400">${grandTotal.toFixed(2)}</span>
                       </div>
                     </div>
                   </>
                 )}
 
-                {/* Special instructions */}
+                {/* ─── Discount Dropdown ────────────────────────────────── */}
+                {canApplyDiscount && (
+  <div>
+    <label className="block text-xs font-medium text-slate-400 mb-1">
+      Apply Discount
+    </label>
+    <select
+      value={selectedDiscountId}
+      onChange={(e) => handleDiscountChange(e.target.value)}
+      className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      disabled={loadingDiscounts}
+    >
+      <option value="">No discount</option>
+      {discounts.map((d) => (
+        <option key={d.id} value={String(d.id)}>
+          {d.name} ({d.type === "percentage" ? `${d.value}%` : `$${d.value}`})
+          {d.requires_code ? " 🔑" : ""}
+        </option>
+      ))}
+    </select>
+
+    {/* ─── Promo Code Input ─── */}
+    {selectedDiscountId && discounts.find(d => String(d.id) === selectedDiscountId)?.requires_code && (
+      <div className="mt-2">
+        <label className="block text-xs font-medium text-slate-400 mb-1">
+          Promo Code
+        </label>
+        <input
+          type="text"
+          value={promoCode}
+          onChange={(e) => setPromoCode(e.target.value)}
+          placeholder="Enter promo code..."
+          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+    )}
+  </div>
+)}
+                {/* ─── Special Instructions ────────────────────────────── */}
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">
                     Special Instructions
                   </label>
                   <textarea
-                    // {...register("special_instructions")}
-                    value={specialInstructions}
-                    onChange={(e) =>
-                      setValue("special_instructions", e.target.value)
-                    }
+                    {...register("special_instructions")}
                     rows={2}
-                    
                     placeholder="e.g. No onions, extra cheese..."
                     className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                   />
                 </div>
 
+                {/* ─── Submit Button ────────────────────────────────────── */}
                 <Button
                   onClick={handleSubmit(onSubmit)}
                   disabled={cart.length === 0 || submitting}

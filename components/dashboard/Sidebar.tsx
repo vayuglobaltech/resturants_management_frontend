@@ -79,7 +79,6 @@ const SUB_FEATURES: Record<
   ],
   users: [
     { label: "All Users", icon: Users, href: "/dashboard/users" },
-    { label: "Add User", icon: Plus, href: "/dashboard/users/add" },
   ],
   reports: [
     { label: "Sales Report", icon: BarChart3, href: "/dashboard/reports" },

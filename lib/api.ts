@@ -175,7 +175,7 @@ export async function updateProfile(data: Record<string, string>) {
 }
 
 export async function listAllUsers() {
-  const res = await apiFetch("/api/users/users/", {}, true);
+  const res = await apiFetch("/api/users/", {}, true);
   const json = await res.json();
   if (!res.ok) throw json;
   return json;
@@ -584,4 +584,33 @@ export async function getBranchInventory(branchId: number) {
   const json = await res.json();
   if (!res.ok) throw json;
   return json.results || json;
+}
+
+
+export async function updateUser(id: string | number, data: any) {
+  const res = await apiFetch(
+    `/api/users/${id}/`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    },
+    true
+  );
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function createUser(data: any) {
+  const res = await apiFetch(
+    "/api/users/add/",   // ✅ matches backend URL
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+    true
+  );
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
 }
