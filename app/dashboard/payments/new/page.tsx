@@ -50,6 +50,22 @@ interface FormData {
 export default function NewPaymentPage() {
   const router = useRouter();
   const { user } = useAuth();
+
+  // ─── Role-based route guard ─────────────────────────────────────────
+  // Managers/admins should NOT access Process Payment — only cashiers can.
+  const rawRole = user?.role ?? user?.name ?? '';
+  const userRole = String(
+    typeof rawRole === 'object' && 'name' in rawRole ? rawRole.name : rawRole
+  ).toUpperCase();
+  const isManager = ["MANAGER", "BRANCH_MANAGER", "ADMIN"].includes(userRole);
+
+  useEffect(() => {
+    if (isManager) {
+      toast.error("You don't have permission to process payments.");
+      router.replace("/dashboard/payments");
+    }
+  }, [isManager, router]);
+
   const [tables, setTables] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -62,6 +78,15 @@ export default function NewPaymentPage() {
   const invoiceRef = useRef<HTMLDivElement>(null);
   const splashRef = useRef<HTMLDivElement>(null);
   // const [isPrintReady, setIsPrintReady] = useState(false);
+
+  // ─── Block rendering for unauthorized roles ─────────────────────────
+  if (isManager) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
+      </div>
+    );
+  }
 
   const {
     register,

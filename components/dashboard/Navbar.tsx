@@ -32,6 +32,7 @@ const FEATURES_BY_ROLE: Record<string, { id: string; label: string }[]> = {
     { id: "inventory", label: "Inventory" },
     { id: "kitchen", label: "Kitchen" },
     { id: "tables", label: "Tables" },
+    { id: "payments", label: "Payments" },
     { id: "reports", label: "Reports" },
     { id: "discounts", label: "Discounts" }
   ],
