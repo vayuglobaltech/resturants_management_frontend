@@ -19,6 +19,7 @@ import {
   Plus,
   X,
   Check,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -67,38 +68,43 @@ export default function UsersPage() {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // ─── Edit User Modal ──────────────────────────────────────────────────
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    first_name: "",
+    last_name: "",
+    phone_number: "",
+    role: "",
+    is_approved: true,
+    is_active: true,
+  });
+  const [editing, setEditing] = useState(false);
+
   // ─── Manager's branch ──────────────────────────────────────────────
   const [managerBranchId, setManagerBranchId] = useState<number | null>(null);
   const [managerBranchName, setManagerBranchName] = useState<string>("");
 
+  // ─── Fetch manager branch ──────────────────────────────────────────────
   useEffect(() => {
     const fetchManagerBranch = async () => {
       try {
         const profile = await getProfile();
-        console.log("📦 Full profile response:", profile);
-
-        // Try to extract branch ID from multiple sources
         const branchId =
           profile?.primary_branch?.id ||
           profile?.branch ||
-          (user as any)?.primary_branch||
+          (user as any)?.primary_branch ||
           (user as any)?.branch?.id ||
           null;
-
         const branchName =
           profile?.primary_branch ||
           profile?.branch ||
           (user as any)?.primary_branch ||
           (user as any)?.branch ||
           "";
-
         setManagerBranchId(branchId);
         setManagerBranchName(branchName);
-        console.log("👤 Manager branch ID:", branchId);
-        console.log("👤 Manager branch name:", branchName);
       } catch (error) {
-        console.error("Failed to fetch manager profile:", error);
-        // Try to get branch from user object as fallback
         const branchId = (user as any)?.primary_branch?.id || (user as any)?.branch?.id || null;
         const branchName = (user as any)?.primary_branch?.name || (user as any)?.branch?.name || "";
         setManagerBranchId(branchId);
@@ -177,26 +183,19 @@ export default function UsersPage() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Use managerBranchId from state, fallback to user object
     const branchId = managerBranchId || (user as any)?.primary_branch?.id || (user as any)?.branch?.id;
     if (!branchId) {
       toast.error("Could not determine your branch. Please contact admin.");
-      console.error("❌ No branch ID found:", { managerBranchId, user });
       return;
     }
-
-    // Validate required fields
     if (!newUser.username || !newUser.email || !newUser.password || !newUser.password2 || !newUser.role) {
       toast.error("Please fill in all required fields.");
       return;
     }
-
     if (newUser.password !== newUser.password2) {
       toast.error("Passwords do not match.");
       return;
     }
-
     setSubmitting(true);
     try {
       const payload = {
@@ -205,12 +204,10 @@ export default function UsersPage() {
         branch: branchId,
         primary_branch: branchId,
       };
-      console.log("📦 Payload:", payload);
       await createUser(payload);
       toast.success("User created successfully!");
       setShowAddModal(false);
       fetchUsers();
-      // Reset form
       setNewUser({
         username: "",
         email: "",
@@ -224,11 +221,49 @@ export default function UsersPage() {
         is_active: true,
       });
     } catch (error: any) {
-      console.error("❌ Create user error:", error);
       const messages = Object.values(error).flat().join(" ");
       toast.error(messages || "Failed to create user.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // ─── Edit User handlers ──────────────────────────────────────────────
+  const openEditModal = (u: User) => {
+    setEditingUser(u);
+    setEditFormData({
+      first_name: u.first_name || "",
+      last_name: u.last_name || "",
+      phone_number: u.phone_number || "",
+      role: u.role?.id ? String(u.role.id) : "",
+      is_approved: u.is_approved,
+      is_active: u.is_active,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setEditing(true);
+    try {
+      await updateUser(editingUser.id, {
+        first_name: editFormData.first_name,
+        last_name: editFormData.last_name,
+        phone_number: editFormData.phone_number,
+        role: parseInt(editFormData.role),
+        is_approved: editFormData.is_approved,
+        is_active: editFormData.is_active,
+      });
+      toast.success("User updated successfully!");
+      setIsEditModalOpen(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      const messages = Object.values(error).flat().join(" ");
+      toast.error(messages || "Failed to update user.");
+    } finally {
+      setEditing(false);
     }
   };
 
@@ -258,20 +293,10 @@ export default function UsersPage() {
           <Users className="h-6 w-6 text-indigo-400" /> Employee Management
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowAddModal(true)}
-            className="gap-1"
-          >
+          <Button size="sm" variant="outline" onClick={() => setShowAddModal(true)} className="gap-1">
             <Plus className="h-4 w-4" /> Add User
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={fetchUsers}
-            className="gap-1"
-          >
+          <Button variant="ghost" size="sm" onClick={fetchUsers} className="gap-1">
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
         </div>
@@ -388,22 +413,31 @@ export default function UsersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <Button
-                          size="sm"
-                          variant={u.is_approved ? "destructive" : "default"}
-                          onClick={() => handleToggleApproval(u.id, u.is_approved)}
-                          disabled={updating === u.id}
-                          className="gap-1 text-xs"
-                        >
-                          {updating === u.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : u.is_approved ? (
-                            <UserX className="h-3 w-3" />
-                          ) : (
-                            <UserCheck className="h-3 w-3" />
-                          )}
-                          {u.is_approved ? "Revoke" : "Approve"}
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => openEditModal(u)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                            title="Edit user"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <Button
+                            size="sm"
+                            variant={u.is_approved ? "destructive" : "default"}
+                            onClick={() => handleToggleApproval(u.id, u.is_approved)}
+                            disabled={updating === u.id}
+                            className="gap-1 text-xs"
+                          >
+                            {updating === u.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : u.is_approved ? (
+                              <UserX className="h-3 w-3" />
+                            ) : (
+                              <UserCheck className="h-3 w-3" />
+                            )}
+                            {u.is_approved ? "Revoke" : "Approve"}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -455,22 +489,30 @@ export default function UsersPage() {
                       {u.is_email_verified ? "Verified" : "Unverified"}
                     </span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant={u.is_approved ? "destructive" : "default"}
-                    onClick={() => handleToggleApproval(u.id, u.is_approved)}
-                    disabled={updating === u.id}
-                    className="w-full mt-2 text-xs gap-1"
-                  >
-                    {updating === u.id ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : u.is_approved ? (
-                      <UserX className="h-3 w-3" />
-                    ) : (
-                      <UserCheck className="h-3 w-3" />
-                    )}
-                    {u.is_approved ? "Revoke" : "Approve"}
-                  </Button>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <button
+                      onClick={() => openEditModal(u)}
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs bg-white/5 hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-400 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <Button
+                      size="sm"
+                      variant={u.is_approved ? "destructive" : "default"}
+                      onClick={() => handleToggleApproval(u.id, u.is_approved)}
+                      disabled={updating === u.id}
+                      className="flex-1 text-xs gap-1"
+                    >
+                      {updating === u.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : u.is_approved ? (
+                        <UserX className="h-3 w-3" />
+                      ) : (
+                        <UserCheck className="h-3 w-3" />
+                      )}
+                      {u.is_approved ? "Revoke" : "Approve"}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))
@@ -488,90 +530,39 @@ export default function UsersPage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-
             <form onSubmit={handleAddUser} className="space-y-4">
+              {/* ... same as before ... (unchanged) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Username <span className="text-red-400">*</span>
-                  </label>
-                  <Input
-                    value={newUser.username}
-                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                    required
-                    className="w-full"
-                  />
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Username <span className="text-red-400">*</span></label>
+                  <Input value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Email <span className="text-red-400">*</span>
-                  </label>
-                  <Input
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    required
-                    className="w-full"
-                  />
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Email <span className="text-red-400">*</span></label>
+                  <Input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Password <span className="text-red-400">*</span>
-                  </label>
-                  <Input
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    required
-                    className="w-full"
-                  />
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Password <span className="text-red-400">*</span></label>
+                  <Input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Confirm Password <span className="text-red-400">*</span>
-                  </label>
-                  <Input
-                    type="password"
-                    value={newUser.password2}
-                    onChange={(e) => setNewUser({ ...newUser, password2: e.target.value })}
-                    required
-                    className="w-full"
-                  />
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Confirm Password <span className="text-red-400">*</span></label>
+                  <Input type="password" value={newUser.password2} onChange={(e) => setNewUser({ ...newUser, password2: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    First Name
-                  </label>
-                  <Input
-                    value={newUser.first_name}
-                    onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })}
-                    className="w-full"
-                  />
+                  <label className="block text-sm font-medium text-slate-300 mb-1">First Name</label>
+                  <Input value={newUser.first_name} onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Last Name
-                  </label>
-                  <Input
-                    value={newUser.last_name}
-                    onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })}
-                    className="w-full"
-                  />
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Last Name</label>
+                  <Input value={newUser.last_name} onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Phone Number
-                  </label>
-                  <Input
-                    value={newUser.phone_number}
-                    onChange={(e) => setNewUser({ ...newUser, phone_number: e.target.value })}
-                    className="w-full"
-                  />
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Phone Number</label>
+                  <Input value={newUser.phone_number} onChange={(e) => setNewUser({ ...newUser, phone_number: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Role <span className="text-red-400">*</span>
-                  </label>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Role <span className="text-red-400">*</span></label>
                   <select
                     value={newUser.role}
                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
@@ -585,17 +576,12 @@ export default function UsersPage() {
                   </select>
                 </div>
               </div>
-
-              {/* Branch info (read-only, auto-assigned) */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  Branch (auto-assigned)
-                </label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Branch (auto-assigned)</label>
                 <div className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white/60">
                   {managerBranchName || "Your branch"}
                 </div>
               </div>
-
               <div className="flex flex-wrap gap-6">
                 <label className="flex items-center gap-2 text-sm text-slate-300">
                   <input
@@ -616,19 +602,114 @@ export default function UsersPage() {
                   Active
                 </label>
               </div>
-
               <div className="flex gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
+                <Button type="button" variant="ghost" onClick={() => setShowAddModal(false)} className="flex-1">Cancel</Button>
                 <Button type="submit" disabled={submitting} className="flex-1 gap-2">
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   {submitting ? "Creating..." : "Create User"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Edit User Modal ─── */}
+      {isEditModalOpen && editingUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#121826] border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Edit User</h2>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              {/* Read‑only fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Username</label>
+                  <div className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white/60">
+                    {editingUser.username}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                  <div className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white/60">
+                    {editingUser.email}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">First Name</label>
+                  <Input
+                    value={editFormData.first_name}
+                    onChange={(e) => setEditFormData({ ...editFormData, first_name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Last Name</label>
+                  <Input
+                    value={editFormData.last_name}
+                    onChange={(e) => setEditFormData({ ...editFormData, last_name: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Phone Number</label>
+                <Input
+                  value={editFormData.phone_number}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone_number: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Role <span className="text-red-400">*</span></label>
+                <select
+                  value={editFormData.role}
+                  onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
+                  required
+                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Select role</option>
+                  <option value="4">Waiter</option>
+                  <option value="3">Cashier</option>
+                  <option value="5">Kitchen Staff</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Branch</label>
+                <div className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white/60">
+                  {getUserBranch(editingUser)}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-6">
+                <label className="flex items-center gap-2 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={editFormData.is_approved}
+                    onChange={(e) => setEditFormData({ ...editFormData, is_approved: e.target.checked })}
+                    className="rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                  />
+                  Approved
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={editFormData.is_active}
+                    onChange={(e) => setEditFormData({ ...editFormData, is_active: e.target.checked })}
+                    className="rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                  />
+                  Active
+                </label>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="ghost" onClick={() => setIsEditModalOpen(false)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={editing} className="flex-1 gap-2">
+                  {editing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  {editing ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             </form>

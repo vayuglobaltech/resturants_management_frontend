@@ -71,7 +71,6 @@ const SUB_FEATURES: Record<
   ],
   tables: [
     { label: "All Tables", icon: Table, href: "/dashboard/tables" },
-    { label: "Add Table", icon: Plus, href: "/dashboard/tables/add" },
   ],
   payments: [
     { label: "All Payments", icon: CreditCard, href: "/dashboard/payments" },
