@@ -25,6 +25,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedOrder } from "@/components/ProtectedOrder";
+import { useSearchParams } from "next/navigation";
+
 
 interface MenuItem {
   id: number;
@@ -83,6 +85,16 @@ export default function NewOrderPage() {
 
   const selectedTableId = watch("table");
   const specialInstructions = watch("special_instructions");
+
+  // Inside the component
+const searchParams = useSearchParams();
+const preSelectedTable = searchParams.get("table");
+
+useEffect(() => {
+  if (preSelectedTable) {
+    setValue("table", preSelectedTable);
+  }
+}, [preSelectedTable, setValue]);
 
   // ─── Fetch Tables, Menu, and Discounts ──────────────────────────────────
   useEffect(() => {

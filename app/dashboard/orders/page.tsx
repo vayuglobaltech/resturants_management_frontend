@@ -419,6 +419,8 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+  const role = user?.role;
+  const canCreateOrder = role && !["cashier"].includes(role); 
 
   // ─── Read table filter from URL query ──────────────────────────────────
   const tableId = searchParams.get("table");
@@ -669,11 +671,13 @@ export default function OrdersPage() {
             Manage restaurant orders efficiently
           </p>
         </div>
-        <Link href="/dashboard/orders/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" /> New Order
-          </Button>
-        </Link>
+        {canCreateOrder && (
+          <Link href="/dashboard/orders/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" /> New Order
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* ─── Active Table Filter Banner ────────────────────────────────────── */}
