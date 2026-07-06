@@ -49,9 +49,10 @@ export default function DashboardLayout({
   return (
     <WebSocketProvider>
       <ToastProvider>
-        <div className="min-h-screen bg-[#0a0e1a] flex flex-col">
-          <DashboardNavbar
-            user={user}
+        <div className="min-h-screen bg-[#0a0e1a] flex flex-col print:bg-white print:block">
+          <div className="print:hidden">
+            <DashboardNavbar
+              user={user}
             selectedFeature={selectedFeature}
             onSelectFeature={(id) => {
               setSelectedFeature(id);
@@ -69,18 +70,21 @@ export default function DashboardLayout({
               }
             }}
           />
+          </div>
 
-          <div className="flex flex-1 overflow-hidden">
-            <DashboardSidebar
-              selectedFeature={selectedFeature}
-              collapsed={sidebarCollapsed}
-              mobileOpen={mobileSidebarOpen}
-              onMobileClose={() => setMobileSidebarOpen(false)}
-            />
+          <div className="flex flex-1 overflow-hidden print:overflow-visible print:block">
+            <div className="print:hidden">
+              <DashboardSidebar
+                selectedFeature={selectedFeature}
+                collapsed={sidebarCollapsed}
+                mobileOpen={mobileSidebarOpen}
+                onMobileClose={() => setMobileSidebarOpen(false)}
+              />
+            </div>
 
             <main
               className={cn(
-                "flex-1 overflow-y-auto p-4 sm:p-6 transition-all duration-300",
+                "flex-1 overflow-y-auto p-4 sm:p-6 transition-all duration-300 print:ml-0 print:p-0 print:overflow-visible print:block",
                 sidebarCollapsed ? "md:ml-16" : "md:ml-64"
               )}
             >

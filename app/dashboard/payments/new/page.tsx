@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { InvoicePreview } from "@/components/InvoicePreview";
+// import ReactToPrint from "react-to-print";
 
 interface FormData {
   table: string;
@@ -86,38 +87,40 @@ export default function NewPaymentPage() {
   const customerName = watch("customer_name");
   const paymentMethod = watch("payment_method");
 
- const handleDownloadPDF = async () => {
-  console.log("📄 PDF button clicked");
 
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  const handleDownloadPDF = async () => {
+    console.log("📄 PDF button clicked");
 
-  // Try ref first, fallback to ID
-  const element = invoiceRef.current || document.getElementById("invoice-content");
-  if (!element) {
-    toast.error("Invoice content not ready. Please try again.");
-    return;
-  }
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
-  try {
-    const dataUrl = await toPng(element, {
-      quality: 1,
-      pixelRatio: 2,
-      backgroundColor: "#ffffff",
-    });
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const img = new Image();
-    img.src = dataUrl;
-    await img.decode();
-    const pdfHeight = (img.height * pdfWidth) / img.width;
-    pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`invoice-${selectedOrder?.order_number || "receipt"}.pdf`);
-    toast.success("Invoice downloaded!");
-  } catch (error) {
-    console.error("❌ PDF generation failed:", error);
-    toast.error("Failed to generate PDF.");
-  }
-};
+    // Try ref first, fallback to ID
+    const element =
+      invoiceRef.current || document.getElementById("invoice-content");
+    if (!element) {
+      toast.error("Invoice content not ready. Please try again.");
+      return;
+    }
+
+    try {
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+      });
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const img = new Image();
+      img.src = dataUrl;
+      await img.decode();
+      const pdfHeight = (img.height * pdfWidth) / img.width;
+      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`invoice-${selectedOrder?.order_number || "receipt"}.pdf`);
+      toast.success("Invoice downloaded!");
+    } catch (error) {
+      console.error("❌ PDF generation failed:", error);
+      toast.error("Failed to generate PDF.");
+    }
+  };
   // ─── 1. Fetch occupied tables ──────────────────────────────────────────
   useEffect(() => {
     const fetchTables = async () => {
@@ -224,7 +227,7 @@ export default function NewPaymentPage() {
   const totalDiscount =
     selectedOrder?.discounts?.reduce(
       (sum: number, d: any) => sum + Number(d.amount),
-      0
+      0,
     ) || 0;
 
   // ─── 5. Auto‑fill amount when table changes ──────────────────────────
@@ -398,8 +401,8 @@ export default function NewPaymentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 print:bg-white print:p-0 print:block">
+      <div className="max-w-7xl mx-auto space-y-6 print:hidden">
         {/* Header */}
         <div className="flex items-center justify-between">
           <Link href="/dashboard/payments">
@@ -424,7 +427,7 @@ export default function NewPaymentPage() {
             </div>
           </div>
         </div>
-        
+
         {/* ─── Main Content: Tables Left | Payment Details Right ─── */}
         {!showBillSplash && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -809,16 +812,16 @@ export default function NewPaymentPage() {
       {/* ─── BILL SPLASH OVERLAY ─── */}
       {showBillSplash && paymentSuccess && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-lg"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-lg print:static print:block print:bg-white print:p-0"
           onClick={closeBillSplash}
         >
           <div
             ref={splashRef}
-            className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto animate-in slide-up duration-500"
+            className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto animate-in slide-up duration-500 print:static print:shadow-none print:transform-none print:max-w-full print:max-h-none print:overflow-visible print:rounded-none"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header with close button */}
-            <div className="sticky top-0 z-10 bg-gradient-to-r from-emerald-500 to-emerald-600 p-5 rounded-t-2xl">
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-emerald-500 to-emerald-600 p-5 rounded-t-2xl print:hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="bg-white/20 p-2.5 rounded-full animate-bounce">
@@ -844,8 +847,12 @@ export default function NewPaymentPage() {
             </div>
 
             {/* Invoice content */}
-            <div className="p-6 bg-gray-50">
-              <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100" ref={invoiceRef}>
+            <div className="p-6 bg-gray-50 print:p-0 print:bg-white">
+              <div
+                className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100 print:p-0 print:border-none print:shadow-none print:rounded-none"
+                ref={invoiceRef}
+                id="invoice-content"
+              >
                 <InvoicePreview
                   tableNumber={selectedTable?.table_number || null}
                   items={combinedItems}
@@ -864,19 +871,34 @@ export default function NewPaymentPage() {
             </div>
 
             {/* Action buttons */}
-            {/* Action buttons */}
-            <div className="sticky bottom-0 bg-white p-5 rounded-b-2xl border-t border-gray-100">
+            {/* ─── Action Buttons ─── */}
+            <div className="sticky bottom-0 bg-white p-5 rounded-b-2xl border-t border-gray-100 no-print print:hidden">
               <div className="flex flex-wrap gap-3 justify-center">
-                 <Button
-  className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg shadow-indigo-500/25 px-6"
-  onClick={(e) => {
-    e.stopPropagation();
-    handleDownloadPDF();
-  }}
->
-  <Download className="h-4 w-4" />
-  Save as PDF
-</Button>
+                {/* ─── Save as PDF ─── */}
+                <Button
+                  className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg shadow-indigo-500/25 px-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadPDF();
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Save as PDF
+                </Button>
+
+                {/* ─── Print (Hard Copy) ─── */}
+                <Button
+                  className="gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 px-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.print();
+                  }}
+                >
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+
+                {/* ─── Close ─── */}
                 <Button
                   onClick={closeBillSplash}
                   variant="outline"
@@ -897,43 +919,45 @@ export default function NewPaymentPage() {
       )}
 
       {/* Custom Scrollbar Styles */}
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(99, 102, 241, 0.5);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(99, 102, 241, 0.8);
-        }
+<style jsx>{`
+  /* 1. SCROLLBAR: attach this to the parent wrapper */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.5);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.8);
+  }
 
-        @keyframes slide-up {
-          from {
-            opacity: 0;
-            transform: translateY(30px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
+  /* 3. ANIMATIONS */
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
 
-        .animate-in {
-          animation-fill-mode: both;
-        }
+  .animate-in {
+    animation-fill-mode: both;
+  }
 
-        .slide-up {
-          animation-name: slide-up;
-          animation-duration: 0.4s;
-          animation-timing-function: ease-out;
-        }
-      `}</style>
+  .slide-up {
+    animation-name: slide-up;
+    animation-duration: 0.4s;
+    animation-timing-function: ease-out;
+  }
+`}</style>
     </div>
   );
 }
