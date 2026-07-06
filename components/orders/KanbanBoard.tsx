@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   DndContext,
   closestCorners,
@@ -167,6 +168,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
+  const { user } = useAuth(); // get current user
   const router = useRouter();
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
 
@@ -199,6 +201,16 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
 
     const order = orders.find((o) => o.id === orderId);
     if (!order || order.status === newStatus) return;
+
+    // ─── Restrict PAID status ──────────────────────────────────────────────
+    if (newStatus === "PAID") {
+      const role = user?.role;
+      const allowedRoles = ["admin", "cashier"];
+      if (!role || !allowedRoles.includes(role)) {
+        toast.error("Only Cashier or Admin can mark an order as PAID.");
+        return;
+      }
+    }
 
     setUpdatingOrderId(orderId);
     try {

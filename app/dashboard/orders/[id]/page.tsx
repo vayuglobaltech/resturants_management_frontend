@@ -142,7 +142,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     return allowed.filter((s) => allowedFromCurrent.includes(s));
   };
 
-  const availableStatuses = getAvailableStatuses();
+  // ─── Filter out PAID for non‑cashier/admins ──────────────────────────────
+const rawAvailableStatuses = getAvailableStatuses();
+const availableStatuses = rawAvailableStatuses.filter((status) => {
+  if (status === "PAID") {
+    const userRole = user?.role;
+    return userRole && ["admin", "cashier"].includes(userRole);
+  }
+  return true;
+});
 
   const handleUpdateStatus = async () => {
     if (!selectedStatus || selectedStatus === order.status) return;
