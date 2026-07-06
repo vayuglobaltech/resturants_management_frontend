@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch } from "@/lib/api"; // ← changed
+import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Loader2, CreditCard, RefreshCw } from "lucide-react";
+import { Loader2, CreditCard, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -13,15 +13,22 @@ export default function PaymentsPage() {
   const { user } = useAuth();
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (pageNum: number = 1) => {
     setLoading(true);
     try {
-      const res = await apiFetch("/api/orders/payments/", {}, true); // ← changed
+      const res = await apiFetch(`/api/orders/payments/?page=${pageNum}`, {}, true);
       const json = await res.json();
       if (!res.ok) throw json;
+
       const data = json.results || json || [];
       setPayments(data);
+      setPage(pageNum);
+      setTotalCount(json.count || data.length);
+      setTotalPages(Math.ceil((json.count || data.length) / 10));
     } catch (error) {
       console.error("Failed to fetch payments:", error);
       toast.error("Failed to load payments.");
@@ -31,8 +38,16 @@ export default function PaymentsPage() {
   };
 
   useEffect(() => {
-    fetchPayments();
+    fetchPayments(1);
   }, []);
+
+  const handleNext = () => {
+    if (page < totalPages) fetchPayments(page + 1);
+  };
+
+  const handlePrev = () => {
+    if (page > 1) fetchPayments(page - 1);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -58,7 +73,7 @@ export default function PaymentsPage() {
           <CreditCard className="h-6 w-6 text-indigo-400" />
           Payments
         </h1>
-        <Button variant="ghost" size="sm" onClick={fetchPayments} className="gap-1">
+        <Button variant="ghost" size="sm" onClick={() => fetchPayments(page)} className="gap-1">
           <RefreshCw className="h-4 w-4" /> Refresh
         </Button>
       </div>
@@ -68,42 +83,71 @@ export default function PaymentsPage() {
           <p className="text-slate-400">No payments recorded yet.</p>
         </div>
       ) : (
-        <Card className="border-white/[0.05] bg-white/[0.02] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-slate-300">
-              <thead className="bg-white/[0.04] text-xs uppercase text-slate-400 font-semibold border-b border-white/[0.08]">
-                <tr>
-                  <th className="px-6 py-4 text-left">Order</th>
-                  <th className="px-6 py-4 text-left">Amount</th>
-                  <th className="px-6 py-4 text-left">Method</th>
-                  <th className="px-6 py-4 text-left">Status</th>
-                  <th className="px-6 py-4 text-left">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {payments.map((payment) => (
-                  <tr key={payment.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4 font-medium text-white">
-                      #{payment.order_number || payment.order}
-                    </td>
-                    <td className="px-6 py-4">
-                      ${parseFloat(payment.amount || 0).toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4">{payment.payment_method || "—"}</td>
-                    <td className="px-6 py-4">
-                      <span className={cn("inline-block text-xs px-2.5 py-1 rounded-full border", getStatusColor(payment.status))}>
-                        {payment.status || "UNKNOWN"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-400">
-                      {payment.created_at ? new Date(payment.created_at).toLocaleDateString() : "—"}
-                    </td>
+        <>
+          <Card className="border-white/[0.05] bg-white/[0.02] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-slate-300">
+                <thead className="bg-white/[0.04] text-xs uppercase text-slate-400 font-semibold border-b border-white/[0.08]">
+                  <tr>
+                    <th className="px-6 py-4 text-left">Order</th>
+                    <th className="px-6 py-4 text-left">Amount</th>
+                    <th className="px-6 py-4 text-left">Method</th>
+                    <th className="px-6 py-4 text-left">Status</th>
+                    <th className="px-6 py-4 text-left">Date</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {payments.map((payment) => (
+                    <tr key={payment.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-6 py-4 font-medium text-white">
+                        #{payment.order_number || payment.order}
+                      </td>
+                      <td className="px-6 py-4">
+                        ${parseFloat(payment.amount || 0).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4">{payment.payment_method || "—"}</td>
+                      <td className="px-6 py-4">
+                        <span className={cn("inline-block text-xs px-2.5 py-1 rounded-full border", getStatusColor(payment.status))}>
+                          {payment.status || "UNKNOWN"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-400">
+                        {payment.created_at ? new Date(payment.created_at).toLocaleDateString() : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* ─── Pagination Controls ─── */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-white/10 pt-4">
+            <span className="text-sm text-slate-400">
+              Showing page {page} of {totalPages} · Total {totalCount} records
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrev}
+                disabled={page <= 1}
+                className="gap-1 text-white border-white/20 hover:bg-white/10"
+              >
+                <ChevronLeft className="h-4 w-4" /> Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNext}
+                disabled={page >= totalPages}
+                className="gap-1 text-white border-white/20 hover:bg-white/10"
+              >
+                Next <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </Card>
+        </>
       )}
     </div>
   );

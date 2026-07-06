@@ -200,18 +200,31 @@ export default function NewPaymentPage() {
   }, [selectedOrderId]);
 
   // ─── 4. Compute table totals ────────────────────────────────────────────
-  const combinedItems = orders.flatMap((order: any) => order.items || []);
-  const subtotal = orders.reduce(
-    (sum, order) => sum + parseFloat(order.total_amount || 0),
-    0,
-  );
+  // const combinedItems = orders.flatMap((order: any) => order.items || []);
+  // const subtotal = orders.reduce(
+  //   (sum, order) => sum + parseFloat(order.total_amount || 0),
+  //   0,
+  // );
+  // const tax = subtotal * 0.15;
+  // const grandTotal = subtotal + tax;
+  // // ─── Compute total discount from selected order ──────────────────────────
+  // const totalDiscount =
+  //   selectedOrder?.discounts?.reduce(
+  //     (sum: number, d: any) => sum + Number(d.amount),
+  //     0,
+  //   ) || 0;
+
+  // ─── Use selectedOrder, not all orders ──────────────────────────────────
+  const combinedItems = selectedOrder?.items || [];
+  const subtotal = parseFloat(selectedOrder?.total_amount || 0);
   const tax = subtotal * 0.15;
   const grandTotal = subtotal + tax;
-  // ─── Compute total discount from selected order ──────────────────────────
+
+  // ─── Total discount from selected order ──────────────────────────────────
   const totalDiscount =
     selectedOrder?.discounts?.reduce(
       (sum: number, d: any) => sum + Number(d.amount),
-      0,
+      0
     ) || 0;
 
   // ─── 5. Auto‑fill amount when table changes ──────────────────────────
