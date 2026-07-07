@@ -6,6 +6,8 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
+  Menu as MenuIcon,
+  ShoppingCart,
   Package,
   Utensils,
   Table,
@@ -20,19 +22,12 @@ import {
   CookingPot,
   ChevronLeft,
   ChevronRight,
-  X,
 } from "lucide-react";
-import { listTables } from "@/lib/ordersApi";
+import { listMenuItems } from "@/lib/menuApi";
+import { listOrders, listTables } from "@/lib/ordersApi";
 import { getCategories } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
-// ─── Status badge styles ──────────────────────────────────────────────────────
-const TABLE_STATUS_STYLE: Record<string, string> = {
-  OCCUPIED: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-  RESERVED: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-};
-
-// ─── Static sub-features ──────────────────────────────────────────────────────
 const SUB_FEATURES: Record<
   string,
   { label: string; icon: any; href: string }[]
@@ -46,7 +41,7 @@ const SUB_FEATURES: Record<
     { label: "Ingredients", icon: Package, href: "/dashboard/inventory/ingredients" },
     { label: "Products", icon: Package, href: "/dashboard/inventory/products" },
     { label: "Recipes", icon: Utensils, href: "/dashboard/inventory/recipes" },
-    { label: "Stock", icon: Archive, href: "/dashboard/inventory/stock" },
+    { label: "Stock Levels", icon: Archive, href: "/dashboard/inventory/stock" },
     { label: "Availability", icon: List, href: "/dashboard/inventory/availability" },
     { label: "Transactions", icon: BarChart3, href: "/dashboard/inventory/transactions" },
   ],
@@ -61,15 +56,21 @@ const SUB_FEATURES: Record<
   ],
   users: [{ label: "All Users", icon: Users, href: "/dashboard/users" }],
   reports: [
-    { label: "Sales", icon: BarChart3, href: "/dashboard/reports" },
+    { label: "Sales Report", icon: BarChart3, href: "/dashboard/reports" },
     { label: "Gross Profit", icon: BarChart3, href: "/dashboard/reports/gross-profit" },
-    { label: "Daily Sales", icon: BarChart3, href: "/dashboard/reports/daily-sales" },
-    { label: "Transactions", icon: BarChart3, href: "/dashboard/reports/transactions" },
+    { label: "Sales Analytics", icon: BarChart3, href: "/dashboard/reports/daily-sales" },
+    { label: "Transaction reports", icon: BarChart3, href: "/dashboard/reports/transactions" },
     { label: "Insights", icon: BarChart3, href: "/dashboard/reports/insights" },
   ],
 };
 
-// ─── Inline tooltip for collapsed state ──────────────────────────────────────
+interface SidebarProps {
+  selectedFeature: string;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+// ─── Tooltip ──────────────────────────────────────────────────────────
 function SidebarTooltip({
   label,
   collapsed,
@@ -100,296 +101,298 @@ function SidebarTooltip({
   );
 }
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-interface SidebarProps {
-  selectedFeature: string;
-  collapsed: boolean;
-  onToggleCollapse: () => void;
-  onClose?: () => void;
-  isMobile?: boolean;
-}
-
-// ─── DashboardSidebar ─────────────────────────────────────────────────────────
 export function DashboardSidebar({
   selectedFeature,
   collapsed,
   onToggleCollapse,
-  onClose,
-  isMobile = false,
 }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user } = useAuth();
 
-  const isManager = ["manager", "branch_manager", "admin"].includes(
-    (user?.role?.name ?? "").toLowerCase()
-  );
+  const rawRole = user?.role ?? user?.name ?? '';
+  const roleName =
+    typeof rawRole === 'object' && rawRole !== null && 'name' in rawRole
+      ? (rawRole as any).name
+      : rawRole;
+  const userRole = String(roleName).toUpperCase();
+  const isManager = ["MANAGER", "BRANCH_MANAGER", "ADMIN"].includes(userRole);
 
   const items = SUB_FEATURES[selectedFeature] || SUB_FEATURES.dashboard;
   const filteredItems =
     selectedFeature === "payments" && isManager
-      ? items.filter((i) => i.label !== "Process Payment")
+      ? items.filter((item) => item.label !== "Process Payment")
       : items;
 
-  // ── Dynamic items ───────────────────────────────────────────────────────
+  // ─── Dynamic items ──────────────────────────────────────────────────
   const [dynamicItems, setDynamicItems] = useState<
-    { id: string | number; label: string; href: string; status?: string; icon?: any }[]
+    { id: string | number; name: string; href: string; status?: string; icon?: any; tableNumber?: number }[]
   >([]);
   const [loadingDynamic, setLoadingDynamic] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    const fetch = async () => {
+    let isMounted = true;
+    const fetchDynamic = async () => {
       setLoadingDynamic(true);
       try {
         if (selectedFeature === "menu") {
           const res = await getCategories();
-          const data = res.results || res || [];
-          if (mounted)
+          if (isMounted) {
+            const data = Array.isArray(res) ? res : res.results || [];
             setDynamicItems(
-              data.map((c: any) => ({
-                id: c.id,
-                label: c.name,
-                href: `/dashboard/menu?category=${c.id}`,
+              data.map((cat: any) => ({
+                id: cat.id,
+                name: cat.name,
+                href: `/dashboard/menu?category=${cat.id}`,
                 icon: Folder,
               }))
             );
-        } else if (selectedFeature === "orders" || selectedFeature === "tables") {
+          }
+        } else if (selectedFeature === "orders") {
           const res = await listTables();
-          const data = res.results || res || [];
-          if (mounted)
+          if (isMounted) {
+            const data = res.results || res;
             setDynamicItems(
-              data.map((t: any) => ({
-                id: t.id,
-                label: `Table ${t.table_number}`,
-                href: `/dashboard/tables/${t.id}`,
-                status: t.status,
-                icon: Table,
-              }))
+              Array.isArray(data)
+                ? data.map((t: any) => ({
+                    id: t.id,
+                    name: `Table ${t.table_number}`,
+                    href: `/dashboard/orders?table=${t.id}`,
+                    status: t.status,
+                    icon: Table,
+                    tableNumber: t.table_number,
+                  }))
+                : []
             );
+          }
+        } else if (selectedFeature === "tables") {
+          const res = await listTables();
+          if (isMounted) {
+            const data = res.results || res;
+            setDynamicItems(
+              Array.isArray(data)
+                ? data.map((t: any) => ({
+                    id: t.id,
+                    name: `Table ${t.table_number || t.name || t.id}`,
+                    href: `/dashboard/tables/${t.id}`,
+                    icon: Table,
+                    tableNumber: t.table_number,
+                  }))
+                : []
+            );
+          }
         } else {
-          if (mounted) setDynamicItems([]);
+          setDynamicItems([]);
         }
-      } catch {
-        if (mounted) setDynamicItems([]);
+      } catch (e) {
+        console.error("Failed to fetch dynamic sidebar items", e);
+        if (isMounted) setDynamicItems([]);
       } finally {
-        if (mounted) setLoadingDynamic(false);
+        if (isMounted) setLoadingDynamic(false);
       }
     };
-    fetch();
-    return () => { mounted = false; };
+    fetchDynamic();
+    return () => {
+      isMounted = false;
+    };
   }, [selectedFeature]);
 
-  // ── Active helpers ──────────────────────────────────────────────────────
-  const isActive = (href: string) => pathname === href;
   const isDynamicActive = (href: string) => {
     if (href.includes("?")) {
       const [base, query] = href.split("?");
       if (pathname !== base) return false;
-      for (const [k, v] of new URLSearchParams(query).entries()) {
-        if (searchParams.get(k) !== v) return false;
+      const params = new URLSearchParams(query);
+      for (const [key, value] of params.entries()) {
+        if (searchParams.get(key) !== value) return false;
       }
       return true;
     }
     return pathname === href;
   };
 
-  // ── Shared link class builder ───────────────────────────────────────────
-  const linkClass = (active: boolean, small = false) =>
-    cn(
-      "relative flex items-center gap-3 rounded-xl transition-all duration-200 group",
-      small ? "px-3 py-1.5" : "px-3 py-2",
-      collapsed && "justify-center px-0",
-      active
-        ? [
-            "text-indigo-600 dark:text-indigo-400",
-            "bg-indigo-500/10 dark:bg-indigo-500/15",
-            // left accent bar
-            "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2",
-            small
-              ? "before:h-3.5 before:w-[3px]"
-              : "before:h-5 before:w-[3px]",
-            "before:rounded-r-full before:bg-indigo-500 dark:before:bg-indigo-400",
-          ]
-        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-    );
-
-  return (
-    /*
-     * Positioning:
-     *   top-[104px]  = navbar total height (h-16 top row + h-10 tabs row)
-     *
-     * On desktop:  fixed sidebar, width toggled between w-64 / w-16
-     * On mobile:   width is always w-[85vw] max-w-[280px]; the layout
-     *              wraps this in an animated <aside> positioned from the left.
-     */
-    <aside
-      aria-label="Sidebar navigation"
-      className={cn(
-        "fixed left-0 bottom-0 z-20 flex flex-col",
-        "bg-card border-r border-border",
-        "transition-all duration-300 ease-in-out overflow-hidden",
-        // Correct top offset — MUST match navbar total height
-        "top-[104px]",
-        // Width: mobile always wide, desktop toggles
-        isMobile
-          ? "w-[85vw] max-w-[280px]"
-          : collapsed
-          ? "w-16"
-          : "w-64"
-      )}
-    >
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-4 h-11 border-b border-border flex-shrink-0 bg-muted/20">
+  // ─── Sidebar content ──────────────────────────────────────────────────
+  const SidebarContent = () => (
+    <div className="h-full bg-card border-r border-border flex flex-col transition-colors duration-200 mt-15">
+      {/* Header with toggle */}
+      <div className="flex items-center justify-between px-3 h-12 border-b border-border flex-shrink-0 bg-muted/20">
         {!collapsed && (
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest truncate">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             {selectedFeature.charAt(0).toUpperCase() + selectedFeature.slice(1)}
           </span>
         )}
-        {isMobile && onClose && (
-          <button
-            onClick={onClose}
-            aria-label="Close sidebar"
-            className="ml-auto p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+        <button
+          onClick={onToggleCollapse}
+          className={cn(
+            "p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
+            collapsed ? "mx-auto" : "ml-auto"
+          )}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
       </div>
 
-      {/* ── Static main items ────────────────────────────────────────────── */}
-      <div className="p-2 space-y-0.5 flex-shrink-0">
-        {filteredItems.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <SidebarTooltip key={item.href} label={item.label} collapsed={collapsed && !isMobile}>
+      {!collapsed ? (
+        // ─── EXPANDED ──────────────────────────────────────────────────
+        <>
+          <div className="p-4 space-y-1 flex-shrink-0">
+            {filteredItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
+                    isActive
+                      ? "bg-indigo-500/10 text-indigo-650 dark:bg-indigo-500/20 dark:text-indigo-400"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      "h-5 w-5 flex-shrink-0 transition-colors duration-200",
+                      isActive ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"
+                    )}
+                  />
+                  <span className="text-sm font-medium truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {(dynamicItems.length > 0 || loadingDynamic) && (
+            <div className="flex-1 overflow-y-auto px-4 pb-4">
+              <div className="mt-2 pt-4 border-t border-border">
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1 mb-2">
+                  {selectedFeature === "menu"
+                    ? "Categories"
+                    : selectedFeature === "orders"
+                    ? "Tables"
+                    : "Tables"}
+                </div>
+                {loadingDynamic ? (
+                  <div className="px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+                    <div className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    Loading...
+                  </div>
+                ) : (
+                  <div className="space-y-0.5">
+                    {dynamicItems.map((dItem) => {
+                      const isActive = isDynamicActive(dItem.href);
+                      const Icon = dItem.icon || Folder;
+                      return (
+                        <Link
+                          key={dItem.id}
+                          href={dItem.href}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group",
+                            isActive
+                              ? "bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          )}
+                        >
+                          <Icon
+                            className={cn(
+                              "h-5 w-5 flex-shrink-0 transition-colors duration-200",
+                              isActive ? "text-indigo-650 dark:text-indigo-400" : "text-muted-foreground group-hover:text-foreground"
+                            )}
+                          />
+                          <span className="text-sm font-medium truncate">{dItem.name}</span>
+                          {dItem.status === "OCCUPIED" && (
+                            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                              OCC
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        // ─── COLLAPSED ────────────────────────────────────────────────
+        <div className="flex flex-col items-center py-4 space-y-3">
+          {filteredItems.map((item) => (
+            <SidebarTooltip key={item.href} label={item.label} collapsed={collapsed}>
               <Link
                 href={item.href}
-                onClick={isMobile ? onClose : undefined}
-                aria-current={active ? "page" : undefined}
-                className={linkClass(active)}
+                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-200"
               >
-                <item.icon
-                  strokeWidth={1.75}
-                  className={cn(
-                    "h-5 w-5 flex-shrink-0 transition-colors duration-200",
-                    collapsed && !isMobile ? "mx-auto" : "",
-                    active
-                      ? "text-indigo-600 dark:text-indigo-400"
-                      : "text-muted-foreground group-hover:text-foreground"
-                  )}
-                />
-                {(!collapsed || isMobile) && (
-                  <span className="text-sm font-medium truncate">{item.label}</span>
-                )}
+                <item.icon className="h-5 w-5" />
               </Link>
             </SidebarTooltip>
-          );
-        })}
-      </div>
+          ))}
 
-      {/* ── Dynamic items (categories / tables) ─────────────────────────── */}
-      {(dynamicItems.length > 0 || loadingDynamic) && (
-        <div className="flex-1 overflow-y-auto px-2 pb-2 min-h-0">
-          <div className="pt-2 border-t border-border">
-            {/* Section label */}
-            {(!collapsed || isMobile) && (
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-3 py-1.5 mb-0.5">
-                {selectedFeature === "menu" ? "Categories" : "Tables"}
-              </p>
-            )}
-
-            {loadingDynamic ? (
-              <div className="flex justify-center py-4">
-                <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : (
-              <div className="space-y-0.5">
-                {dynamicItems.map((dItem) => {
-                  const active = isDynamicActive(dItem.href);
-                  const Icon = dItem.icon || Folder;
-                  const badgeStyle = dItem.status ? TABLE_STATUS_STYLE[dItem.status] : undefined;
-
-                  return (
-                    <SidebarTooltip
-                      key={dItem.id}
-                      label={dItem.label}
-                      collapsed={collapsed && !isMobile}
-                    >
-                      <Link
-                        href={dItem.href}
-                        onClick={isMobile ? onClose : undefined}
-                        aria-current={active ? "page" : undefined}
-                        className={linkClass(active, true)}
-                      >
-                        <Icon
-                          strokeWidth={1.75}
-                          className={cn(
-                            "h-4 w-4 flex-shrink-0 transition-colors duration-200",
-                            collapsed && !isMobile ? "mx-auto" : "",
-                            active
-                              ? "text-indigo-600 dark:text-indigo-400"
-                              : "text-muted-foreground group-hover:text-foreground"
-                          )}
-                        />
-                        {(!collapsed || isMobile) && (
-                          <span className="text-sm font-medium truncate flex-1">
-                            {dItem.label}
-                          </span>
-                        )}
-                        {/* Status badge – only when label is visible and status is notable */}
-                        {(!collapsed || isMobile) && badgeStyle && (
-                          <span
-                            className={cn(
-                              "ml-auto flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full font-semibold tracking-wide",
-                              badgeStyle
-                            )}
-                          >
-                            {dItem.status === "OCCUPIED" ? "OCC" : "RES"}
-                          </span>
-                        )}
-                      </Link>
-                    </SidebarTooltip>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Filler to push toggle to bottom */}
-      {dynamicItems.length === 0 && !loadingDynamic && <div className="flex-1" />}
-
-      {/* ── Collapse toggle (desktop only) ───────────────────────────────── */}
-      {!isMobile && (
-        <div className="p-2 border-t border-border flex-shrink-0">
-          <SidebarTooltip
-            label={collapsed ? "Expand" : "Collapse"}
-            collapsed={collapsed}
-          >
-            <button
-              onClick={onToggleCollapse}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className={cn(
-                "w-full flex items-center gap-2 px-3 py-2 rounded-xl",
-                "text-muted-foreground hover:text-foreground hover:bg-muted",
-                "transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
-                collapsed && "justify-center px-0"
-              )}
-            >
-              {collapsed ? (
-                <ChevronRight className="h-5 w-5" />
+          {(dynamicItems.length > 0 || loadingDynamic) && (
+            <div className="w-full px-2 pt-2 border-t border-border">
+              {loadingDynamic ? (
+                <div className="flex justify-center py-2">
+                  <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                </div>
               ) : (
-                <>
-                  <ChevronLeft className="h-5 w-5 flex-shrink-0" />
-                  <span className="text-sm font-medium">Collapse</span>
-                </>
+                <div className="space-y-1">
+                  {dynamicItems.map((dItem) => {
+                    const isActive = isDynamicActive(dItem.href);
+                    const Icon = dItem.icon || Folder;
+                    const showTableNumber = dItem.tableNumber !== undefined;
+                    return (
+                      <SidebarTooltip key={dItem.id} label={dItem.name} collapsed={collapsed}>
+                        <Link
+                          href={dItem.href}
+                          className={cn(
+                            "flex items-center justify-center p-2 rounded-xl transition-all duration-200",
+                            isActive
+                              ? "bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          )}
+                        >
+                          {showTableNumber ? (
+                            <span
+                              className={cn(
+                                "flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full",
+                                isActive
+                                  ? "bg-indigo-500 text-white dark:bg-indigo-400 dark:text-white"
+                                  : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              T{dItem.tableNumber}
+                            </span>
+                          ) : (
+                            <Icon className="h-5 w-5" />
+                          )}
+                        </Link>
+                      </SidebarTooltip>
+                    );
+                  })}
+                </div>
               )}
-            </button>
-          </SidebarTooltip>
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <aside
+      className={cn(
+        "fixed left-0 top-16 bottom-0 z-20",
+        "bg-card border-r border-border",
+        "transition-all duration-300 ease-in-out overflow-hidden",
+        collapsed
+          ? "w-14 md:w-16"
+          : "w-52 md:w-64"
+      )}
+    >
+      <SidebarContent />
     </aside>
   );
 }

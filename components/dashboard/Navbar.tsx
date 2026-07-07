@@ -69,7 +69,11 @@ interface NavbarProps {
   onSelectFeature: (id: string) => void;
 }
 
-export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: NavbarProps) {
+export function DashboardNavbar({
+  user,
+  selectedFeature,
+  onSelectFeature,
+}: NavbarProps) {
   const router = useRouter();
   const { logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -86,7 +90,8 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
   const features = FEATURES_BY_ROLE[roleName] || FEATURES_BY_ROLE.waiter;
 
   const fullName =
-    [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username;
+    [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+    user.username;
   const initials = fullName
     .split(" ")
     .map((w: string) => w[0])
@@ -103,7 +108,10 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
   // Close profile dropdown when clicking outside
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setIsProfileOpen(false);
       }
     };
@@ -114,8 +122,14 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
   // Scroll the active tab into view whenever it changes
   useEffect(() => {
     if (!tabsRef.current) return;
-    const activeBtn = tabsRef.current.querySelector("[data-active='true']") as HTMLElement | null;
-    activeBtn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    const activeBtn = tabsRef.current.querySelector(
+      "[data-active='true']",
+    ) as HTMLElement | null;
+    activeBtn?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
   }, [selectedFeature]);
 
   return (
@@ -126,7 +140,7 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
        *  This value is exported as NAVBAR_HEIGHT so Sidebar / Layout can align.
        */}
       <nav
-        className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-border transition-colors duration-200"
+        className="fixed top-0 left-0 right-0 z-30 bg-background/90 backdrop-blur-xl border-b border-border transition-colors duration-200"
         role="navigation"
         aria-label="Main navigation"
       >
@@ -134,7 +148,8 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
         <div className="flex items-center justify-between h-16 px-3 sm:px-5">
           {/* Logo */}
           <span className="text-lg sm:text-xl font-bold text-foreground whitespace-nowrap select-none">
-            🍽️ Vayu<span className="text-indigo-600 dark:text-indigo-400">Tech</span>
+            🍽️ Vayu
+            <span className="text-indigo-600 dark:text-indigo-400">Tech</span>
           </span>
 
           {/* Right-side actions */}
@@ -142,7 +157,11 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
             {/* Theme toggle – animated icon swap */}
             <button
               onClick={toggleTheme}
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={
+                theme === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+              }
               className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <AnimatePresence mode="wait" initial={false}>
@@ -202,8 +221,12 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
                         {initials}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{fullName}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {fullName}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {user.email}
+                        </p>
                       </div>
                     </div>
 
@@ -215,7 +238,8 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
                         onClick={() => setIsProfileOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground/80 hover:bg-muted hover:text-foreground transition-colors"
                       >
-                        <User className="h-4 w-4 text-muted-foreground" /> Profile
+                        <User className="h-4 w-4 text-muted-foreground" />{" "}
+                        Profile
                       </Link>
                       <Link
                         href="/dashboard/settings"
@@ -223,11 +247,15 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
                         onClick={() => setIsProfileOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground/80 hover:bg-muted hover:text-foreground transition-colors"
                       >
-                        <Settings className="h-4 w-4 text-muted-foreground" /> Settings
+                        <Settings className="h-4 w-4 text-muted-foreground" />{" "}
+                        Settings
                       </Link>
                       <button
                         role="menuitem"
-                        onClick={() => { setIsProfileOpen(false); setShowLogoutModal(true); }}
+                        onClick={() => {
+                          setIsProfileOpen(false);
+                          setShowLogoutModal(true);
+                        }}
                         className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm text-red-500 dark:text-red-400 hover:bg-red-500/10 transition-colors"
                       >
                         <LogOut className="h-4 w-4" /> Logout
@@ -248,7 +276,7 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
           ref={tabsRef}
           role="tablist"
           aria-label="Feature navigation"
-          className="flex items-center h-10 overflow-x-auto gap-0.5 px-2 sm:px-4 border-t border-border/30 scrollbar-hide"
+          className="flex items-center h-10 overflow-x-auto gap-0.5 px-2 sm:px-4 ml-0 md:ml-20 border-t border-border/30 scrollbar-hide"
         >
           {features.map((f) => {
             const isActive = selectedFeature === f.id;
@@ -260,7 +288,9 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
                 data-active={isActive}
                 onClick={() => {
                   onSelectFeature(f.id);
-                  router.push(f.id === "dashboard" ? "/dashboard" : `/dashboard/${f.id}`);
+                  router.push(
+                    f.id === "dashboard" ? "/dashboard" : `/dashboard/${f.id}`,
+                  );
                 }}
                 className={cn(
                   "relative h-full px-3 sm:px-3.5 text-xs sm:text-[13px] font-medium whitespace-nowrap",
@@ -268,7 +298,7 @@ export function DashboardNavbar({ user, selectedFeature, onSelectFeature }: Navb
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500",
                   isActive
                     ? "text-indigo-600 dark:text-indigo-400"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md",
                 )}
               >
                 {f.label}
