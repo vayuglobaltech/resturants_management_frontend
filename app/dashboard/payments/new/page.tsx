@@ -261,8 +261,7 @@ export default function NewPaymentPage() {
   // ─── Use selectedOrder, not all orders ──────────────────────────────────
   const combinedItems = selectedOrder?.items || [];
   const subtotal = parseFloat(selectedOrder?.total_amount || 0);
-  const tax = subtotal * 0.15;
-  const grandTotal = subtotal + tax;
+  const grandTotal = subtotal;
 
   // ─── Total discount from selected order ──────────────────────────────────
   const totalDiscount =
@@ -293,7 +292,6 @@ export default function NewPaymentPage() {
         order: parseInt(data.order, 10),
         amount: parseFloat(data.amount),
         subtotal: parseFloat(subtotal.toFixed(2)),
-        tax: parseFloat(tax.toFixed(2)),
         payment_method: data.payment_method,
         status: data.status,
         transaction_id: data.transaction_id || undefined,
@@ -842,14 +840,13 @@ export default function NewPaymentPage() {
                             </div>
 
                             {/* Totals */}
-                            <div className="space-y-2 pt-4 border-t border-border">
+                            <div className="space-y-2 pt-8 mt-6 border-t border-border">
                               <div className="flex justify-between items-center text-muted-foreground text-sm">
                                 <span>Subtotal</span>
                                 <span>${subtotal.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between items-center text-muted-foreground text-sm">
-                                <span>Tax (15%)</span>
-                                <span>${tax.toFixed(2)}</span>
+                                <span className="text-[12px]">(Including Tax)</span>
                               </div>
                               <div className="flex justify-between items-center pt-2 text-foreground text-lg font-bold border-t border-border">
                                 <span>Grand Total</span>
@@ -935,7 +932,6 @@ export default function NewPaymentPage() {
                   tableNumber={selectedTable?.table_number || null}
                   items={combinedItems}
                   subtotal={subtotal}
-                  tax={tax}
                   grandTotal={grandTotal}
                   customerName={customerName || "Guest"}
                   cashierName={cashierName}

@@ -58,7 +58,6 @@ interface PaymentTransaction {
   order: number | { id: number; order_number: string };
   amount: string;
   subtotal: string;
-  tax: string;
   payment_method: "CASH" | "QR" | "CARD";
   status: "COMPLETED" | "PENDING" | "FAILED";
   transaction_id: string | null;
@@ -1258,8 +1257,6 @@ function PaymentDetailView({ transaction }: { transaction: PaymentTransaction })
       <div className="bg-background rounded-lg p-4 border border-border">
         <p className="text-muted-foreground text-xs mb-1">Subtotal</p>
         <p className="text-foreground">${transaction.subtotal || "0.00"}</p>
-        <p className="text-muted-foreground text-xs mt-2 mb-1">Tax</p>
-        <p className="text-foreground">${transaction.tax || "0.00"}</p>
       </div>
     </div>
   );

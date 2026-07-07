@@ -19,7 +19,6 @@ interface InvoicePreviewProps {
   tableNumber: number | null;
   items: InvoiceItem[];
   subtotal: number;
-  tax: number;
   grandTotal: number;
   customerName: string;
   cashierName: string;
@@ -34,7 +33,6 @@ export function InvoicePreview({
   tableNumber,
   items,
   subtotal,
-  tax,
   grandTotal,
   customerName,
   cashierName,
@@ -97,17 +95,19 @@ export function InvoicePreview({
       <table className="w-full text-sm mb-4">
         <thead>
           <tr className="border-b border-gray-300">
-            <th className="text-left py-2">Qty</th>
+            <th className="text-left py-2">SN</th>
             <th className="text-left py-2">Item</th>
+            <th className="text-left py-2">Qty</th>
             <th className="text-right py-2">Unit Price</th>
             <th className="text-right py-2">Total</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
+          {items.map((item, index) => (
             <tr key={item.id} className="border-b border-gray-100">
-              <td className="py-2">{item.quantity}</td>
+              <td className="py-2">{index+1}</td>
               <td className="py-2">{item.product_name}</td>
+              <td className="py-2">{item.quantity}</td>
               <td className="text-right py-2">
                 ${parseFloat(item.price_at_order).toFixed(2)}
               </td>
@@ -122,12 +122,8 @@ export function InvoicePreview({
       {/* Totals */}
       <div className="border-t border-gray-300 pt-4 space-y-1 text-sm">
         <div className="flex justify-between">
-          <span>Subtotal</span>
+          <span className="text-lg">Subtotal <span className="text-[12px]">(Including Tax)</span></span>
           <span>${subtotal.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-gray-600">
-          <span>Tax (15%)</span>
-          <span>${tax.toFixed(2)}</span>
         </div>
 
         {/* ─── Discounts ─── */}
