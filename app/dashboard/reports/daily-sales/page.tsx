@@ -217,8 +217,8 @@ export default function DailySalesSummary() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Sales Summary</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Sales Summary</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             {getPeriodLabel(period)} sales breakdown and analysis
           </p>
         </div>
@@ -228,17 +228,17 @@ export default function DailySalesSummary() {
       </div>
 
       {/* Branch Filter */}
-      <Card className="bg-white/[0.03] border-white/[0.06]">
+      <Card className="bg-muted/30 border-border">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <Store className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-400 font-medium">Branch:</span>
+              <Store className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground font-medium">Branch:</span>
             </div>
             <select
               value={selectedBranch === null ? "all" : selectedBranch.toString()}
               onChange={(e) => handleBranchChange(e.target.value)}
-              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
             >
               <option value="all">All Branches</option>
               {branches.map((branch) => (
@@ -250,8 +250,8 @@ export default function DailySalesSummary() {
 
             {/* Period Filter */}
             <div className="flex items-center gap-2 ml-4">
-              <span className="text-sm text-slate-400 font-medium">Period:</span>
-              <div className="flex bg-white/5 rounded-lg p-1">
+              <span className="text-sm text-muted-foreground font-medium">Period:</span>
+              <div className="flex bg-background rounded-lg p-1">
                 {periods.map((p) => (
                   <button
                     key={p.value}
@@ -260,7 +260,7 @@ export default function DailySalesSummary() {
                       "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5",
                       period === p.value
                         ? "bg-indigo-500/20 text-indigo-400"
-                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background"
                     )}
                   >
                     <p.icon className="h-3.5 w-3.5" />
@@ -273,7 +273,7 @@ export default function DailySalesSummary() {
                     "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5",
                     period === 'custom'
                       ? "bg-indigo-500/20 text-indigo-400"
-                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background"
                   )}
                 >
                   <CalendarIcon className="h-3.5 w-3.5" />
@@ -285,9 +285,9 @@ export default function DailySalesSummary() {
 
           {/* Custom Date Range */}
           {showCustomDate && (
-            <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-white/[0.06]">
+            <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-border">
               <div className="flex-1 min-w-[150px]">
-                <label className="text-xs text-slate-400 block mb-1">Start Date</label>
+                <label className="text-xs text-muted-foreground block mb-1">Start Date</label>
                 <Input
                   type="date"
                   value={dateRange.start_date}
@@ -295,7 +295,7 @@ export default function DailySalesSummary() {
                 />
               </div>
               <div className="flex-1 min-w-[150px]">
-                <label className="text-xs text-slate-400 block mb-1">End Date</label>
+                <label className="text-xs text-muted-foreground block mb-1">End Date</label>
                 <Input
                   type="date"
                   value={dateRange.end_date}
@@ -309,9 +309,9 @@ export default function DailySalesSummary() {
           )}
 
           {/* Date Range Display */}
-          <div className="flex items-center gap-2 mt-3 text-xs text-slate-500">
+          <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
             <span>Showing data from:</span>
-            <span className="text-white font-medium">
+            <span className="text-foreground font-medium">
               {new Date(dateRange.start_date).toLocaleDateString()} - {new Date(dateRange.end_date).toLocaleDateString()}
             </span>
           </div>
@@ -322,57 +322,57 @@ export default function DailySalesSummary() {
         <>
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-white/[0.03] border-white/[0.06]">
+            <Card className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
                     <DollarSign className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400">Total Sales</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(summary.total_sales)}</p>
+                    <p className="text-sm text-muted-foreground">Total Sales</p>
+                    <p className="text-2xl font-bold text-foreground">{formatCurrency(summary.total_sales)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-white/[0.03] border-white/[0.06]">
+            <Card className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
                     <CreditCard className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400">Digital Sales</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(summary.total_digital_sales)}</p>
+                    <p className="text-sm text-muted-foreground">Digital Sales</p>
+                    <p className="text-2xl font-bold text-foreground">{formatCurrency(summary.total_digital_sales)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-white/[0.03] border-white/[0.06]">
+            <Card className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
                     <Receipt className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400">Cash Sales</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(summary.total_cash_sales)}</p>
+                    <p className="text-sm text-muted-foreground">Cash Sales</p>
+                    <p className="text-2xl font-bold text-foreground">{formatCurrency(summary.total_cash_sales)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-white/[0.03] border-white/[0.06]">
+            <Card className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
                     <Users className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400">Avg Order Value</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(summary.average_order_value)}</p>
+                    <p className="text-sm text-muted-foreground">Avg Order Value</p>
+                    <p className="text-2xl font-bold text-foreground">{formatCurrency(summary.average_order_value)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -381,12 +381,12 @@ export default function DailySalesSummary() {
 
           {/* Additional Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Card className="bg-white/[0.03] border-white/[0.06]">
+            <Card className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-400">Total Orders</p>
-                    <p className="text-2xl font-bold text-white">{summary.number_of_orders}</p>
+                    <p className="text-sm text-muted-foreground">Total Orders</p>
+                    <p className="text-2xl font-bold text-foreground">{summary.number_of_orders}</p>
                   </div>
                   <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400">
                     <Receipt className="h-5 w-5" />
@@ -395,18 +395,18 @@ export default function DailySalesSummary() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/[0.03] border-white/[0.06]">
+            <Card className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-400">Period</p>
-                    <p className="text-2xl font-bold text-white">{getPeriodLabel(period)}</p>
+                    <p className="text-sm text-muted-foreground">Period</p>
+                    <p className="text-2xl font-bold text-foreground">{getPeriodLabel(period)}</p>
                   </div>
                   <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
                     <Calendar className="h-5 w-5" />
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   {new Date(dateRange.start_date).toLocaleDateString()} - {new Date(dateRange.end_date).toLocaleDateString()}
                 </p>
               </CardContent>
@@ -414,16 +414,16 @@ export default function DailySalesSummary() {
           </div>
 
           {/* Payment Breakdown */}
-          <Card className="bg-white/[0.03] border-white/[0.06]">
+          <Card className="bg-muted/30 border-border">
             <CardContent className="p-4">
-              <h3 className="text-sm font-semibold text-white mb-4">Payment Breakdown</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-4">Payment Breakdown</h3>
               <div className="space-y-3">
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-400">Cash</span>
+                    <span className="text-muted-foreground">Cash</span>
                     <span className="text-amber-400">{formatCurrency(summary.total_cash_sales)}</span>
                   </div>
-                  <div className="w-full bg-white/5 rounded-full h-2">
+                  <div className="w-full bg-background rounded-full h-2">
                     <div 
                       className="bg-amber-500 h-2 rounded-full transition-all" 
                       style={{ 
@@ -436,10 +436,10 @@ export default function DailySalesSummary() {
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-400">Digital</span>
+                    <span className="text-muted-foreground">Digital</span>
                     <span className="text-blue-400">{formatCurrency(summary.total_digital_sales)}</span>
                   </div>
-                  <div className="w-full bg-white/5 rounded-full h-2">
+                  <div className="w-full bg-background rounded-full h-2">
                     <div 
                       className="bg-blue-500 h-2 rounded-full transition-all" 
                       style={{ 
@@ -451,19 +451,19 @@ export default function DailySalesSummary() {
                   </div>
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-white/[0.06] flex justify-between text-sm">
-                <span className="text-slate-400">Total Orders</span>
-                <span className="text-white font-bold">{summary.number_of_orders}</span>
+              <div className="mt-4 pt-4 border-t border-border flex justify-between text-sm">
+                <span className="text-muted-foreground">Total Orders</span>
+                <span className="text-foreground font-bold">{summary.number_of_orders}</span>
               </div>
             </CardContent>
           </Card>
         </>
       ) : (
-        <Card className="bg-white/[0.03] border-white/[0.06]">
+        <Card className="bg-muted/30 border-border">
           <CardContent className="p-12 text-center">
-            <DollarSign className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-            <p className="text-slate-400 font-medium">No sales data available</p>
-            <p className="text-sm text-slate-500 mt-1">Select a period to view sales summary</p>
+            <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground font-medium">No sales data available</p>
+            <p className="text-sm text-muted-foreground mt-1">Select a period to view sales summary</p>
           </CardContent>
         </Card>
       )}

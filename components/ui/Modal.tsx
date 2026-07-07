@@ -66,7 +66,7 @@ export function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={onClose}
           >
             {/* Modal card */}
@@ -76,7 +76,7 @@ export function Modal({
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={cn(
-                "relative w-full bg-[#0d1323] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden",
+                "relative w-full bg-card border border-border rounded-2xl shadow-2xl overflow-hidden transition-colors duration-205",
                 sizeClasses[size]
               )}
               onClick={(e) => e.stopPropagation()}
@@ -84,7 +84,7 @@ export function Modal({
               {/* Close button */}
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors"
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Close modal"
               >
                 <X className="h-5 w-5" />
@@ -94,18 +94,18 @@ export function Modal({
               <div className="p-6">
                 {icon && (
                   <div className="flex justify-center mb-4">
-                    <div className="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center">
                       {icon}
                     </div>
                   </div>
                 )}
                 {title && (
-                  <h2 className="text-xl font-bold text-white text-center">
+                  <h2 className="text-xl font-bold text-foreground text-center">
                     {title}
                   </h2>
                 )}
                 {description && (
-                  <p className="text-slate-400 text-sm mt-1 text-center">
+                  <p className="text-muted-foreground text-sm mt-1 text-center">
                     {description}
                   </p>
                 )}
@@ -127,7 +127,7 @@ export function Modal({
                   {confirmText && (
                     <Button
                       onClick={onConfirm}
-                      className={cn("flex-1 py-2.5 text-white", confirmVariant)}
+                      className={cn("flex-1 py-2.5 text-foreground", confirmVariant)}
                     >
                       {confirmText}
                     </Button>

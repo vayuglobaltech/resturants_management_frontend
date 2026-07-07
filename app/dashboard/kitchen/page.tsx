@@ -68,9 +68,9 @@ export default function KitchenPage() {
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <ChefHat className="h-16 w-16 text-slate-500 mb-4" />
-        <h2 className="text-2xl font-bold text-white">Kitchen Queue</h2>
-        <p className="text-slate-400 mt-2">No pending orders in the kitchen.</p>
+        <ChefHat className="h-16 w-16 text-muted-foreground mb-4" />
+        <h2 className="text-2xl font-bold text-foreground">Kitchen Queue</h2>
+        <p className="text-muted-foreground mt-2">No pending orders in the kitchen.</p>
       </div>
     );
   }
@@ -78,8 +78,8 @@ export default function KitchenPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Kitchen Queue</h1>
-        <span className="text-sm text-slate-400">{orders.length} orders</span>
+        <h1 className="text-2xl font-bold text-foreground">Kitchen Queue</h1>
+        <span className="text-sm text-muted-foreground">{orders.length} orders</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -93,17 +93,17 @@ export default function KitchenPage() {
           const isUpdating = updating === order.id;
 
           return (
-            <Card key={order.id} className="bg-white/[0.03] border-white/[0.06] p-4">
+            <Card key={order.id} className="bg-muted/30 border-border p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-white font-semibold">{order.order_number}</h3>
-                  <p className="text-sm text-slate-400">
+                  <h3 className="text-foreground font-semibold">{order.order_number}</h3>
+                  <p className="text-sm text-muted-foreground">
                     Table {order.table_number_display || order.table_number || "N/A"}
                   </p>
                   <span
                     className={cn(
                       "inline-block mt-2 text-xs px-2.5 py-1 rounded-full border",
-                      STATUS_COLORS[order.status] || "bg-slate-500/20 text-slate-400"
+                      STATUS_COLORS[order.status] || "bg-slate-500/20 text-muted-foreground"
                     )}
                   >
                     {order.status}
@@ -113,7 +113,7 @@ export default function KitchenPage() {
                   <p className="text-emerald-400 font-bold">
                     ${parseFloat(order.total_amount || 0).toFixed(2)}
                   </p>
-                  <p className="text-xs text-slate-500">{order.items?.length || 0} items</p>
+                  <p className="text-xs text-muted-foreground">{order.items?.length || 0} items</p>
                 </div>
               </div>
 

@@ -79,7 +79,7 @@ export default function RecipesPage() {
       className="space-y-6"
     >
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold text-white">Recipes</h1>
+        <h1 className="text-2xl font-bold text-foreground">Recipes</h1>
         {canManage && (
           <Button onClick={() => router.push("/dashboard/inventory/recipes/new")} className="gap-1.5">
             <Plus className="h-4 w-4" /> New Recipe
@@ -88,8 +88,8 @@ export default function RecipesPage() {
       </div>
 
       {recipes.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-          <p className="text-slate-400">No recipes found for your branch.</p>
+        <div className="text-center py-16 border border-dashed border-border rounded-2xl">
+          <p className="text-muted-foreground">No recipes found for your branch.</p>
           {canManage && (
             <Button variant="ghost" onClick={() => router.push("/dashboard/inventory/recipes/new")} className="mt-4">
               Create your first recipe →
@@ -101,29 +101,29 @@ export default function RecipesPage() {
           {recipes.map((recipe) => (
             <Card
               key={recipe.id}
-              className="relative group bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] hover:border-indigo-500/30 transition-all duration-200 overflow-hidden cursor-pointer"
+              className="relative group bg-muted/30 border-border hover:bg-muted/30 hover:border-indigo-500/30 transition-all duration-200 overflow-hidden cursor-pointer"
             >
               <Link href={`/dashboard/inventory/recipes/${recipe.id}`} className="block">
                 <CardContent className="p-4 pb-12">
                   {/* ↑ extra padding at bottom to avoid overlap with buttons */}
                   <div className="flex justify-between items-start mt-4 pt-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-semibold text-lg truncate group-hover:text-indigo-300 transition-colors">
+                      <h3 className="text-foreground font-semibold text-lg truncate group-hover:text-indigo-300 transition-colors">
                         {recipe.product_name}
                       </h3>
-                      <p className="text-slate-400 text-sm line-clamp-2 mt-1">
+                      <p className="text-muted-foreground text-sm line-clamp-2 mt-1">
                         {recipe.description || "No description"}
                       </p>
                       <div className="flex flex-wrap items-center gap-2 mt-3">
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-400 bg-white/5 px-2 py-1 rounded-full">
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-background px-2 py-1 rounded-full">
                           <Package className="h-3 w-3" />
                           {recipe.ingredients?.length || 0} ingredients
                         </span>
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-400 bg-white/5 px-2 py-1 rounded-full">
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-background px-2 py-1 rounded-full">
                           <Clock className="h-3 w-3" />
                           {recipe.prep_time_minutes || 0}m
                         </span>
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-400 bg-white/5 px-2 py-1 rounded-full">
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-background px-2 py-1 rounded-full">
                           <DollarSign className="h-3 w-3" />
                           {parseFloat(recipe.cost_price || "0").toFixed(2)}
                         </span>
@@ -156,7 +156,7 @@ export default function RecipesPage() {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                       aria-label="Edit"
                     >
                       <Pencil className="h-4 w-4" />
@@ -167,7 +167,7 @@ export default function RecipesPage() {
                       e.stopPropagation();
                       setDeleteTarget(recipe);
                     }}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
                     aria-label="Delete"
                   >
                     <Trash2 className="h-4 w-4" />

@@ -111,16 +111,16 @@ export default function CategoriesPage() {
     <div className="animate-fadeUp">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-100 tracking-tight">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
             Categories
           </h1>
-          <p className="text-slate-400 mt-1 text-sm">
+          <p className="text-muted-foreground mt-1 text-sm">
             Manage product and ingredient categories.
           </p>
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-[0_4px_16px_rgba(99,102,241,0.35)] transition-all"
+          className="px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-indigo-600 hover:bg-indigo-700 shadow-[0_4px_16px_rgba(99,102,241,0.35)] transition-all"
         >
           {showAdd ? "Cancel" : "+ Add Category"}
         </button>
@@ -149,39 +149,39 @@ export default function CategoriesPage() {
       {showAdd && (
         <form
           onSubmit={handleCreate}
-          className="mb-8 p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md"
+          className="mb-8 p-6 rounded-2xl bg-muted/30 border border-border backdrop-blur-md"
         >
-          <h2 className="text-lg font-semibold text-slate-100 mb-4">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
             New Category
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
                 Name <span className="text-red-400">*</span>
               </label>
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-500 text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
+                className="w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
                 placeholder="e.g. Beverages"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
                 Description
               </label>
               <input
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-500 text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
+                className="w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
                 placeholder="Optional description"
               />
             </div>
           </div>
           <button
             type="submit"
-            className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-emerald-600 hover:bg-emerald-700 transition-all"
+            className="px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-emerald-600 hover:bg-emerald-700 transition-all"
           >
             Save Category
           </button>
@@ -197,10 +197,10 @@ export default function CategoriesPage() {
           <span className="w-8 h-8 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin" />
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/[0.08] bg-[#0a0e1a]/80 backdrop-blur-xl overflow-hidden shadow-2xl">
+        <div className="rounded-2xl border border-border bg-[#0a0e1a]/80 backdrop-blur-xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-white/[0.04] text-xs uppercase text-slate-400 font-semibold border-b border-white/[0.08]">
+            <table className="w-full text-left text-sm text-muted-foreground">
+              <thead className="bg-muted/30 text-xs uppercase text-muted-foreground font-semibold border-b border-border">
                 <tr>
                   <th className="px-6 py-4">Name</th>
                   <th className="px-6 py-4">Description</th>
@@ -213,7 +213,7 @@ export default function CategoriesPage() {
                   <tr>
                     <td
                       colSpan={4}
-                      className="px-6 py-8 text-center text-slate-500"
+                      className="px-6 py-8 text-center text-muted-foreground"
                     >
                       No categories found.
                     </td>
@@ -222,15 +222,15 @@ export default function CategoriesPage() {
                   categories.map((cat) => (
                     <tr
                       key={cat.id}
-                      className="hover:bg-white/[0.02] transition-colors"
+                      className="hover:bg-muted/30 transition-colors"
                     >
-                      <td className="px-6 py-4 font-medium text-slate-200">
+                      <td className="px-6 py-4 font-medium text-foreground">
                         {cat.name}
                       </td>
-                      <td className="px-6 py-4 text-slate-400">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {cat.description || "—"}
                       </td>
-                      <td className="px-6 py-4 text-slate-500">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {new Date(cat.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
@@ -267,17 +267,17 @@ export default function CategoriesPage() {
       {/* ─── Edit Category Modal ─── */}
       {isEditModalOpen && editingCategory && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-          <div className="bg-[#121826] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-scaleUp">
-            <h2 className="text-xl font-bold text-slate-100 mb-1">
+          <div className="bg-[#121826] border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl animate-scaleUp">
+            <h2 className="text-xl font-bold text-foreground mb-1">
               Edit Category
             </h2>
-            <p className="text-sm text-slate-400 mb-5">
+            <p className="text-sm text-muted-foreground mb-5">
               Update the name or description of this category.
             </p>
 
             <form onSubmit={handleUpdate}>
               <div className="mb-4">
-                <label className="text-xs font-medium text-slate-400 mb-1.5 block">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
                   Name <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -290,12 +290,12 @@ export default function CategoriesPage() {
                     })
                   }
                   required
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-500 text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
                 />
               </div>
 
               <div className="mb-6">
-                <label className="text-xs font-medium text-slate-400 mb-1.5 block">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
                   Description
                 </label>
                 <textarea
@@ -307,7 +307,7 @@ export default function CategoriesPage() {
                     })
                   }
                   rows={3}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-500 text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all resize-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all resize-none"
                   placeholder="Optional description"
                 />
               </div>
@@ -319,13 +319,13 @@ export default function CategoriesPage() {
                     setIsEditModalOpen(false);
                     setEditingCategory(null);
                   }}
-                  className="px-5 py-2.5 rounded-xl border border-white/10 text-slate-300 hover:bg-white/5 transition-all text-sm font-medium"
+                  className="px-5 py-2.5 rounded-xl border border-border text-muted-foreground hover:bg-background transition-all text-sm font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-[0_4px_16px_rgba(99,102,241,0.3)] transition-all"
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-indigo-600 hover:bg-indigo-700 shadow-[0_4px_16px_rgba(99,102,241,0.3)] transition-all"
                 >
                   Save Changes
                 </button>

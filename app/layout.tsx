@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 
@@ -41,8 +42,10 @@ export default function RootLayout({
         data-gr-ext-installed=""
         cz-shortcut-listen="true">
         <AuthProvider>
-          <ServiceWorkerRegistration />
-          {children}
+          <ThemeProvider>
+            <ServiceWorkerRegistration />
+            {children}
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

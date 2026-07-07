@@ -155,7 +155,7 @@ export function KitchenStationList({ onEdit, refreshTrigger = 0 }: KitchenStatio
       <div className="flex justify-center py-12">
         <div className="flex flex-col items-center gap-3">
           <span className="w-8 h-8 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-          <p className="text-slate-400 text-sm">Loading stations...</p>
+          <p className="text-muted-foreground text-sm">Loading stations...</p>
         </div>
       </div>
     );
@@ -200,22 +200,22 @@ export function KitchenStationList({ onEdit, refreshTrigger = 0 }: KitchenStatio
             placeholder="🔍 Search stations..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-slate-100 placeholder-slate-500 text-sm outline-none transition-all focus:border-indigo-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-indigo-500/15"
+            className="w-full px-4 py-2.5 rounded-xl bg-background border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none transition-all focus:border-indigo-500/70 focus:ring-2 focus:ring-indigo-500/15"
           />
         </div>
         <button
           onClick={handleClearFilters}
-          className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-400 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-all flex items-center gap-2"
+          className="px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground bg-muted border border-border hover:bg-muted/80 transition-all flex items-center gap-2"
         >
           <RefreshCw size={16} /> Clear
         </button>
       </div>
 
       {/* ─── Filter Tabs ─── */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.06] pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
         <div className="flex items-center gap-2 mr-2">
-          <Filter size={14} className="text-slate-500" />
-          <span className="text-xs text-slate-500 font-medium">Filter:</span>
+          <Filter size={14} className="text-muted-foreground" />
+          <span className="text-xs text-muted-foreground font-medium">Filter:</span>
         </div>
         
         <button
@@ -223,7 +223,7 @@ export function KitchenStationList({ onEdit, refreshTrigger = 0 }: KitchenStatio
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
             showActive
               ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-              : "bg-white/[0.05] text-slate-400 border border-white/[0.08] hover:bg-white/[0.08]"
+              : "bg-muted text-muted-foreground border border-border hover:bg-muted/80"
           }`}
         >
           <Eye size={14} /> Active
@@ -234,7 +234,7 @@ export function KitchenStationList({ onEdit, refreshTrigger = 0 }: KitchenStatio
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
             showDeleted
               ? "bg-red-500/20 text-red-400 border border-red-500/30"
-              : "bg-white/[0.05] text-slate-400 border border-white/[0.08] hover:bg-white/[0.08]"
+              : "bg-muted text-muted-foreground border border-border hover:bg-muted/80"
           }`}
         >
           <Archive size={14} /> Deleted
@@ -245,14 +245,14 @@ export function KitchenStationList({ onEdit, refreshTrigger = 0 }: KitchenStatio
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
             showAll
               ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
-              : "bg-white/[0.05] text-slate-400 border border-white/[0.08] hover:bg-white/[0.08]"
+              : "bg-muted text-muted-foreground border border-border hover:bg-muted/80"
           }`}
         >
           📋 All
         </button>
         
         {/* ─── Count Display ─── */}
-        <span className="text-xs text-slate-500 ml-2">
+        <span className="text-xs text-muted-foreground ml-2">
           {stations.length} station{stations.length !== 1 ? 's' : ''}
           {showActive && (
             <span className="ml-1 text-emerald-400/70">(Active)</span>
@@ -289,10 +289,10 @@ export function KitchenStationList({ onEdit, refreshTrigger = 0 }: KitchenStatio
       {stations.length === 0 ? (
         <div className="text-center py-16">
           <span className="text-5xl block mb-4">🍳</span>
-          <p className="text-slate-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             No {getFilterLabel().toLowerCase()} found
           </p>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             {search ? "Try a different search term." : 
              showDeleted ? "No deleted stations found." : 
              "Create your first station to get started."}
@@ -337,12 +337,12 @@ export function KitchenStationList({ onEdit, refreshTrigger = 0 }: KitchenStatio
                   <div className="flex-1">
                     <h3 className={`text-lg font-bold transition-colors ${
                       station.is_active 
-                        ? "text-slate-100 group-hover:text-indigo-300" 
-                        : "text-slate-400 line-through"
+                        ? "text-foreground group-hover:text-indigo-400 dark:group-hover:text-indigo-300" 
+                        : "text-muted-foreground line-through"
                     }`}>
                       {station.name}
                     </h3>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-muted-foreground">
                       {station.branch_name || `Branch #${station.branch}`}
                     </p>
                   </div>
@@ -350,14 +350,14 @@ export function KitchenStationList({ onEdit, refreshTrigger = 0 }: KitchenStatio
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-slate-400">👥 Capacity:</span>
-                    <span className={`font-medium ${station.is_active ? 'text-slate-200' : 'text-slate-500'}`}>
+                    <span className="text-muted-foreground">👥 Capacity:</span>
+                    <span className={`font-medium ${station.is_active ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {station.max_capacity}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-slate-400">📅 Created:</span>
-                    <span className={station.is_active ? 'text-slate-300' : 'text-slate-500'}>
+                    <span className="text-muted-foreground">📅 Created:</span>
+                    <span className={station.is_active ? 'text-foreground' : 'text-muted-foreground'}>
                       {new Date(station.created_at).toLocaleDateString()}
                     </span>
                   </div>
@@ -365,7 +365,7 @@ export function KitchenStationList({ onEdit, refreshTrigger = 0 }: KitchenStatio
 
                 {/* ─── Actions - Only for managers ─── */}
                 {canManage && (
-                  <div className="mt-4 pt-4 border-t border-white/[0.06] flex gap-2 flex-wrap">
+                  <div className="mt-4 pt-4 border-t border-border flex gap-2 flex-wrap">
                     {/* Edit Button */}
                     <button
                       onClick={() => onEdit?.(station)}
@@ -422,22 +422,22 @@ export function KitchenStationList({ onEdit, refreshTrigger = 0 }: KitchenStatio
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={(e) => e.target === e.currentTarget && setDeleteTarget(null)}>
-          <div className="w-full max-w-sm rounded-2xl border border-red-500/25 bg-[#0f1525] shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(248,113,113,0.08)] p-6 animate-[fadeUp_0.3s_ease_both]">
+          <div className="w-full max-w-sm rounded-2xl border border-red-500/25 bg-card shadow-2xl p-6 animate-[fadeUp_0.3s_ease_both]">
             <div className="text-4xl text-center mb-3">🗑️</div>
-            <h2 className="text-lg font-semibold text-slate-100 text-center mb-1">Permanently Delete Station</h2>
-            <p className="text-slate-400 text-sm text-center mb-6">
-              Are you sure you want to permanently delete <span className="text-slate-200 font-semibold">{deleteTarget.name}</span>?
+            <h2 className="text-lg font-semibold text-foreground text-center mb-1">Permanently Delete Station</h2>
+            <p className="text-muted-foreground text-sm text-center mb-6">
+              Are you sure you want to permanently delete <span className="text-foreground font-semibold">{deleteTarget.name}</span>?
               This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button onClick={handleDelete} disabled={deleting}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm text-white bg-red-500 hover:bg-red-600 shadow-[0_4px_16px_rgba(239,68,68,0.35)] disabled:opacity-50 transition-all">
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-red-500 hover:bg-red-600 shadow-[0_4px_16px_rgba(239,68,68,0.35)] disabled:opacity-50 transition-all">
                 {deleting
-                  ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  ? <span className="w-4 h-4 rounded-full border-2 border-border border-t-white animate-spin" />
                   : "Yes, Delete"}
               </button>
               <button onClick={() => setDeleteTarget(null)}
-                className="flex-1 py-2.5 rounded-xl text-sm text-slate-400 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-all">
+                className="flex-1 py-2.5 rounded-xl text-sm text-muted-foreground bg-muted border border-border hover:bg-muted/80 transition-all">
                 Cancel
               </button>
             </div>

@@ -255,7 +255,7 @@ useEffect(() => {
   return (
     <ProtectedOrder>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-white">New Order</h1>
+        <h1 className="text-2xl font-bold text-foreground">New Order</h1>
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* ─── Left Panel: Menu Browser ─── */}
@@ -293,7 +293,7 @@ useEffect(() => {
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search menu items..."
                 value={searchTerm}
@@ -305,7 +305,7 @@ useEffect(() => {
             {/* Menu grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto pr-1">
               {filteredItems.length === 0 ? (
-                <div className="col-span-2 text-center py-8 text-slate-400">
+                <div className="col-span-2 text-center py-8 text-muted-foreground">
                   No menu items found.
                 </div>
               ) : (
@@ -319,16 +319,16 @@ useEffect(() => {
                     className={cn(
                       "text-left p-3 rounded-xl border transition-all",
                       item.is_available
-                        ? "border-white/10 hover:border-indigo-500/50 bg-white/[0.03] hover:bg-white/[0.06]"
-                        : "border-white/5 bg-white/[0.01] opacity-50 cursor-not-allowed"
+                        ? "border-border hover:border-indigo-500/50 bg-muted/30 hover:bg-muted/30"
+                        : "border-border bg-muted/30 opacity-50 cursor-not-allowed"
                     )}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-white font-medium text-sm truncate">
+                        <h4 className="text-foreground font-medium text-sm truncate">
                           {item.name}
                         </h4>
-                        <p className="text-slate-400 text-xs line-clamp-1">
+                        <p className="text-muted-foreground text-xs line-clamp-1">
                           {item.category_name || "Uncategorized"}
                         </p>
                       </div>
@@ -344,9 +344,9 @@ useEffect(() => {
 
           {/* ─── Right Panel: Order Summary ─── */}
           <div className="lg:w-96 flex-shrink-0">
-            <Card className="sticky top-20 bg-white/[0.03] border-white/[0.08]">
+            <Card className="sticky top-20 bg-muted/30 border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-white flex items-center gap-2 text-base">
+                <CardTitle className="text-foreground flex items-center gap-2 text-base">
                   <ShoppingCart className="h-5 w-5 text-indigo-400" />
                   Order Summary
                   {cart.length > 0 && (
@@ -358,7 +358,7 @@ useEffect(() => {
               </CardHeader>
               <CardContent className="space-y-3">
                 {cart.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-sm">
+                  <div className="text-center py-8 text-muted-foreground text-sm">
                     <p>No items added yet.</p>
                     <p className="text-xs mt-1">Select items from the left panel.</p>
                   </div>
@@ -371,35 +371,35 @@ useEffect(() => {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -5 }}
-                          className="flex items-center gap-2 p-2 rounded-lg bg-white/5"
+                          className="flex items-center gap-2 p-2 rounded-lg bg-background"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-medium truncate">
+                            <p className="text-foreground text-sm font-medium truncate">
                               {item.name}
                             </p>
-                            <p className="text-slate-400 text-xs">
+                            <p className="text-muted-foreground text-xs">
                               ${parseFloat(item.price).toFixed(2)} x {item.quantity}
                             </p>
                           </div>
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => updateQuantity(item.id, -1)}
-                              className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white"
+                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
                             >
                               <Minus className="h-3.5 w-3.5" />
                             </button>
-                            <span className="text-white text-sm w-6 text-center">
+                            <span className="text-foreground text-sm w-6 text-center">
                               {item.quantity}
                             </span>
                             <button
                               onClick={() => updateQuantity(item.id, 1)}
-                              className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white"
+                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
                             >
                               <Plus className="h-3.5 w-3.5" />
                             </button>
                             <button
                               onClick={() => removeItem(item.id)}
-                              className="p-1 rounded hover:bg-red-500/10 text-slate-400 hover:text-red-400 ml-1"
+                              className="p-1 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 ml-1"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -409,8 +409,8 @@ useEffect(() => {
                     </div>
 
                     {/* ─── Totals ────────────────────────────────────────── */}
-                    <div className="pt-3 border-t border-white/5 space-y-1">
-                      <div className="flex justify-between text-white">
+                    <div className="pt-3 border-t border-border space-y-1">
+                      <div className="flex justify-between text-foreground">
                         <span>Subtotal</span>
                         <span>${total.toFixed(2)}</span>
                       </div>
@@ -420,7 +420,7 @@ useEffect(() => {
                           <span>-${discountAmount.toFixed(2)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-white font-bold text-lg pt-1 border-t border-white/5">
+                      <div className="flex justify-between text-foreground font-bold text-lg pt-1 border-t border-border">
                         <span>Grand Total</span>
                         <span className="text-indigo-400">${grandTotal.toFixed(2)}</span>
                       </div>
@@ -431,13 +431,13 @@ useEffect(() => {
                 {/* ─── Discount Dropdown ────────────────────────────────── */}
                 {canApplyDiscount && (
   <div>
-    <label className="block text-xs font-medium text-slate-400 mb-1">
+    <label className="block text-xs font-medium text-muted-foreground mb-1">
       Apply Discount
     </label>
     <select
       value={selectedDiscountId}
       onChange={(e) => handleDiscountChange(e.target.value)}
-      className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
       disabled={loadingDiscounts}
     >
       <option value="">No discount</option>
@@ -452,7 +452,7 @@ useEffect(() => {
     {/* ─── Promo Code Input ─── */}
     {selectedDiscountId && discounts.find(d => String(d.id) === selectedDiscountId)?.requires_code && (
       <div className="mt-2">
-        <label className="block text-xs font-medium text-slate-400 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Promo Code
         </label>
         <input
@@ -460,7 +460,7 @@ useEffect(() => {
           value={promoCode}
           onChange={(e) => setPromoCode(e.target.value)}
           placeholder="Enter promo code..."
-          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
     )}
@@ -468,14 +468,14 @@ useEffect(() => {
 )}
                 {/* ─── Special Instructions ────────────────────────────── */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Special Instructions
                   </label>
                   <textarea
                     {...register("special_instructions")}
                     rows={2}
                     placeholder="e.g. No onions, extra cheese..."
-                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                   />
                 </div>
 

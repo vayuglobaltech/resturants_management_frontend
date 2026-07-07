@@ -48,7 +48,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
     <div className={cn("relative", className)} ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg hover:bg-white/5 transition-colors text-slate-400 hover:text-white"
+        className="relative p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
         aria-label="Notifications"
       >
         {unreadCount > 0 ? (
@@ -70,15 +70,15 @@ export function NotificationBell({ className }: NotificationBellProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-80 max-h-[480px] overflow-hidden bg-[#0d1323] border border-white/[0.08] rounded-xl shadow-2xl z-50"
+            className="absolute right-0 top-full mt-2 w-80 max-h-[480px] overflow-hidden bg-card border border-border rounded-xl shadow-2xl z-50 transition-colors duration-200"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-              <h3 className="text-sm font-semibold text-white">Notifications</h3>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
               <div className="flex items-center gap-2">
                 {notifications.length > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-750 dark:hover:text-indigo-305 transition-colors font-medium"
                   >
                     Mark all read
                   </button>
@@ -86,7 +86,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 {notifications.length > 0 && (
                   <button
                     onClick={clearAll}
-                    className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Clear all
                   </button>
@@ -96,7 +96,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
 
             <div className="overflow-y-auto max-h-[360px]">
               {notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Bell className="h-8 w-8 mb-2 opacity-30" />
                   <p className="text-sm">No notifications yet</p>
                 </div>
@@ -106,42 +106,42 @@ export function NotificationBell({ className }: NotificationBellProps) {
                     key={notif.id}
                     onClick={() => handleNotificationClick(notif.id)}
                     className={cn(
-                      "w-full text-left px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors flex items-start gap-3",
-                      !notif.read && "bg-indigo-500/5"
+                      "w-full text-left px-4 py-3 border-b border-border hover:bg-muted transition-colors flex items-start gap-3",
+                      !notif.read && "bg-indigo-500/5 dark:bg-indigo-500/10"
                     )}
                   >
                     <div className="mt-1 flex-shrink-0">
                       {!notif.read ? (
-                        <Circle className="h-2 w-2 fill-indigo-400 text-indigo-400" />
+                        <Circle className="h-2 w-2 fill-indigo-500 text-indigo-500 dark:fill-indigo-400 dark:text-indigo-400" />
                       ) : (
-                        <Check className="h-4 w-4 text-slate-500" />
+                        <Check className="h-4 w-4 text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={cn(
                         "text-sm",
-                        !notif.read ? "text-white font-medium" : "text-slate-400"
+                        !notif.read ? "text-foreground font-medium" : "text-muted-foreground"
                       )}>
                         {notif.message}
                       </p>
                       {notif.data?.order_id && (
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           Order #{notif.data.order_number || notif.data.order_id}
                         </p>
                       )}
-                      <p className="text-[10px] text-slate-500 mt-0.5">
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
                         {formatTime(notif.timestamp)}
                       </p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-slate-500 flex-shrink-0 mt-1" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
                   </button>
                 ))
               )}
             </div>
 
             {notifications.length > 0 && (
-              <div className="px-4 py-2 border-t border-white/5 text-center">
-                <span className="text-xs text-slate-500">
+              <div className="px-4 py-2 border-t border-border text-center">
+                <span className="text-xs text-muted-foreground">
                   {notifications.length} notifications
                 </span>
               </div>

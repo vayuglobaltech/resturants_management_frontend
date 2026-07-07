@@ -63,14 +63,14 @@ interface Branch {
 // Custom Input component
 const Input = ({ className = "", ...props }: InputProps) => (
   <input
-    className={`w-full px-4 py-2 rounded-lg bg-white/[0.05] border border-white/[0.1] text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ${className}`}
+    className={`w-full px-4 py-2 rounded-lg bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ${className}`}
     {...props}
   />
 );
 
 // Custom Label component
 const Label = ({ className = "", children, ...props }: LabelProps) => (
-  <label className={`text-sm font-medium text-slate-300 ${className}`} {...props}>
+  <label className={`text-sm font-medium text-muted-foreground ${className}`} {...props}>
     {children}
   </label>
 );
@@ -84,7 +84,7 @@ const Select = ({ value, onValueChange, options, placeholder = "Select an option
   return (
     <div className="relative mt-1">
       <div
-        className="w-full px-4 py-2 rounded-lg bg-white/[0.05] border border-white/[0.1] text-white cursor-pointer flex items-center justify-between hover:bg-white/[0.08] transition"
+        className="w-full px-4 py-2 rounded-lg bg-muted/30 border border-border text-foreground cursor-pointer flex items-center justify-between hover:bg-muted/30 transition"
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className="truncate">{selectedLabel}</span>
@@ -93,11 +93,11 @@ const Select = ({ value, onValueChange, options, placeholder = "Select an option
         </svg>
       </div>
       {isOpen && options && (
-        <div className="absolute z-50 w-full mt-1 rounded-lg bg-slate-800 border border-white/[0.1] shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 rounded-lg bg-slate-800 border border-border shadow-lg overflow-hidden max-h-60 overflow-y-auto">
           {options.map((option) => (
             <div
               key={option.value}
-              className="px-4 py-2 hover:bg-white/[0.05] cursor-pointer text-white transition"
+              className="px-4 py-2 hover:bg-muted/30 cursor-pointer text-foreground transition"
               onClick={() => {
                 onValueChange(String(option.value));
                 setIsOpen(false);
@@ -114,19 +114,19 @@ const Select = ({ value, onValueChange, options, placeholder = "Select an option
 
 // Custom Card components
 const Card = ({ className = "", children }: CardProps) => (
-  <div className={`rounded-xl border border-white/[0.05] bg-white/[0.02] ${className}`}>
+  <div className={`rounded-xl border border-border bg-muted/30 ${className}`}>
     {children}
   </div>
 );
 
 const CardHeader = ({ className = "", children }: CardProps) => (
-  <div className={`px-6 py-4 border-b border-white/[0.05] ${className}`}>
+  <div className={`px-6 py-4 border-b border-border ${className}`}>
     {children}
   </div>
 );
 
 const CardTitle = ({ className = "", children }: CardProps) => (
-  <h3 className={`text-lg font-semibold text-white ${className}`}>
+  <h3 className={`text-lg font-semibold text-foreground ${className}`}>
     {children}
   </h3>
 );
@@ -150,8 +150,8 @@ const Button = ({
   const baseStyles = "px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2";
   const variants = {
     default: "bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed",
-    outline: "border border-white/[0.1] hover:bg-white/[0.05] text-white",
-    ghost: "hover:bg-white/[0.05] text-white",
+    outline: "border border-border hover:bg-muted/30 text-foreground",
+    ghost: "hover:bg-muted/30 text-foreground",
   };
   
   return (
@@ -244,16 +244,16 @@ export default function AddTablePage() {
     <div>
       {canManage ?
     <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center gap-2 text-sm text-slate-400">
-        <Link href="/dashboard/tables" className="hover:text-white transition-colors">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/dashboard/tables" className="hover:text-foreground transition-colors">
           Tables
         </Link>
         <ChevronRight className="h-4 w-4" />
-        <span className="text-white font-medium">Add New Table</span>
+        <span className="text-foreground font-medium">Add New Table</span>
       </div>
 
-      <Card className="border-white/[0.05] bg-white/[0.02]">
-        <CardHeader className="pb-4 border-b border-white/[0.05]">
+      <Card className="border-border bg-muted/30">
+        <CardHeader className="pb-4 border-b border-border">
           <CardTitle className="text-lg flex items-center gap-2">
             <Plus className="h-5 w-5 text-indigo-400" />
             Create New Table
@@ -270,13 +270,13 @@ export default function AddTablePage() {
             <div className="space-y-4">
               {/* Branch Selection - Required */}
               <div>
-                <Label htmlFor="branch" className="text-slate-300">
+                <Label htmlFor="branch" className="text-muted-foreground">
                   Branch *
                 </Label>
                 <div className="relative mt-1">
-                  <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 z-10" />
+                  <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                   {loadingBranches ? (
-                    <div className="w-full px-4 py-2 rounded-lg bg-white/[0.05] border border-white/[0.1] text-slate-400 pl-10">
+                    <div className="w-full px-4 py-2 rounded-lg bg-muted/30 border border-border text-muted-foreground pl-10">
                       Loading branches...
                     </div>
                   ) : (
@@ -291,11 +291,11 @@ export default function AddTablePage() {
               </div>
 
               <div>
-                <Label htmlFor="table_number" className="text-slate-300">
+                <Label htmlFor="table_number" className="text-muted-foreground">
                   Table Number *
                 </Label>
                 <div className="relative mt-1">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="table_number"
                     type="number"
@@ -307,15 +307,15 @@ export default function AddTablePage() {
                     required
                   />
                 </div>
-                <p className="text-xs text-slate-500 mt-1">Table number must be unique per branch</p>
+                <p className="text-xs text-muted-foreground mt-1">Table number must be unique per branch</p>
               </div>
 
               <div>
-                <Label htmlFor="capacity" className="text-slate-300">
+                <Label htmlFor="capacity" className="text-muted-foreground">
                   Capacity *
                 </Label>
                 <div className="relative mt-1">
-                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="capacity"
                     type="number"
@@ -330,11 +330,11 @@ export default function AddTablePage() {
               </div>
 
               <div>
-                <Label htmlFor="area" className="text-slate-300">
+                <Label htmlFor="area" className="text-muted-foreground">
                   Area
                 </Label>
                 <div className="relative mt-1">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="area"
                     value={formData.area}
@@ -346,7 +346,7 @@ export default function AddTablePage() {
               </div>
 
               <div>
-                <Label htmlFor="status" className="text-slate-300">
+                <Label htmlFor="status" className="text-muted-foreground">
                   Status
                 </Label>
                 <Select
@@ -357,7 +357,7 @@ export default function AddTablePage() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4 border-t border-white/[0.05]">
+            <div className="flex gap-3 pt-4 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
@@ -383,7 +383,7 @@ export default function AddTablePage() {
     </div>
 : (
   <div className="flex items-center justify-center min-h-[60vh]">
-    <p className="text-slate-400 text-sm">You do not have permission to manage tables.</p>
+    <p className="text-muted-foreground text-sm">You do not have permission to manage tables.</p>
   </div>
 )}
     </div>

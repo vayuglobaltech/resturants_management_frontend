@@ -44,13 +44,7 @@ export function InvoicePreview({
   discounts = [],
   totalDiscount = 0,
 }: InvoicePreviewProps) {
-  if (!tableNumber || items.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-slate-500">
-        Select a table to preview invoice
-      </div>
-    );
-  }
+  if (!tableNumber || items.length === 0) return null;
 
   const formatDate = (d?: string) =>
     d
@@ -65,8 +59,7 @@ export function InvoicePreview({
 
   return (
     <div
-      className="bg-white text-black p-6 rounded-xl shadow-lg max-w-xl mx-auto"
-      id="invoice-content"
+      className="bg-white text-black p-6 rounded-xl shadow-lg max-w-xl mx-auto print:max-w-full print:w-full print:shadow-none print:p-0 print:m-0 print:rounded-none"
     >
       {/* Header */}
       <div className="border-b border-gray-200 pb-4 mb-4">

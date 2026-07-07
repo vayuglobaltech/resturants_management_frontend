@@ -54,15 +54,15 @@ export default function AddUserPage() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <Link href="/dashboard/users">
-        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white gap-1">
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1">
           <ArrowLeft className="h-4 w-4" /> Back to Users
         </Button>
       </Link>
 
-      <Card className="bg-white/[0.03] border-white/[0.08]">
+      <Card className="bg-muted/30 border-border">
         <CardHeader>
-          <CardTitle className="text-white text-2xl">Add New User</CardTitle>
-          <p className="text-sm text-slate-400 mt-1">Create a new employee account</p>
+          <CardTitle className="text-foreground text-2xl">Add New User</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">Create a new employee account</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -113,14 +113,14 @@ export default function AddUserPage() {
 
             {/* Role selection */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Role *
               </label>
               <select
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                 required
-                className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Select role</option>
                 <option value="1">Admin</option>
@@ -133,31 +133,31 @@ export default function AddUserPage() {
 
             {/* Branch info (read-only, auto-assigned) */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Branch (auto-assigned)
               </label>
-              <div className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white/60">
+              <div className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground/60">
                 {branchId ? user?.branch?.name || user?.primary_branch?.name || "Your branch" : "No branch assigned"}
               </div>
             </div>
 
             {/* Approval & Active toggles */}
             <div className="flex flex-wrap gap-6">
-              <label className="flex items-center gap-2 text-sm text-slate-300">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
                 <input
                   type="checkbox"
                   checked={formData.is_approved}
                   onChange={(e) => setFormData({ ...formData, is_approved: e.target.checked })}
-                  className="rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                  className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
                 />
                 Approve immediately
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-300">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
                 <input
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                  className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
                 />
                 Active
               </label>

@@ -143,8 +143,8 @@ export default function ShiftClosingPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Shift Closing</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Shift Closing</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             End-of-shift cash reconciliation
           </p>
         </div>
@@ -159,38 +159,38 @@ export default function ShiftClosingPage() {
       </div>
 
       {shiftClosings.length === 0 ? (
-        <Card className="bg-white/[0.03] border-white/[0.06]">
+        <Card className="bg-muted/30 border-border">
           <CardContent className="p-12 text-center">
-            <Clock className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-            <p className="text-slate-400 font-medium">No shift closings found</p>
-            <p className="text-sm text-slate-500 mt-1">Create a new shift closing to start</p>
+            <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground font-medium">No shift closings found</p>
+            <p className="text-sm text-muted-foreground mt-1">Create a new shift closing to start</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {shiftClosings.map((shift) => (
-            <Card key={shift.id} className="bg-white/[0.03] border-white/[0.06]">
+            <Card key={shift.id} className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-white/5">
+                    <div className="p-3 rounded-xl bg-background">
                       {getStatusIcon(shift.status)}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-semibold text-white">
+                        <h3 className="text-base font-semibold text-foreground">
                           Shift #{shift.shift_number}
                         </h3>
                         <span className={getStatusBadge(shift.status)}>
                           {shift.status}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-400 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {new Date(shift.shift_date).toLocaleDateString()} • 
                         {shift.cashier?.username || "Unknown"}
                       </p>
                       {shift.approved_by && (
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           Approved by: {shift.approved_by.username}
                         </p>
                       )}
@@ -199,13 +199,13 @@ export default function ShiftClosingPage() {
 
                   <div className="flex flex-wrap items-center gap-4">
                     <div className="text-right">
-                      <p className="text-xs text-slate-400">Expected Cash</p>
-                      <p className="text-sm font-bold text-white">${shift.expected_cash}</p>
+                      <p className="text-xs text-muted-foreground">Expected Cash</p>
+                      <p className="text-sm font-bold text-foreground">${shift.expected_cash}</p>
                     </div>
                     {shift.actual_cash_counted !== null && (
                       <div className="text-right">
-                        <p className="text-xs text-slate-400">Actual Cash</p>
-                        <p className="text-sm font-bold text-white">${shift.actual_cash_counted}</p>
+                        <p className="text-xs text-muted-foreground">Actual Cash</p>
+                        <p className="text-sm font-bold text-foreground">${shift.actual_cash_counted}</p>
                       </div>
                     )}
                     {shift.variance_amount !== 0 && (
@@ -213,7 +213,7 @@ export default function ShiftClosingPage() {
                         "text-right p-2 rounded-lg",
                         shift.variance_amount > 0 ? "bg-emerald-500/10" : "bg-red-500/10"
                       )}>
-                        <p className="text-xs text-slate-400">Variance</p>
+                        <p className="text-xs text-muted-foreground">Variance</p>
                         <p className={cn(
                           "text-sm font-bold",
                           shift.variance_amount > 0 ? "text-emerald-400" : "text-red-400"
@@ -260,9 +260,9 @@ export default function ShiftClosingPage() {
 
                 {/* Actual Cash Input */}
                 {selectedShift === shift.id && shift.status === "OPEN" && (
-                  <div className="mt-4 pt-4 border-t border-white/[0.06]">
+                  <div className="mt-4 pt-4 border-t border-border">
                     <div className="flex items-center gap-3">
-                      <DollarSign className="h-5 w-5 text-slate-400" />
+                      <DollarSign className="h-5 w-5 text-muted-foreground" />
                       <Input
                         type="number"
                         placeholder="Enter actual cash counted..."
@@ -285,7 +285,7 @@ export default function ShiftClosingPage() {
                         Cancel
                       </Button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Enter the total cash amount counted from the drawer
                     </p>
                   </div>
@@ -299,11 +299,11 @@ export default function ShiftClosingPage() {
       {/* Create Shift Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-900 rounded-2xl p-6 max-w-md w-full mx-4 border border-white/10">
-            <h2 className="text-xl font-bold text-white mb-4">Create New Shift</h2>
+          <div className="bg-slate-900 rounded-2xl p-6 max-w-md w-full mx-4 border border-border">
+            <h2 className="text-xl font-bold text-foreground mb-4">Create New Shift</h2>
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-slate-400 block mb-1">Date</label>
+                <label className="text-sm text-muted-foreground block mb-1">Date</label>
                 <Input
                   type="date"
                   value={newShift.shift_date}
@@ -311,7 +311,7 @@ export default function ShiftClosingPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-400 block mb-1">Shift Number</label>
+                <label className="text-sm text-muted-foreground block mb-1">Shift Number</label>
                 <Input
                   type="number"
                   value={newShift.shift_number}

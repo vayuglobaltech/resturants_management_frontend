@@ -81,14 +81,14 @@ function StatCard({
   trendLabel 
 }: StatCardProps) {
   return (
-    <Card className="bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.05] transition-colors">
+    <Card className="bg-muted/30 border-border hover:bg-muted/30 transition-colors">
       <CardContent className={cn("p-4", compact && "p-3")}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={cn("p-2.5 rounded-xl bg-white/5", color)}>{icon}</div>
+            <div className={cn("p-2.5 rounded-xl bg-background", color)}>{icon}</div>
             <div>
-              <p className="text-sm text-slate-400 font-medium">{title}</p>
-              <p className={cn("font-bold text-white", compact ? "text-xl" : "text-2xl")}>{value}</p>
+              <p className="text-sm text-muted-foreground font-medium">{title}</p>
+              <p className={cn("font-bold text-foreground", compact ? "text-xl" : "text-2xl")}>{value}</p>
             </div>
           </div>
           {trend !== undefined && (
@@ -100,11 +100,11 @@ function StatCard({
                 {trend >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                 {Math.abs(trend)}%
               </div>
-              {trendLabel && <span className="text-[10px] text-slate-500">{trendLabel}</span>}
+              {trendLabel && <span className="text-[10px] text-muted-foreground">{trendLabel}</span>}
             </div>
           )}
         </div>
-        {subtitle && <p className="text-xs text-slate-500 mt-2">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-muted-foreground mt-2">{subtitle}</p>}
       </CardContent>
     </Card>
   );
@@ -123,7 +123,7 @@ interface QuickActionCardProps {
 function QuickActionCard({ title, description, icon, href, color = "indigo" }: QuickActionCardProps) {
   return (
     <Link href={href}>
-      <Card className="bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.08] transition-all cursor-pointer group">
+      <Card className="bg-muted/30 border-border hover:bg-muted/30 transition-all cursor-pointer group">
         <CardContent className="p-4 flex items-center gap-4">
           <div className={cn(
             "p-3 rounded-xl transition-colors",
@@ -132,10 +132,10 @@ function QuickActionCard({ title, description, icon, href, color = "indigo" }: Q
             {icon}
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-white group-hover:text-indigo-400 transition-colors">
+            <h3 className="text-sm font-semibold text-foreground group-hover:text-indigo-400 transition-colors">
               {title}
             </h3>
-            <p className="text-xs text-slate-400">{description}</p>
+            <p className="text-xs text-muted-foreground">{description}</p>
           </div>
         </CardContent>
       </Card>
@@ -178,23 +178,23 @@ function RevenueChart({ dailyData, weeklyData }: RevenueChartProps) {
   const hasData = data.length > 0 && data.some(d => d.revenue > 0);
 
   return (
-    <Card className="bg-white/[0.03] border-white/[0.06]">
+    <Card className="bg-muted/30 border-border">
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-white">Revenue Overview</h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h3 className="text-sm font-semibold text-foreground">Revenue Overview</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {view === 'daily' ? 'Daily revenue for the past 7 days' : 'Weekly revenue for the past 6 weeks'}
             </p>
           </div>
-          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-background rounded-lg p-0.5">
             <button
               onClick={() => setView('daily')}
               className={cn(
                 "px-3 py-1 text-xs font-medium rounded-md transition-colors",
                 view === 'daily' 
                   ? "bg-indigo-500/20 text-indigo-400" 
-                  : "text-slate-400 hover:text-white"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               Daily
@@ -205,7 +205,7 @@ function RevenueChart({ dailyData, weeklyData }: RevenueChartProps) {
                 "px-3 py-1 text-xs font-medium rounded-md transition-colors",
                 view === 'weekly' 
                   ? "bg-indigo-500/20 text-indigo-400" 
-                  : "text-slate-400 hover:text-white"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               Weekly
@@ -215,9 +215,9 @@ function RevenueChart({ dailyData, weeklyData }: RevenueChartProps) {
 
         {!hasData ? (
           <div className="text-center py-8">
-            <BarChart3 className="h-8 w-8 text-slate-500 mx-auto mb-2" />
-            <p className="text-sm text-slate-400">No revenue data available</p>
-            <p className="text-xs text-slate-500 mt-1">Try selecting a different branch or date range</p>
+            <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No revenue data available</p>
+            <p className="text-xs text-muted-foreground mt-1">Try selecting a different branch or date range</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -232,7 +232,7 @@ function RevenueChart({ dailyData, weeklyData }: RevenueChartProps) {
                 return (
                   <div key={index} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full flex flex-col items-center">
-                      <span className="text-[10px] text-slate-400 mb-0.5">
+                      <span className="text-[10px] text-muted-foreground mb-0.5">
                         {formatCompactCurrency(item.revenue)}
                       </span>
                       <div 
@@ -248,7 +248,7 @@ function RevenueChart({ dailyData, weeklyData }: RevenueChartProps) {
                         title={`${tooltipLabel}: ${formatCompactCurrency(item.revenue)}`}
                       />
                     </div>
-                    <span className="text-[10px] text-slate-500 truncate w-full text-center mt-1">
+                    <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-1">
                       {label}
                     </span>
                   </div>
@@ -256,21 +256,21 @@ function RevenueChart({ dailyData, weeklyData }: RevenueChartProps) {
               })}
             </div>
 
-            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/[0.06]">
+            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border">
               <div className="text-center">
-                <p className="text-[10px] text-slate-500">Total</p>
-                <p className="text-sm font-bold text-white">
+                <p className="text-[10px] text-muted-foreground">Total</p>
+                <p className="text-sm font-bold text-foreground">
                   {formatCompactCurrency(data.reduce((sum, d) => sum + d.revenue, 0))}
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-[10px] text-slate-500">Average</p>
-                <p className="text-sm font-bold text-white">
+                <p className="text-[10px] text-muted-foreground">Average</p>
+                <p className="text-sm font-bold text-foreground">
                   {formatCompactCurrency(data.reduce((sum, d) => sum + d.revenue, 0) / data.length)}
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-[10px] text-slate-500">Highest</p>
+                <p className="text-[10px] text-muted-foreground">Highest</p>
                 <p className="text-sm font-bold text-emerald-400">{formatCompactCurrency(maxRevenue)}</p>
               </div>
             </div>
@@ -488,8 +488,8 @@ export default function ReportsDashboard() {
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">Something went wrong</h2>
-          <p className="text-slate-400 mb-4">{error}</p>
+          <h2 className="text-xl font-bold text-foreground mb-2">Something went wrong</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={() => window.location.reload()}>
             <RefreshCw className="h-4 w-4 mr-2" /> Refresh Page
           </Button>
@@ -511,8 +511,8 @@ export default function ReportsDashboard() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Reports Dashboard</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Reports Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Financial overview and management reports
           </p>
         </div>
@@ -536,17 +536,17 @@ export default function ReportsDashboard() {
       </div>
 
       {/* Branch Filter */}
-      <Card className="bg-white/[0.03] border-white/[0.06]">
+      <Card className="bg-muted/30 border-border">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <Store className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-400 font-medium">Branch:</span>
+              <Store className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground font-medium">Branch:</span>
             </div>
             <select
               value={selectedBranch === null ? "all" : selectedBranch.toString()}
               onChange={(e) => handleBranchChange(e.target.value)}
-              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
             >
               <option value="all">All Branches</option>
               {branches.map((branch) => (
@@ -557,7 +557,7 @@ export default function ReportsDashboard() {
             </select>
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
               <span className="text-xs text-indigo-400">Showing:</span>
-              <span className="text-xs font-medium text-white">{branchName}</span>
+              <span className="text-xs font-medium text-foreground">{branchName}</span>
             </div>
           </div>
         </CardContent>
@@ -665,30 +665,30 @@ export default function ReportsDashboard() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
-        <Card className="bg-white/[0.03] border-white/[0.06]">
+        <Card className="bg-muted/30 border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
+              <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
               <Link href="/dashboard/reports/transactions" className="text-xs text-indigo-400 hover:text-indigo-300">
                 View All →
               </Link>
             </div>
             {recentData.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">No recent transactions</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No recent transactions</p>
             ) : (
               <div className="space-y-3">
                 {recentData.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03]">
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                     <div className="flex items-center gap-3">
                       <CheckCircle className="h-4 w-4 text-emerald-400" />
                       <div>
-                        <p className="text-sm font-medium text-white">{item.date || "Today"}</p>
-                        <p className="text-xs text-slate-400">Sales Summary</p>
+                        <p className="text-sm font-medium text-foreground">{item.date || "Today"}</p>
+                        <p className="text-xs text-muted-foreground">Sales Summary</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-white">{formatCurrency(item.total_sales)}</p>
-                      <p className="text-xs text-slate-400">{item.number_of_orders || 0} orders</p>
+                      <p className="text-sm font-bold text-foreground">{formatCurrency(item.total_sales)}</p>
+                      <p className="text-xs text-muted-foreground">{item.number_of_orders || 0} orders</p>
                     </div>
                   </div>
                 ))}
@@ -698,36 +698,36 @@ export default function ReportsDashboard() {
         </Card>
 
         {/* Financial Overview */}
-        <Card className="bg-white/[0.03] border-white/[0.06]">
+        <Card className="bg-muted/30 border-border">
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold text-white mb-4">Financial Overview</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-                <span className="text-sm text-slate-300">Today's Revenue</span>
+                <span className="text-sm text-muted-foreground">Today's Revenue</span>
                 <span className="text-sm font-bold text-emerald-400">{formatCurrency(stats.todayRevenue)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
-                <span className="text-sm text-slate-300">Weekly Revenue</span>
+                <span className="text-sm text-muted-foreground">Weekly Revenue</span>
                 <span className="text-sm font-bold text-blue-400">{formatCurrency(stats.weeklyRevenue)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/10">
-                <span className="text-sm text-slate-300">Monthly Revenue</span>
+                <span className="text-sm text-muted-foreground">Monthly Revenue</span>
                 <span className="text-sm font-bold text-indigo-400">{formatCurrency(stats.monthlyRevenue)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
-                <span className="text-sm text-slate-300">Total Revenue (YTD)</span>
+                <span className="text-sm text-muted-foreground">Total Revenue (YTD)</span>
                 <span className="text-sm font-bold text-yellow-400">{formatCurrency(stats.totalRevenue)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-amber-500/5 border border-amber-500/10">
-                <span className="text-sm text-slate-300">COGS</span>
+                <span className="text-sm text-muted-foreground">COGS</span>
                 <span className="text-sm font-bold text-amber-400">{formatCurrency(stats.totalCOGS)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-purple-500/5 border border-purple-500/10">
-                <span className="text-sm text-slate-300">Gross Profit</span>
+                <span className="text-sm text-muted-foreground">Gross Profit</span>
                 <span className="text-sm font-bold text-purple-400">{formatCurrency(stats.grossProfit)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
-                <span className="text-sm text-slate-300">Pending Approvals</span>
+                <span className="text-sm text-muted-foreground">Pending Approvals</span>
                 <span className="text-sm font-bold text-orange-400">{stats.pendingExpenses + stats.pendingAdjustments}</span>
               </div>
             </div>

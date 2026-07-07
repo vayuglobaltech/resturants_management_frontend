@@ -232,7 +232,7 @@ const ProductAvailabilityManagement: React.FC = () => {
       <div className="flex justify-center items-center h-[60vh]">
         <div className="text-center">
           <span className="w-8 h-8 rounded-full border-4 border-orange-500/30 border-t-orange-500 animate-spin inline-block" />
-          <p className="text-slate-400 mt-4">Loading...</p>
+          <p className="text-muted-foreground mt-4">Loading...</p>
         </div>
       </div>
     );
@@ -247,11 +247,11 @@ const ProductAvailabilityManagement: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Product Availability</h1>
-          <p className="text-slate-400 mt-1 text-sm">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Product Availability</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Manage product availability across branches.
             {userRole && (
-              <span className="ml-2 text-xs bg-white/5 px-2 py-1 rounded-lg border border-white/10">
+              <span className="ml-2 text-xs bg-background px-2 py-1 rounded-lg border border-border">
                 Role: {userRole.replace('_', ' ').toUpperCase()}
               </span>
             )}
@@ -262,19 +262,19 @@ const ProductAvailabilityManagement: React.FC = () => {
           {canManage && (
             <button
               onClick={openCreateModal}
-              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-orange-600 hover:bg-orange-700 shadow-[0_4px_16px_rgba(234,88,12,0.3)] transition-all"
+              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-orange-600 hover:bg-orange-700 shadow-[0_4px_16px_rgba(234,88,12,0.3)] transition-all"
             >
               + Add Availability
             </button>
           )}
           
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">🔍</span>
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search products or branches..."
-              className="w-full md:w-64 pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-slate-100 placeholder-slate-500 text-sm focus:border-orange-500/70 focus:bg-white/[0.06] focus:ring-1 focus:ring-orange-500/70 outline-none transition-all"
+              className="w-full md:w-64 pl-10 pr-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-orange-500/70 focus:bg-muted/30 focus:ring-1 focus:ring-orange-500/70 outline-none transition-all"
             />
           </div>
         </div>
@@ -301,7 +301,7 @@ const ProductAvailabilityManagement: React.FC = () => {
         /* Availability Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredData.length === 0 ? (
-            <div className="col-span-full py-10 text-center text-slate-500 bg-white/[0.02] border border-white/[0.05] rounded-2xl">
+            <div className="col-span-full py-10 text-center text-muted-foreground bg-muted/30 border border-border rounded-2xl">
               {searchTerm ? 'No availability entries found matching your search.' : 'No availability entries. Add your first entry!'}
             </div>
           ) : (
@@ -312,7 +312,7 @@ const ProductAvailabilityManagement: React.FC = () => {
               return (
                 <div 
                   key={item.id} 
-                  className="p-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-md flex flex-col hover:border-orange-500/30 hover:bg-white/[0.05] transition-colors group"
+                  className="p-5 rounded-2xl border border-border bg-muted/30 backdrop-blur-md flex flex-col hover:border-orange-500/30 hover:bg-muted/30 transition-colors group"
                 >
                   <div>
                     {/* Status Badge & Actions */}
@@ -329,14 +329,14 @@ const ProductAvailabilityManagement: React.FC = () => {
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={() => openEditModal(item)}
-                            className="p-1.5 text-slate-400 hover:text-blue-400 transition-colors rounded-lg hover:bg-white/5"
+                            className="p-1.5 text-muted-foreground hover:text-blue-400 transition-colors rounded-lg hover:bg-background"
                             title="Edit"
                           >
                             ✏️
                           </button>
                           <button 
                             onClick={() => handleDelete(item.id, productName, branchName)}
-                            className="p-1.5 text-slate-400 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5"
+                            className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors rounded-lg hover:bg-background"
                             title="Delete"
                           >
                             🗑️
@@ -346,19 +346,19 @@ const ProductAvailabilityManagement: React.FC = () => {
                     </div>
                     
                     {/* Product & Branch Info */}
-                    <h3 className="text-xl font-bold text-slate-100">{productName}</h3>
+                    <h3 className="text-xl font-bold text-foreground">{productName}</h3>
                     
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="px-2 py-1 text-[10px] bg-white/5 rounded-lg text-slate-400 border border-white/5">
+                      <span className="px-2 py-1 text-[10px] bg-background rounded-lg text-muted-foreground border border-border">
                         🏢 {branchName}
                       </span>
                     </div>
                   </div>
                   
                   {/* Status Details */}
-                  <div className="mt-4 pt-4 border-t border-white/[0.05]">
+                  <div className="mt-4 pt-4 border-t border-border">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">Status</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Status</p>
                       <div className={`px-3 py-1 rounded-lg text-xs font-medium ${
                         item.is_available
                           ? 'bg-emerald-500/20 text-emerald-400'
@@ -368,7 +368,7 @@ const ProductAvailabilityManagement: React.FC = () => {
                       </div>
                     </div>
                     {item.updated_at && (
-                      <p className="text-[10px] text-slate-500 mt-2">
+                      <p className="text-[10px] text-muted-foreground mt-2">
                         Updated: {new Date(item.updated_at).toLocaleDateString()}
                       </p>
                     )}
@@ -383,19 +383,19 @@ const ProductAvailabilityManagement: React.FC = () => {
       {/* Create/Edit Modal */}
       {showModal && canManage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-          <div className="relative w-full max-w-2xl bg-slate-900 rounded-2xl border border-white/10 shadow-2xl p-6 md:p-8 animate-slideUp max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-slate-900 rounded-2xl border border-border shadow-2xl p-6 md:p-8 animate-slideUp max-h-[90vh] overflow-y-auto">
             {/* Close button */}
             <button
               onClick={() => {
                 setShowModal(false);
                 resetForm();
               }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors text-2xl z-10"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors text-2xl z-10"
             >
               ×
             </button>
             
-            <h2 className="text-2xl font-bold text-slate-100 mb-6 pr-8">
+            <h2 className="text-2xl font-bold text-foreground mb-6 pr-8">
               {editingId ? 'Edit Availability' : 'Add New Availability'}
             </h2>
             
@@ -403,12 +403,12 @@ const ProductAvailabilityManagement: React.FC = () => {
               <div className="grid grid-cols-1 gap-5">
                 {/* Branch */}
                 <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">Branch *</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Branch *</label>
                   <select
                     required
                     value={formData.branch}
                     onChange={(e) => setFormData({...formData, branch: e.target.value})}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all appearance-none"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all appearance-none"
                   >
                     <option value="" className="text-black">Select a branch</option>
                     {Array.isArray(branches) && branches.map((branch) => (
@@ -421,12 +421,12 @@ const ProductAvailabilityManagement: React.FC = () => {
                 
                 {/* Product */}
                 <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">Product *</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Product *</label>
                   <select
                     required
                     value={formData.product}
                     onChange={(e) => setFormData({...formData, product: e.target.value})}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all appearance-none"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all appearance-none"
                   >
                     <option value="" className="text-black">Select a product</option>
                     {Array.isArray(products) && products.map((product) => (
@@ -439,14 +439,14 @@ const ProductAvailabilityManagement: React.FC = () => {
                 
                 {/* Availability Status */}
                 <div>
-  <label className="text-xs font-medium text-slate-400 mb-1.5 block">
+  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
     Availability Status
   </label>
 
-  <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+  <div className="flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3">
     <span
       className={`text-sm font-medium transition-colors ${
-        formData.is_available ? "text-emerald-400" : "text-slate-500"
+        formData.is_available ? "text-emerald-400" : "text-muted-foreground"
       }`}
     >
       Available
@@ -477,7 +477,7 @@ const ProductAvailabilityManagement: React.FC = () => {
 
     <span
       className={`text-sm font-medium transition-colors ${
-        !formData.is_available ? "text-red-400" : "text-slate-500"
+        !formData.is_available ? "text-red-400" : "text-muted-foreground"
       }`}
     >
       Unavailable
@@ -487,15 +487,15 @@ const ProductAvailabilityManagement: React.FC = () => {
               </div>
               
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10 sticky bottom-0 bg-slate-900/95 backdrop-blur-sm -mx-6 px-6 py-4 md:-mx-8 md:px-8">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border sticky bottom-0 bg-slate-900/95 backdrop-blur-sm -mx-6 px-6 py-4 md:-mx-8 md:px-8">
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-orange-600 hover:bg-orange-700 transition-all shadow-[0_4px_16px_rgba(234,88,12,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-orange-600 hover:bg-orange-700 transition-all shadow-[0_4px_16px_rgba(234,88,12,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {formLoading ? (
                     <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      <span className="w-4 h-4 rounded-full border-2 border-border border-t-white animate-spin" />
                       {editingId ? 'Updating...' : 'Creating...'}
                     </span>
                   ) : (
@@ -508,7 +508,7 @@ const ProductAvailabilityManagement: React.FC = () => {
                     setShowModal(false);
                     resetForm();
                   }}
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-slate-300 bg-slate-700/50 hover:bg-slate-700 transition-all"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-muted-foreground bg-slate-700/50 hover:bg-slate-700 transition-all"
                 >
                   Cancel
                 </button>
@@ -523,9 +523,9 @@ const ProductAvailabilityManagement: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
           <div className="relative w-full max-w-md bg-slate-900 rounded-2xl border border-red-500/20 shadow-2xl p-8 text-center">
             <div className="text-6xl mb-4">🔒</div>
-            <h2 className="text-2xl font-bold text-slate-100 mb-2">Access Denied</h2>
-            <p className="text-slate-400 mb-6">You don't have permission to manage product availability.</p>
-            <p className="text-slate-500 text-sm mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-6">You don't have permission to manage product availability.</p>
+            <p className="text-muted-foreground text-sm mb-6">
               Required role: Admin or Branch Manager
             </p>
             <button
@@ -533,7 +533,7 @@ const ProductAvailabilityManagement: React.FC = () => {
                 setShowModal(false);
                 resetForm();
               }}
-              className="px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-slate-700 hover:bg-slate-600 transition-all"
+              className="px-6 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-slate-700 hover:bg-slate-600 transition-all"
             >
               Close
             </button>

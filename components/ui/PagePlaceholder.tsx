@@ -27,8 +27,8 @@ export function PagePlaceholder({
       )}
     >
       {icon && <div className="text-6xl mb-6">{icon}</div>}
-      <h1 className="text-3xl font-bold text-white">{title}</h1>
-      <p className="text-slate-400 max-w-md mt-3">{description}</p>
+      <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+      <p className="text-muted-foreground max-w-md mt-3">{description}</p>
       <div className="mt-8 flex gap-2">
         <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
         <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse delay-150" />

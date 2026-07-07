@@ -182,8 +182,8 @@ export default function GrossProfitReportPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Gross Profit Report</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Gross Profit Report</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Revenue vs Cost of Goods Sold analysis - {getPeriodLabel(period)}
           </p>
         </div>
@@ -193,17 +193,17 @@ export default function GrossProfitReportPage() {
       </div>
 
       {/* Branch Filter */}
-      <Card className="bg-white/[0.03] border-white/[0.06]">
+      <Card className="bg-muted/30 border-border">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <Store className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-400 font-medium">Branch:</span>
+              <Store className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground font-medium">Branch:</span>
             </div>
             <select
               value={selectedBranch === null ? "all" : selectedBranch.toString()}
               onChange={(e) => handleBranchChange(e.target.value)}
-              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
             >
               <option value="all">All Branches</option>
               {branches.map((branch) => (
@@ -215,8 +215,8 @@ export default function GrossProfitReportPage() {
 
             {/* Period Filter */}
             <div className="flex items-center gap-2 ml-4">
-              <span className="text-sm text-slate-400 font-medium">Period:</span>
-              <div className="flex bg-white/5 rounded-lg p-1">
+              <span className="text-sm text-muted-foreground font-medium">Period:</span>
+              <div className="flex bg-background rounded-lg p-1">
                 {periods.map((p) => (
                   <button
                     key={p.value}
@@ -225,7 +225,7 @@ export default function GrossProfitReportPage() {
                       "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5",
                       period === p.value
                         ? "bg-indigo-500/20 text-indigo-400"
-                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background"
                     )}
                   >
                     <p.icon className="h-3.5 w-3.5" />
@@ -238,7 +238,7 @@ export default function GrossProfitReportPage() {
                     "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5",
                     period === 'custom'
                       ? "bg-indigo-500/20 text-indigo-400"
-                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background"
                   )}
                 >
                   <CalendarIcon className="h-3.5 w-3.5" />
@@ -250,9 +250,9 @@ export default function GrossProfitReportPage() {
 
           {/* Custom Date Range */}
           {showCustomDate && (
-            <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-white/[0.06]">
+            <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-border">
               <div className="flex-1 min-w-[150px]">
-                <label className="text-xs text-slate-400 block mb-1">Start Date</label>
+                <label className="text-xs text-muted-foreground block mb-1">Start Date</label>
                 <Input
                   type="date"
                   value={dateRange.start_date}
@@ -260,7 +260,7 @@ export default function GrossProfitReportPage() {
                 />
               </div>
               <div className="flex-1 min-w-[150px]">
-                <label className="text-xs text-slate-400 block mb-1">End Date</label>
+                <label className="text-xs text-muted-foreground block mb-1">End Date</label>
                 <Input
                   type="date"
                   value={dateRange.end_date}
@@ -274,9 +274,9 @@ export default function GrossProfitReportPage() {
           )}
 
           {/* Date Range Display */}
-          <div className="flex items-center gap-2 mt-3 text-xs text-slate-500">
+          <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
             <span>Showing data from:</span>
-            <span className="text-white font-medium">
+            <span className="text-foreground font-medium">
               {new Date(dateRange.start_date).toLocaleDateString()} - {new Date(dateRange.end_date).toLocaleDateString()}
             </span>
           </div>
@@ -287,35 +287,35 @@ export default function GrossProfitReportPage() {
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-white/[0.03] border-white/[0.06]">
+            <Card className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
                     <DollarSign className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400">Total Revenue</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(report.total_revenue)}</p>
+                    <p className="text-sm text-muted-foreground">Total Revenue</p>
+                    <p className="text-2xl font-bold text-foreground">{formatCurrency(report.total_revenue)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-white/[0.03] border-white/[0.06]">
+            <Card className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
                     <Package className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400">Total COGS</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(report.total_cogs)}</p>
+                    <p className="text-sm text-muted-foreground">Total COGS</p>
+                    <p className="text-2xl font-bold text-foreground">{formatCurrency(report.total_cogs)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-white/[0.03] border-white/[0.06]">
+            <Card className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className={cn(
@@ -325,7 +325,7 @@ export default function GrossProfitReportPage() {
                     <TrendingUp className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400">Gross Profit</p>
+                    <p className="text-sm text-muted-foreground">Gross Profit</p>
                     <p className={cn(
                       "text-2xl font-bold",
                       safeNumber(report.gross_profit) >= 0 ? "text-indigo-400" : "text-red-400"
@@ -337,7 +337,7 @@ export default function GrossProfitReportPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/[0.03] border-white/[0.06]">
+            <Card className="bg-muted/30 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className={cn(
@@ -347,7 +347,7 @@ export default function GrossProfitReportPage() {
                     {safeNumber(report.gross_profit_margin_percentage) >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400">Margin</p>
+                    <p className="text-sm text-muted-foreground">Margin</p>
                     <p className={cn(
                       "text-2xl font-bold",
                       safeNumber(report.gross_profit_margin_percentage) >= 30 ? "text-emerald-400" :
@@ -363,30 +363,30 @@ export default function GrossProfitReportPage() {
           </div>
 
           {/* Period Info */}
-          <Card className="bg-white/[0.03] border-white/[0.06]">
+          <Card className="bg-muted/30 border-border">
             <CardContent className="p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400">Period:</span>
-                <span className="text-white">
+                <span className="text-muted-foreground">Period:</span>
+                <span className="text-foreground">
                   {new Date(report.period_start).toLocaleDateString()} - {new Date(report.period_end).toLocaleDateString()}
                 </span>
-                <span className="text-slate-400">Transactions:</span>
-                <span className="text-white font-bold">{report.transaction_count}</span>
+                <span className="text-muted-foreground">Transactions:</span>
+                <span className="text-foreground font-bold">{report.transaction_count}</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Chart */}
-          <Card className="bg-white/[0.03] border-white/[0.06]">
+          <Card className="bg-muted/30 border-border">
             <CardContent className="p-6">
-              <h3 className="text-sm font-semibold text-white mb-4">Revenue vs COGS Breakdown</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-4">Revenue vs COGS Breakdown</h3>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-400">Revenue</span>
+                    <span className="text-muted-foreground">Revenue</span>
                     <span className="text-emerald-400">{formatCurrency(report.total_revenue)}</span>
                   </div>
-                  <div className="w-full bg-white/5 rounded-full h-2">
+                  <div className="w-full bg-background rounded-full h-2">
                     <div 
                       className="bg-emerald-500 h-2 rounded-full transition-all" 
                       style={{ width: '100%' }}
@@ -395,10 +395,10 @@ export default function GrossProfitReportPage() {
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-400">COGS</span>
+                    <span className="text-muted-foreground">COGS</span>
                     <span className="text-amber-400">{formatCurrency(report.total_cogs)}</span>
                   </div>
-                  <div className="w-full bg-white/5 rounded-full h-2">
+                  <div className="w-full bg-background rounded-full h-2">
                     <div 
                       className="bg-amber-500 h-2 rounded-full transition-all" 
                       style={{ 
@@ -411,14 +411,14 @@ export default function GrossProfitReportPage() {
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-400">Gross Profit</span>
+                    <span className="text-muted-foreground">Gross Profit</span>
                     <span className={cn(
                       safeNumber(report.gross_profit) >= 0 ? "text-indigo-400" : "text-red-400"
                     )}>
                       {formatCurrency(report.gross_profit)}
                     </span>
                   </div>
-                  <div className="w-full bg-white/5 rounded-full h-2">
+                  <div className="w-full bg-background rounded-full h-2">
                     <div 
                       className={cn(
                         "h-2 rounded-full transition-all",
@@ -437,36 +437,36 @@ export default function GrossProfitReportPage() {
           </Card>
 
           {/* Summary Stats */}
-          <Card className="bg-white/[0.03] border-white/[0.06]">
+          <Card className="bg-muted/30 border-border">
             <CardContent className="p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-xs text-slate-400">Revenue / COGS Ratio</p>
-                  <p className="text-lg font-bold text-white">
+                  <p className="text-xs text-muted-foreground">Revenue / COGS Ratio</p>
+                  <p className="text-lg font-bold text-foreground">
                     {safeNumber(report.total_revenue) > 0 
                       ? (safeNumber(report.total_revenue) / safeNumber(report.total_cogs)).toFixed(2)
                       : '0.00'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400">Profit Per Transaction</p>
-                  <p className="text-lg font-bold text-white">
+                  <p className="text-xs text-muted-foreground">Profit Per Transaction</p>
+                  <p className="text-lg font-bold text-foreground">
                     {report.transaction_count > 0 
                       ? formatCurrency(safeNumber(report.gross_profit) / report.transaction_count)
                       : '$0.00'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400">Revenue Per Transaction</p>
-                  <p className="text-lg font-bold text-white">
+                  <p className="text-xs text-muted-foreground">Revenue Per Transaction</p>
+                  <p className="text-lg font-bold text-foreground">
                     {report.transaction_count > 0 
                       ? formatCurrency(safeNumber(report.total_revenue) / report.transaction_count)
                       : '$0.00'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400">COGS Per Transaction</p>
-                  <p className="text-lg font-bold text-white">
+                  <p className="text-xs text-muted-foreground">COGS Per Transaction</p>
+                  <p className="text-lg font-bold text-foreground">
                     {report.transaction_count > 0 
                       ? formatCurrency(safeNumber(report.total_cogs) / report.transaction_count)
                       : '$0.00'}
@@ -477,11 +477,11 @@ export default function GrossProfitReportPage() {
           </Card>
         </>
       ) : (
-        <Card className="bg-white/[0.03] border-white/[0.06]">
+        <Card className="bg-muted/30 border-border">
           <CardContent className="p-12 text-center">
-            <TrendingUp className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-            <p className="text-slate-400 font-medium">No data available</p>
-            <p className="text-sm text-slate-500 mt-1">Select a period to view gross profit report</p>
+            <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground font-medium">No data available</p>
+            <p className="text-sm text-muted-foreground mt-1">Select a period to view gross profit report</p>
           </CardContent>
         </Card>
       )}

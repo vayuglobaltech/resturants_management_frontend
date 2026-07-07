@@ -6,8 +6,8 @@ import { createKitchenStation, updateKitchenStation, KitchenStation } from "@/li
 import { getBranches } from "@/lib/api";
 
 const INP =
-  "w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-600 text-sm outline-none transition-all focus:border-indigo-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-indigo-500/15";
-const LBL = "text-xs font-medium text-slate-400 tracking-wide";
+  "w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none transition-all focus:border-indigo-500/70 focus:bg-muted/30 focus:ring-2 focus:ring-indigo-500/15";
+const LBL = "text-xs font-medium text-muted-foreground tracking-wide";
 
 interface KitchenStationFormProps {
   branchId?: number;
@@ -104,16 +104,16 @@ export function KitchenStationForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 p-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl">
+    <form onSubmit={handleSubmit} className="space-y-5 p-6 rounded-2xl border border-border bg-muted/30 backdrop-blur-xl">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
           <CookingPot size={20} />
           {isEditing ? "✏️ Edit Kitchen Station" : "➕ Create Kitchen Station"}
         </h2>
         <button
           type="button"
           onClick={onCancel}
-          className="text-slate-400 hover:text-slate-200 transition-colors"
+          className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <X size={20} />
         </button>
@@ -194,10 +194,10 @@ export function KitchenStationForm({
             checked={form.is_active}
             onChange={(e) => setForm(f => ({ ...f, is_active: e.target.checked }))}
           />
-          <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-          <span className="ml-3 text-sm font-medium text-slate-300">
+          <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+          <span className="ml-3 text-sm font-medium text-muted-foreground">
             {form.is_active ? "🟢 Active" : "🔴 Inactive"}
-            <span className="text-slate-500 text-xs ml-2">
+            <span className="text-muted-foreground text-xs ml-2">
               (station will be {form.is_active ? "available" : "unavailable"})
             </span>
           </span>
@@ -209,11 +209,11 @@ export function KitchenStationForm({
         <button
           type="submit"
           disabled={saving || loadingBranches || branches.length === 0}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-500 to-violet-600 shadow-[0_4px_16px_rgba(99,102,241,0.35)] hover:shadow-[0_6px_24px_rgba(99,102,241,0.5)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all duration-200"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-gradient-to-r from-indigo-500 to-violet-600 shadow-[0_4px_16px_rgba(99,102,241,0.35)] hover:shadow-[0_6px_24px_rgba(99,102,241,0.5)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all duration-200"
         >
           {saving ? (
             <>
-              <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              <span className="w-4 h-4 rounded-full border-2 border-border border-t-white animate-spin" />
               {isEditing ? "Updating..." : "Creating..."}
             </>
           ) : (
@@ -223,7 +223,7 @@ export function KitchenStationForm({
         <button
           type="button"
           onClick={onCancel}
-          className="px-6 py-2.5 rounded-xl text-sm font-medium text-slate-400 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-all"
+          className="px-6 py-2.5 rounded-xl text-sm font-medium text-muted-foreground bg-muted/30 border border-border hover:bg-muted/30 transition-all"
         >
           Cancel
         </button>

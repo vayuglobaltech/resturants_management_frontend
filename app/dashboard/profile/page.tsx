@@ -100,11 +100,11 @@ export default function ProfilePage() {
       transition={{ duration: 0.3 }}
       className="space-y-6 max-w-3xl"
     >
-      <h1 className="text-2xl font-bold text-white">Profile</h1>
+      <h1 className="text-2xl font-bold text-foreground">Profile</h1>
 
-      <Card className="bg-white/[0.03] border-white/[0.08]">
+      <Card className="bg-muted/30 border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <User className="h-5 w-5 text-indigo-400" />
             Personal Information
           </CardTitle>
@@ -152,7 +152,7 @@ export default function ProfilePage() {
                   type="button"
                   variant="ghost"
                   onClick={() => reset()}
-                  className="text-slate-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </Button>
@@ -163,46 +163,46 @@ export default function ProfilePage() {
       </Card>
 
       {/* Read‑only account info */}
-      <Card className="bg-white/[0.03] border-white/[0.08]">
+      <Card className="bg-muted/30 border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
-            <Shield className="h-5 w-5 text-slate-400" />
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
+            <Shield className="h-5 w-5 text-muted-foreground" />
             Account Details
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-            <User className="h-4 w-4 text-slate-500" />
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
+            <User className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-slate-500">Username</p>
-              <p className="text-sm text-white">{user.username}</p>
+              <p className="text-xs text-muted-foreground">Username</p>
+              <p className="text-sm text-foreground">{user.username}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-            <Briefcase className="h-4 w-4 text-slate-500" />
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-slate-500">Role</p>
-              <p className="text-sm text-white capitalize">
+              <p className="text-xs text-muted-foreground">Role</p>
+              <p className="text-sm text-foreground capitalize">
                 {typeof user.role === "object" && "name" in user.role
                   ? user.role.name.replace("_", " ")
                   : "User"}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-            <Building2 className="h-4 w-4 text-slate-500" />
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-slate-500">Branch</p>
-              <p className="text-sm text-white">
+              <p className="text-xs text-muted-foreground">Branch</p>
+              <p className="text-sm text-foreground">
                 {user.branch ? (typeof user.branch === "object" ? user.branch.name : user.branch) : "—"}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-            <CheckCircle className="h-4 w-4 text-slate-500" />
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-slate-500">Email Verified</p>
-              <p className="text-sm text-white">
+              <p className="text-xs text-muted-foreground">Email Verified</p>
+              <p className="text-sm text-foreground">
                 {user.is_email_verified ? "✅ Verified" : "❌ Not verified"}
               </p>
             </div>
