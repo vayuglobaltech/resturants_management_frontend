@@ -70,10 +70,14 @@ export default function PaymentsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "COMPLETED": return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-      case "PENDING": return "bg-amber-500/20 text-amber-400 border-amber-500/30";
-      case "FAILED": return "bg-red-500/20 text-red-400 border-red-500/30";
-      default: return "bg-slate-500/20 text-muted-foreground border-slate-500/30";
+      case "COMPLETED":
+        return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+      case "PENDING":
+        return "bg-amber-500/20 text-amber-400 border-amber-500/30";
+      case "FAILED":
+        return "bg-red-500/20 text-red-400 border-red-500/30";
+      default:
+        return "bg-slate-500/20 text-muted-foreground border-slate-500/30";
     }
   };
 
@@ -93,7 +97,10 @@ export default function PaymentsPage() {
           Payments
         </h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <form onSubmit={handleSearch} className="flex flex-1 sm:flex-initial gap-2">
+          <form
+            onSubmit={handleSearch}
+            className="flex flex-1 sm:flex-initial gap-2"
+          >
             <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <Input
@@ -103,13 +110,19 @@ export default function PaymentsPage() {
                 className="pl-9"
               />
             </div>
-            <Button type="submit" size="sm">Search</Button>
+            <Button type="submit" size="sm">
+              Search
+            </Button>
           </form>
-          <Button variant="ghost" size="sm" onClick={() => fetchPayments(page, searchTerm)} className="gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => fetchPayments(page, searchTerm)}
+            className="gap-1"
+          >
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
         </div>
-
       </div>
 
       {payments.length === 0 ? (
@@ -133,8 +146,14 @@ export default function PaymentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
-                  {payments.map((payment) => (
-                    <tr key={payment.id} className="hover:bg-muted/30 transition-colors">
+                  {payments.map((payment, index) => (
+                    <tr
+                      key={payment.id}
+                      className="hover:bg-muted/30 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-medium text-foreground">
+                        {index + 1}
+                      </td>
                       <td className="px-6 py-4 font-medium text-foreground">
                         #{payment.order_number || payment.order}
                       </td>
@@ -155,7 +174,18 @@ export default function PaymentsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">
-                        {payment.created_at ? new Date(payment.created_at).toLocaleDateString() : "—"}
+                        {payment.created_at
+                          ? new Date(payment.created_at).toLocaleDateString()
+                          : "—"}
+                      </td>
+
+                      <td className="px-6 py-4 text-slate-400">
+                        {payment.created_at
+                          ? new Date(payment.created_at).toLocaleTimeString(
+                              [],
+                              { hour: "2-digit", minute: "2-digit" },
+                            )
+                          : "—"}
                       </td>
                     </tr>
                   ))}
