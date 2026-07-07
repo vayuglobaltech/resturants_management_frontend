@@ -185,7 +185,7 @@ export default function DiscountsPage() {
   if (!canManage) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-slate-400">
+        <p className="text-muted-foreground">
           You don't have permission to manage discounts.
         </p>
       </div>
@@ -203,7 +203,7 @@ export default function DiscountsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <Tag className="h-6 w-6 text-indigo-400" /> Discounts
         </h1>
         <div className="flex items-center gap-2">
@@ -223,7 +223,7 @@ export default function DiscountsPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search discounts..."
           value={searchTerm}
@@ -235,17 +235,17 @@ export default function DiscountsPage() {
       {/* Discount Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-slate-500">
+          <div className="col-span-full text-center py-8 text-muted-foreground">
             No discounts found.
           </div>
         ) : (
           filtered.map((d) => (
             <Card
               key={d.id}
-              className="bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] transition-colors"
+              className="bg-muted/30 border-border hover:bg-muted/30 transition-colors"
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-white flex justify-between items-start">
+                <CardTitle className="text-foreground flex justify-between items-start">
                   <span>{d.name}</span>
                   <span
                     className={cn(
@@ -258,35 +258,35 @@ export default function DiscountsPage() {
                     {d.is_active ? "Active" : "Inactive"}
                   </span>
                 </CardTitle>
-                <p className="text-sm text-slate-400 line-clamp-2">
+                <p className="text-sm text-muted-foreground line-clamp-2">
                   {d.description || "No description"}
                 </p>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Type</span>
-                  <span className="text-white capitalize">{d.type}</span>
+                  <span className="text-muted-foreground">Type</span>
+                  <span className="text-foreground capitalize">{d.type}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Value</span>
-                  <span className="text-white font-medium">
+                  <span className="text-muted-foreground">Value</span>
+                  <span className="text-foreground font-medium">
                     {d.type === "percentage" ? `${d.value}%` : `$${d.value}`}
                   </span>
                 </div>
                 {d.branch_name && (
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Branch</span>
-                    <span className="text-white">{d.branch_name}</span>
+                    <span className="text-muted-foreground">Branch</span>
+                    <span className="text-foreground">{d.branch_name}</span>
                   </div>
                 )}
                 {d.requires_code && (
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Code</span>
+                    <span className="text-muted-foreground">Code</span>
                     <span className="text-indigo-400 font-mono">{d.code}</span>
                   </div>
                 )}
                 {(d.start_date || d.end_date) && (
-                  <div className="flex justify-between text-xs text-slate-400">
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>
                       {d.start_date
                         ? new Date(d.start_date).toLocaleDateString()
@@ -300,10 +300,10 @@ export default function DiscountsPage() {
                     </span>
                   </div>
                 )}
-                <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                <div className="flex justify-end gap-2 pt-2 border-t border-border">
                   <button
                     onClick={() => handleOpenModal(d)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
@@ -312,7 +312,7 @@ export default function DiscountsPage() {
                       setDeleteTarget(d);
                       setIsDeleteModalOpen(true);
                     }}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -326,14 +326,14 @@ export default function DiscountsPage() {
       {/* ─── Add/Edit Modal ─── */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#121826] border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-white mb-4">
+          <div className="bg-[#121826] border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-foreground mb-4">
               {editingDiscount ? "Edit Discount" : "Add New Discount"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
                   Name <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -343,13 +343,13 @@ export default function DiscountsPage() {
                     setFormData({ ...formData, name: e.target.value })
                   }
                   required
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
                   Description
                 </label>
                 <input
@@ -358,14 +358,14 @@ export default function DiscountsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               {/* Type & Value */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Type <span className="text-red-400">*</span>
                   </label>
                   <select
@@ -373,14 +373,14 @@ export default function DiscountsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, type: e.target.value })
                     }
-                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="percentage">Percentage</option>
                     <option value="fixed">Fixed Amount</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Value <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -391,14 +391,14 @@ export default function DiscountsPage() {
                       setFormData({ ...formData, value: e.target.value })
                     }
                     required
-                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
 
               {/* Branch */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
                   Branch (optional)
                 </label>
                 <select
@@ -406,7 +406,7 @@ export default function DiscountsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, branch: e.target.value })
                   }
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">All Branches (Global)</option>
                   <option value="1">Downtown Branch</option>
@@ -419,7 +419,7 @@ export default function DiscountsPage() {
               {/* Start & End Date */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Start Date
                   </label>
                   <input
@@ -428,11 +428,11 @@ export default function DiscountsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, start_date: e.target.value })
                     }
-                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     End Date
                   </label>
                   <input
@@ -441,7 +441,7 @@ export default function DiscountsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, end_date: e.target.value })
                     }
-                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -458,11 +458,11 @@ export default function DiscountsPage() {
                       requires_code: e.target.checked,
                     })
                   }
-                  className="rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                  className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
                 />
                 <label
                   htmlFor="requires_code"
-                  className="text-sm text-slate-300"
+                  className="text-sm text-muted-foreground"
                 >
                   Requires promo code
                 </label>
@@ -471,7 +471,7 @@ export default function DiscountsPage() {
               {/* Promo Code */}
               {formData.requires_code && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Promo Code
                   </label>
                   <input
@@ -480,7 +480,7 @@ export default function DiscountsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, code: e.target.value })
                     }
-                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               )}
@@ -494,9 +494,9 @@ export default function DiscountsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, is_active: e.target.checked })
                   }
-                  className="rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                  className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
                 />
-                <label htmlFor="is_active" className="text-sm text-slate-300">
+                <label htmlFor="is_active" className="text-sm text-muted-foreground">
                   Active
                 </label>
               </div>

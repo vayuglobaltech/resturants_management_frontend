@@ -50,12 +50,12 @@
 
 // function StatCard({ title, value, icon, color = "text-indigo-400", subtitle }: StatCardProps) {
 //   return (
-//     <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 flex items-start gap-4 hover:bg-white/[0.05] transition-colors">
-//       <div className={cn("p-2.5 rounded-xl bg-white/5", color)}>{icon}</div>
+//     <div className="bg-muted/30 border border-border rounded-xl p-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
+//       <div className={cn("p-2.5 rounded-xl bg-background", color)}>{icon}</div>
 //       <div>
-//         <p className="text-sm text-slate-400 font-medium">{title}</p>
-//         <p className="text-2xl font-bold text-white">{value}</p>
-//         {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+//         <p className="text-sm text-muted-foreground font-medium">{title}</p>
+//         <p className="text-2xl font-bold text-foreground">{value}</p>
+//         {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
 //       </div>
 //     </div>
 //   );
@@ -212,8 +212,8 @@
 //       {/* ─── Header ────────────────────────────────────────────────────────── */}
 //       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 //         <div>
-//           <h1 className="text-3xl font-bold text-white tracking-tight">Orders</h1>
-//           <p className="text-slate-400 text-sm mt-1">
+//           <h1 className="text-3xl font-bold text-foreground tracking-tight">Orders</h1>
+//           <p className="text-muted-foreground text-sm mt-1">
 //             Manage restaurant orders efficiently
 //           </p>
 //         </div>
@@ -230,11 +230,11 @@
 //           <TableIcon className="h-5 w-5 text-indigo-400 flex-shrink-0" />
 //           <span className="text-sm text-indigo-300 font-medium">
 //             Filtering orders for{" "}
-//             <span className="text-white font-semibold">{activeTableName || `Table #${tableId}`}</span>
+//             <span className="text-foreground font-semibold">{activeTableName || `Table #${tableId}`}</span>
 //           </span>
 //           <button
 //             onClick={clearTableFilter}
-//             className="ml-auto flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+//             className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg bg-background hover:bg-muted transition-colors"
 //           >
 //             <X className="h-3.5 w-3.5" />
 //             Clear filter
@@ -285,7 +285,7 @@
 //       {/* ─── Controls ──────────────────────────────────────────────────────── */}
 //       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
 //         <div className="relative flex-1">
-//           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+//           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 //           <Input
 //             placeholder="Search orders..."
 //             value={searchTerm}
@@ -298,7 +298,7 @@
 //           <select
 //             value={statusFilter}
 //             onChange={(e) => handleStatusFilter(e.target.value)}
-//             className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+//             className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
 //           >
 //             <option value="all">All Status</option>
 //             <option value="PENDING">Pending</option>
@@ -314,7 +314,7 @@
 //           <select
 //             value={sortBy}
 //             onChange={(e) => handleSort(e.target.value)}
-//             className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+//             className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
 //           >
 //             <option value="newest">Newest</option>
 //             <option value="oldest">Oldest</option>
@@ -396,12 +396,12 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon, color = "text-indigo-400", subtitle }: StatCardProps) {
   return (
-    <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 flex items-start gap-4 hover:bg-white/[0.05] transition-colors">
-      <div className={cn("p-2.5 rounded-xl bg-white/5", color)}>{icon}</div>
+    <div className="bg-muted/30 border border-border rounded-xl p-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
+      <div className={cn("p-2.5 rounded-xl bg-background", color)}>{icon}</div>
       <div>
-        <p className="text-sm text-slate-400 font-medium">{title}</p>
-        <p className="text-2xl font-bold text-white">{value}</p>
-        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+        <p className="text-sm text-muted-foreground font-medium">{title}</p>
+        <p className="text-2xl font-bold text-foreground">{value}</p>
+        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
     </div>
   );
@@ -664,8 +664,8 @@ export default function OrdersPage() {
       {/* ─── Header ────────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Orders</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Orders</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Manage restaurant orders efficiently
           </p>
         </div>
@@ -682,11 +682,11 @@ export default function OrdersPage() {
           <TableIcon className="h-5 w-5 text-indigo-400 flex-shrink-0" />
           <span className="text-sm text-indigo-300 font-medium">
             Filtering orders for{" "}
-            <span className="text-white font-semibold">{activeTableName || `Table #${tableId}`}</span>
+            <span className="text-foreground font-semibold">{activeTableName || `Table #${tableId}`}</span>
           </span>
           <button
             onClick={clearTableFilter}
-            className="ml-auto flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg bg-background hover:bg-muted transition-colors"
           >
             <X className="h-3.5 w-3.5" />
             Clear filter
@@ -737,7 +737,7 @@ export default function OrdersPage() {
       {/* ─── Controls ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search orders..."
             value={searchTerm}
@@ -750,7 +750,7 @@ export default function OrdersPage() {
           <select
             value={statusFilter}
             onChange={(e) => handleStatusFilter(e.target.value)}
-            className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">All Status</option>
             <option value="PENDING">Pending</option>
@@ -766,7 +766,7 @@ export default function OrdersPage() {
           <select
             value={sortBy}
             onChange={(e) => handleSort(e.target.value)}
-            className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>

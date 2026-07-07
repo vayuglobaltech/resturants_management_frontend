@@ -9,7 +9,7 @@ import { useCanManage } from "@/hooks/useCanManage";
 import { ArrowLeft, Loader2, Users, Clock, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -80,7 +80,7 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
   if (!table) {
     return (
       <div className="text-center py-16">
-        <p className="text-slate-400">Table not found.</p>
+        <p className="text-muted-foreground">Table not found.</p>
         <Button variant="ghost" onClick={() => router.back()} className="mt-4">
           <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
         </Button>
@@ -88,24 +88,24 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
     );
   }
 
-  const statusColor = STATUS_COLORS[table.status] || "bg-slate-500/20 text-slate-400";
+  const statusColor = STATUS_COLORS[table.status] || "bg-slate-500/20 text-muted-foreground";
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <Link href="/dashboard/tables">
-        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white gap-1">
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1">
           <ArrowLeft className="h-4 w-4" /> Back to Tables
         </Button>
       </Link>
 
-      <Card className="bg-white/[0.03] border-white/[0.08]">
-        <CardHeader className="border-b border-white/5">
+      <Card className="bg-muted/30 border-border">
+        <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-indigo-500/20 rounded-lg">
                 <Users className="h-6 w-6 text-indigo-400" />
               </div>
-              <CardTitle className="text-2xl text-white">
+              <CardTitle className="text-2xl text-foreground">
                 Table {table.table_number}
               </CardTitle>
             </div>
@@ -116,12 +116,12 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           {canManage && (
-            <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
-              <span className="text-sm text-slate-300">Change Status:</span>
+            <div className="flex items-center gap-3 p-4 bg-background rounded-lg border border-border">
+              <span className="text-sm text-muted-foreground">Change Status:</span>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 disabled={updating}
               >
                 {Object.entries(STATUS_LABELS).map(([key, label]) => (
@@ -141,35 +141,35 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-slate-400">Table Number</span>
-                <span className="text-white font-medium">{table.table_number}</span>
+                <span className="text-sm text-muted-foreground">Table Number</span>
+                <span className="text-foreground font-medium">{table.table_number}</span>
               </div>
               <div className="flex items-center gap-3 mt-3">
-                <span className="text-sm text-slate-400">Capacity</span>
-                <span className="text-white font-medium">{table.capacity} Persons</span>
+                <span className="text-sm text-muted-foreground">Capacity</span>
+                <span className="text-foreground font-medium">{table.capacity} Persons</span>
               </div>
               <div className="flex items-center gap-3 mt-3">
-                <span className="text-sm text-slate-400">Area</span>
-                <span className="text-white font-medium">{table.area || "—"}</span>
+                <span className="text-sm text-muted-foreground">Area</span>
+                <span className="text-foreground font-medium">{table.area || "—"}</span>
               </div>
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-slate-400">Assigned Server</span>
-                <span className="text-white font-medium">
+                <span className="text-sm text-muted-foreground">Assigned Server</span>
+                <span className="text-foreground font-medium">
                   {table.server?.username || "Unassigned"}
                 </span>
               </div>
               <div className="flex items-center gap-3 mt-3">
-                <span className="text-sm text-slate-400">Status</span>
+                <span className="text-sm text-muted-foreground">Status</span>
                 <Badge className={cn("text-xs", statusColor)}>
                   {STATUS_LABELS[table.status] || table.status}
                 </Badge>
               </div>
               {table.occupied_since && (
                 <div className="flex items-center gap-3 mt-3">
-                  <span className="text-sm text-slate-400">Occupied Since</span>
-                  <span className="text-white font-medium">
+                  <span className="text-sm text-muted-foreground">Occupied Since</span>
+                  <span className="text-foreground font-medium">
                     {new Date(table.occupied_since).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",

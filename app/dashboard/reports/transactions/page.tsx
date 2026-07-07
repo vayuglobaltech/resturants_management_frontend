@@ -740,7 +740,7 @@ const fetchTransactionsWithData = async (
         case "transfer_in": return <Truck className="h-5 w-5 text-purple-400" />;
         case "transfer_out": return <Truck className="h-5 w-5 text-orange-400" />;
         case "adjustment": return <Adjustment className="h-5 w-5 text-yellow-400" />;
-        default: return <Package className="h-5 w-5 text-slate-400" />;
+        default: return <Package className="h-5 w-5 text-muted-foreground" />;
       }
     }
   };
@@ -790,16 +790,16 @@ const fetchTransactionsWithData = async (
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/5 gap-2 transition-all">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-background gap-2 transition-all">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-3">
                 <BarChart3 className="h-7 w-7 text-indigo-400" />
                 Transaction Report
               </h1>
-              <p className="text-slate-400 text-sm mt-1">
+              <p className="text-muted-foreground text-sm mt-1">
                 View all payments and inventory transactions 
                 {filters.branch && branches.length > 0 && ` • ${getBranchName(filters.branch)}`}
               </p>
@@ -816,7 +816,7 @@ const fetchTransactionsWithData = async (
             </Button>
             <Button
               onClick={loadData}
-              className="gap-2 bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10"
+              className="gap-2 bg-background text-muted-foreground hover:bg-muted border border-border"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               Refresh
@@ -826,10 +826,10 @@ const fetchTransactionsWithData = async (
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+          <Card className="bg-background border-border backdrop-blur-sm">
             <CardContent className="p-4">
-              <p className="text-slate-400 text-xs">Total</p>
-              <p className="text-white text-2xl font-bold">{stats.total}</p>
+              <p className="text-muted-foreground text-xs">Total</p>
+              <p className="text-foreground text-2xl font-bold">{stats.total}</p>
             </CardContent>
           </Card>
           <Card className="bg-emerald-500/10 border-emerald-500/20 backdrop-blur-sm">
@@ -871,23 +871,23 @@ const fetchTransactionsWithData = async (
         </div>
 
         {/* Search and Filters */}
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+        <Card className="bg-background border-border backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search transactions..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder-slate-500 focus:border-indigo-500/50"
+                  className="pl-10 bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-indigo-500/50"
                 />
               </div>
               <div className="flex gap-2">
                 <select
                   value={transactionTypeFilter}
                   onChange={(e) => setTransactionTypeFilter(e.target.value as "all" | "payments" | "inventory")}
-                  className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:border-indigo-500/50 focus:outline-none"
+                  className="px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:border-indigo-500/50 focus:outline-none"
                 >
                   <option value="all" className="text-black">All Types</option>
                   <option value="payments" className="text-black">💰 Payments</option>
@@ -896,7 +896,7 @@ const fetchTransactionsWithData = async (
                 <Button
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
-                  className="gap-2 border-white/10 text-slate-300 hover:bg-white/10"
+                  className="gap-2 border-border text-muted-foreground hover:bg-muted"
                 >
                   <Filter className="h-4 w-4" />
                   {showFilters ? "Hide" : "Show"} Filters
@@ -905,11 +905,11 @@ const fetchTransactionsWithData = async (
             </div>
 
             {showFilters && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3 pt-4 border-t border-white/10">
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3 pt-4 border-t border-border">
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Branch</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Branch</label>
                   {loadingBranches ? (
-                    <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 text-sm flex items-center gap-2">
+                    <div className="px-3 py-2 rounded-lg bg-background border border-border text-muted-foreground text-sm flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Loading branches...
                     </div>
@@ -921,7 +921,7 @@ const fetchTransactionsWithData = async (
                         console.log("Branch filter changed to:", value);
                         setFilters({ ...filters, branch: value });
                       }}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:border-indigo-500/50 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:border-indigo-500/50 focus:outline-none"
                     >
                       <option value="" className="text-black">🌐 All Branches</option>
                       {branches.map((b) => (
@@ -934,11 +934,11 @@ const fetchTransactionsWithData = async (
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Ingredient</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Ingredient</label>
                   <select
                     value={filters.ingredient}
                     onChange={(e) => setFilters({ ...filters, ingredient: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:border-indigo-500/50 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:border-indigo-500/50 focus:outline-none"
                   >
                     <option value="" className="text-black">All Ingredients</option>
                     {ingredients.map((i) => (
@@ -948,11 +948,11 @@ const fetchTransactionsWithData = async (
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Inventory Type</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Inventory Type</label>
                   <select
                     value={filters.transaction_type}
                     onChange={(e) => setFilters({ ...filters, transaction_type: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:border-indigo-500/50 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:border-indigo-500/50 focus:outline-none"
                   >
                     <option value="all" className="text-black">All Types</option>
                     {INVENTORY_TYPES.map((t) => (
@@ -962,11 +962,11 @@ const fetchTransactionsWithData = async (
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Payment Method</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Payment Method</label>
                   <select
                     value={filters.payment_method}
                     onChange={(e) => setFilters({ ...filters, payment_method: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:border-indigo-500/50 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:border-indigo-500/50 focus:outline-none"
                   >
                     <option value="" className="text-black">All Methods</option>
                     {Object.entries(PAYMENT_METHODS).map(([key, value]) => (
@@ -976,11 +976,11 @@ const fetchTransactionsWithData = async (
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Table</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Table</label>
                   <select
                     value={filters.table}
                     onChange={(e) => setFilters({ ...filters, table: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:border-indigo-500/50 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:border-indigo-500/50 focus:outline-none"
                   >
                     <option value="" className="text-black">All Tables</option>
                     {tables.map((t) => (
@@ -990,11 +990,11 @@ const fetchTransactionsWithData = async (
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Status</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Status</label>
                   <select
                     value={filters.status}
                     onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:border-indigo-500/50 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:border-indigo-500/50 focus:outline-none"
                   >
                     <option value="all" className="text-black">All Status</option>
                     <option value="COMPLETED" className="text-black">✅ Completed</option>
@@ -1006,22 +1006,22 @@ const fetchTransactionsWithData = async (
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Date From</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Date From</label>
                   <input
                     type="date"
                     value={filters.dateFrom}
                     onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:border-indigo-500/50 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:border-indigo-500/50 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Date To</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Date To</label>
                   <input
                     type="date"
                     value={filters.dateTo}
                     onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:border-indigo-500/50 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:border-indigo-500/50 focus:outline-none"
                   />
                 </div>
 
@@ -1029,7 +1029,7 @@ const fetchTransactionsWithData = async (
                   onClick={resetFilters}
                   variant="ghost"
                   size="sm"
-                  className="text-slate-400 hover:text-white hover:bg-white/10 col-span-full md:col-span-1"
+                  className="text-muted-foreground hover:text-foreground hover:bg-muted col-span-full md:col-span-1"
                 >
                   Clear All Filters
                 </Button>
@@ -1039,38 +1039,38 @@ const fetchTransactionsWithData = async (
         </Card>
 
         {/* Transactions Table */}
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm overflow-hidden">
+        <Card className="bg-background border-border backdrop-blur-sm overflow-hidden">
           <CardContent className="p-0 overflow-x-auto">
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
-                <span className="ml-3 text-slate-400">Loading transactions...</span>
+                <span className="ml-3 text-muted-foreground">Loading transactions...</span>
               </div>
             ) : filteredAndSorted.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                 <FileText className="h-16 w-16 mb-4 opacity-30" />
                 <p className="text-lg font-medium">No transactions found</p>
                 <p className="text-sm">Try adjusting your filters or search terms</p>
               </div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-white/5 border-b border-white/10">
+                <thead className="bg-background border-b border-border">
                   <tr>
-                    <th className="px-4 py-3 text-left text-slate-400 font-medium">Type</th>
-                    <th onClick={() => handleSort("id")} className="px-4 py-3 text-left text-slate-400 font-medium cursor-pointer hover:text-white transition-colors">
+                    <th className="px-4 py-3 text-left text-muted-foreground font-medium">Type</th>
+                    <th onClick={() => handleSort("id")} className="px-4 py-3 text-left text-muted-foreground font-medium cursor-pointer hover:text-foreground transition-colors">
                       ID {sortField === "id" && (sortDirection === "asc" ? "↑" : "↓")}
                     </th>
-                    <th onClick={() => handleSort("branch_name")} className="px-4 py-3 text-left text-slate-400 font-medium cursor-pointer hover:text-white transition-colors">
+                    <th onClick={() => handleSort("branch_name")} className="px-4 py-3 text-left text-muted-foreground font-medium cursor-pointer hover:text-foreground transition-colors">
                       Branch {sortField === "branch_name" && (sortDirection === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-4 py-3 text-left text-slate-400 font-medium">Details</th>
-                    <th className="px-4 py-3 text-right text-slate-400 font-medium">Amount/Qty</th>
-                    <th className="px-4 py-3 text-left text-slate-400 font-medium">Status</th>
-                    <th className="px-4 py-3 text-left text-slate-400 font-medium">Performed By</th>
-                    <th onClick={() => handleSort("timestamp")} className="px-4 py-3 text-left text-slate-400 font-medium cursor-pointer hover:text-white transition-colors">
+                    <th className="px-4 py-3 text-left text-muted-foreground font-medium">Details</th>
+                    <th className="px-4 py-3 text-right text-muted-foreground font-medium">Amount/Qty</th>
+                    <th className="px-4 py-3 text-left text-muted-foreground font-medium">Status</th>
+                    <th className="px-4 py-3 text-left text-muted-foreground font-medium">Performed By</th>
+                    <th onClick={() => handleSort("timestamp")} className="px-4 py-3 text-left text-muted-foreground font-medium cursor-pointer hover:text-foreground transition-colors">
                       Date {sortField === "timestamp" && (sortDirection === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-4 py-3 text-center text-slate-400 font-medium">Action</th>
+                    <th className="px-4 py-3 text-center text-muted-foreground font-medium">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1080,31 +1080,31 @@ const fetchTransactionsWithData = async (
                     const isPositive = tx.type === "inventory" && parseFloat((tx as InventoryTransaction).quantity || "0") > 0;
 
                     return (
-                      <tr key={`${tx.type}-${tx.id}`} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <tr key={`${tx.type}-${tx.id}`} className="border-b border-border hover:bg-background transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             {getTransactionIcon(tx)}
-                            <span className="text-xs text-slate-400">{getTypeLabel(tx)}</span>
+                            <span className="text-xs text-muted-foreground">{getTypeLabel(tx)}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-white font-mono text-xs">
+                        <td className="px-4 py-3 text-foreground font-mono text-xs">
                           #{tx.id}
                         </td>
-                        <td className="px-4 py-3 text-white">
+                        <td className="px-4 py-3 text-foreground">
                           <div className="flex items-center gap-1.5">
-                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                             <span>{tx.branch_name || "Unknown"}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-white font-medium">{details.title}</div>
-                          <div className="text-xs text-slate-400 flex items-center gap-2">
+                          <div className="text-foreground font-medium">{details.title}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-2">
                             <span>{details.subtitle}</span>
                             {tx.type === "payment" && (
-                              <span className="text-slate-500">{details.method}</span>
+                              <span className="text-muted-foreground">{details.method}</span>
                             )}
                             {tx.type === "inventory" && (
-                              <span className="text-slate-500">{details.extra}</span>
+                              <span className="text-muted-foreground">{details.extra}</span>
                             )}
                           </div>
                         </td>
@@ -1122,18 +1122,18 @@ const fetchTransactionsWithData = async (
                             {statusConfig.icon} {statusConfig.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-slate-300">
+                        <td className="px-4 py-3 text-muted-foreground">
                           <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5 text-slate-500" />
+                            <User className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-xs">{tx.performed_by_name || "System"}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-slate-400 text-xs">
+                        <td className="px-4 py-3 text-muted-foreground text-xs">
                           <div className="flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                             <span>{formatDate(tx.timestamp)}</span>
                           </div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
                             {formatTime(tx.timestamp)}
                           </div>
                         </td>
@@ -1142,7 +1142,7 @@ const fetchTransactionsWithData = async (
                             variant="ghost"
                             size="sm"
                             onClick={() => viewDetails(tx)}
-                            className="text-slate-400 hover:text-white hover:bg-white/10"
+                            className="text-muted-foreground hover:text-foreground hover:bg-muted"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -1157,7 +1157,7 @@ const fetchTransactionsWithData = async (
         </Card>
 
         {/* Footer */}
-        <div className="flex items-center justify-between text-sm text-slate-500">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div>
             Showing {filteredAndSorted.length} of {transactions.length} transactions
           </div>
@@ -1166,7 +1166,7 @@ const fetchTransactionsWithData = async (
               variant="ghost"
               size="sm"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="text-slate-400 hover:text-white hover:bg-white/5"
+              className="text-muted-foreground hover:text-foreground hover:bg-background"
             >
               Back to Top ↑
             </Button>
@@ -1177,17 +1177,17 @@ const fetchTransactionsWithData = async (
       {/* Detail Modal */}
       {showDetailModal && selectedTransaction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="relative w-full max-w-2xl bg-slate-900 rounded-2xl border border-white/10 shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-slate-900 rounded-2xl border border-border shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowDetailModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="h-6 w-6" />
             </button>
 
             <div className="flex items-center gap-3 mb-6">
               {getTransactionIcon(selectedTransaction)}
-              <h2 className="text-2xl font-bold text-white">
+              <h2 className="text-2xl font-bold text-foreground">
                 {selectedTransaction.type === "payment" ? "Payment Details" : "Inventory Transaction Details"}
               </h2>
             </div>
@@ -1201,7 +1201,7 @@ const fetchTransactionsWithData = async (
             <div className="mt-6 flex justify-end">
               <Button
                 onClick={() => setShowDetailModal(false)}
-                className="bg-white/10 text-white hover:bg-white/20 border border-white/10"
+                className="bg-muted text-foreground hover:bg-white/20 border border-border"
               >
                 Close
               </Button>
@@ -1219,47 +1219,47 @@ function PaymentDetailView({ transaction }: { transaction: PaymentTransaction })
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="text-slate-400 text-xs">Customer</p>
-          <p className="text-white font-medium">{transaction.customer_name || "Guest"}</p>
+          <p className="text-muted-foreground text-xs">Customer</p>
+          <p className="text-foreground font-medium">{transaction.customer_name || "Guest"}</p>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Order Number</p>
-          <p className="text-white font-medium">{transaction.order_number || `#${transaction.order}`}</p>
+          <p className="text-muted-foreground text-xs">Order Number</p>
+          <p className="text-foreground font-medium">{transaction.order_number || `#${transaction.order}`}</p>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Table</p>
-          <p className="text-white font-medium">{transaction.table_number || `#${transaction.table}`}</p>
+          <p className="text-muted-foreground text-xs">Table</p>
+          <p className="text-foreground font-medium">{transaction.table_number || `#${transaction.table}`}</p>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Payment Method</p>
-          <p className="text-white font-medium">
+          <p className="text-muted-foreground text-xs">Payment Method</p>
+          <p className="text-foreground font-medium">
             {transaction.payment_method ? PAYMENT_METHODS[transaction.payment_method]?.label || transaction.payment_method : "N/A"}
           </p>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Amount</p>
+          <p className="text-muted-foreground text-xs">Amount</p>
           <p className="text-emerald-400 font-bold text-lg">${transaction.amount || "0.00"}</p>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Status</p>
+          <p className="text-muted-foreground text-xs">Status</p>
           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border ${PAYMENT_STATUS_CONFIG[transaction.status]?.color || ""}`}>
             {PAYMENT_STATUS_CONFIG[transaction.status]?.icon} {transaction.status || "UNKNOWN"}
           </span>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Transaction ID</p>
-          <p className="text-white font-mono text-sm">{transaction.transaction_id || "N/A"}</p>
+          <p className="text-muted-foreground text-xs">Transaction ID</p>
+          <p className="text-foreground font-mono text-sm">{transaction.transaction_id || "N/A"}</p>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Date</p>
-          <p className="text-white">{formatDateTime(transaction.timestamp)}</p>
+          <p className="text-muted-foreground text-xs">Date</p>
+          <p className="text-foreground">{formatDateTime(transaction.timestamp)}</p>
         </div>
       </div>
-      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-        <p className="text-slate-400 text-xs mb-1">Subtotal</p>
-        <p className="text-white">${transaction.subtotal || "0.00"}</p>
-        <p className="text-slate-400 text-xs mt-2 mb-1">Tax</p>
-        <p className="text-white">${transaction.tax || "0.00"}</p>
+      <div className="bg-background rounded-lg p-4 border border-border">
+        <p className="text-muted-foreground text-xs mb-1">Subtotal</p>
+        <p className="text-foreground">${transaction.subtotal || "0.00"}</p>
+        <p className="text-muted-foreground text-xs mt-2 mb-1">Tax</p>
+        <p className="text-foreground">${transaction.tax || "0.00"}</p>
       </div>
     </div>
   );
@@ -1274,40 +1274,40 @@ function InventoryDetailView({ transaction }: { transaction: InventoryTransactio
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="text-slate-400 text-xs">Ingredient</p>
-          <p className="text-white font-medium">{transaction.ingredient_name || "Unknown"}</p>
+          <p className="text-muted-foreground text-xs">Ingredient</p>
+          <p className="text-foreground font-medium">{transaction.ingredient_name || "Unknown"}</p>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Type</p>
-          <p className="text-white font-medium">
+          <p className="text-muted-foreground text-xs">Type</p>
+          <p className="text-foreground font-medium">
             {typeInfo ? `${typeInfo.icon} ${typeInfo.label}` : transaction.transaction_type || "UNKNOWN"}
           </p>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Quantity</p>
+          <p className="text-muted-foreground text-xs">Quantity</p>
           <p className={`font-bold text-lg ${isPositive ? "text-emerald-400" : "text-red-400"}`}>
             {isPositive ? "+" : ""}{transaction.quantity || "0"} {transaction.unit || ""}
           </p>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Status</p>
+          <p className="text-muted-foreground text-xs">Status</p>
           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border ${INVENTORY_STATUS_CONFIG[transaction.status]?.color || ""}`}>
             {INVENTORY_STATUS_CONFIG[transaction.status]?.icon} {transaction.status || "UNKNOWN"}
           </span>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Location</p>
-          <p className="text-white">{transaction.location || "N/A"}</p>
+          <p className="text-muted-foreground text-xs">Location</p>
+          <p className="text-foreground">{transaction.location || "N/A"}</p>
         </div>
         <div>
-          <p className="text-slate-400 text-xs">Date</p>
-          <p className="text-white">{formatDateTime(transaction.timestamp)}</p>
+          <p className="text-muted-foreground text-xs">Date</p>
+          <p className="text-foreground">{formatDateTime(transaction.timestamp)}</p>
         </div>
       </div>
       {transaction.reason && (
-        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-          <p className="text-slate-400 text-xs mb-1">Reason</p>
-          <p className="text-white">{transaction.reason}</p>
+        <div className="bg-background rounded-lg p-4 border border-border">
+          <p className="text-muted-foreground text-xs mb-1">Reason</p>
+          <p className="text-foreground">{transaction.reason}</p>
         </div>
       )}
     </div>

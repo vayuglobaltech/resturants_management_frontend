@@ -71,7 +71,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm">Loading item details...</p>
+          <p className="text-muted-foreground text-sm">Loading item details...</p>
         </div>
       </div>
     );
@@ -89,8 +89,8 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
         <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
           <AlertCircle className="h-10 w-10 text-red-400" />
         </div>
-        <h2 className="text-2xl font-bold text-white">Item Not Found</h2>
-        <p className="text-slate-400 max-w-md mt-2">
+        <h2 className="text-2xl font-bold text-foreground">Item Not Found</h2>
+        <p className="text-muted-foreground max-w-md mt-2">
           {error || "The menu item you're looking for doesn't exist."}
         </p>
         <Link href="/dashboard/menu" className="mt-6">
@@ -113,7 +113,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
       >
         <div className="flex items-center justify-between">
           <Link href="/dashboard/menu">
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white gap-1">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1">
               <ArrowLeft className="h-4 w-4" /> Back to All Items
             </Button>
           </Link>
@@ -134,10 +134,10 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
           </div>
         </div>
 
-        <Card className="max-w-3xl mx-auto bg-white/[0.03] border-white/[0.08]">
+        <Card className="max-w-3xl mx-auto bg-muted/30 border-border">
           <CardHeader className="flex flex-row items-start justify-between">
             <div>
-              <CardTitle className="text-2xl text-white">{item.name}</CardTitle>
+              <CardTitle className="text-2xl text-foreground">{item.name}</CardTitle>
               <div className="flex items-center gap-2 mt-1">
                 <span
                   className={cn(
@@ -150,7 +150,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
                   {item.is_available ? "Available" : "Unavailable"}
                 </span>
                 {item.category_name && (
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-white/5 text-slate-400 border border-white/5">
+                  <span className="text-xs px-2.5 py-1 rounded-full bg-background text-muted-foreground border border-border">
                     {item.category_name}
                   </span>
                 )}
@@ -160,51 +160,51 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
           <CardContent className="space-y-4">
             {item.description && (
               <div>
-                <h3 className="text-sm font-medium text-slate-400">Description</h3>
-                <p className="text-slate-200 mt-1">{item.description}</p>
+                <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
+                <p className="text-foreground mt-1">{item.description}</p>
               </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-indigo-400" />
-                <span className="text-slate-400">Price:</span>
-                <span className="text-white font-semibold">
+                <span className="text-muted-foreground">Price:</span>
+                <span className="text-foreground font-semibold">
                   ${parseFloat(item.price).toFixed(2)}
                 </span>
               </div>
               {item.cost_price && (
                 <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-400">Cost:</span>
-                  <span className="text-white">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Cost:</span>
+                  <span className="text-foreground">
                     ${parseFloat(item.cost_price).toFixed(2)}
                   </span>
                 </div>
               )}
               {item.prep_time_minutes && (
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-400">Prep Time:</span>
-                  <span className="text-white">{item.prep_time_minutes} minutes</span>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Prep Time:</span>
+                  <span className="text-foreground">{item.prep_time_minutes} minutes</span>
                 </div>
               )}
               {item.product_type && (
                 <div className="flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-400">Type:</span>
-                  <span className="text-white capitalize">
+                  <Tag className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Type:</span>
+                  <span className="text-foreground capitalize">
                     {item.product_type.replace("_", " ")}
                   </span>
                 </div>
               )}
             </div>
             {item.price_override && (
-              <div className="text-sm text-slate-400 bg-white/5 p-3 rounded-xl">
+              <div className="text-sm text-muted-foreground bg-background p-3 rounded-xl">
                 <span className="font-medium">Price Override:</span> $
                 {parseFloat(item.price_override).toFixed(2)}
               </div>
             )}
-            <div className="text-xs text-slate-500 pt-2 border-t border-white/5 flex justify-between">
+            <div className="text-xs text-muted-foreground pt-2 border-t border-border flex justify-between">
               <span>Created: {new Date(item.created_at).toLocaleDateString()}</span>
               <span>Updated: {new Date(item.updated_at).toLocaleDateString()}</span>
             </div>

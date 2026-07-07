@@ -37,11 +37,11 @@ export default function KitchenStationsPage() {
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <CookingPot className="h-6 w-6 text-indigo-400" />
             Kitchen Stations
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Manage your kitchen stations and their capacities
           </p>
         </div>

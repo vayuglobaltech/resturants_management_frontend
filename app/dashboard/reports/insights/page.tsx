@@ -87,14 +87,14 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon, subtitle, color = "text-indigo-400", trend }: StatCardProps) {
   return (
-    <Card className="bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.05] transition-colors">
+    <Card className="bg-muted/30 border-border hover:bg-muted/30 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={cn("p-2.5 rounded-xl bg-white/5", color)}>{icon}</div>
+            <div className={cn("p-2.5 rounded-xl bg-background", color)}>{icon}</div>
             <div>
-              <p className="text-sm text-slate-400 font-medium">{title}</p>
-              <p className="text-2xl font-bold text-white">{value}</p>
+              <p className="text-sm text-muted-foreground font-medium">{title}</p>
+              <p className="text-2xl font-bold text-foreground">{value}</p>
             </div>
           </div>
           {trend !== undefined && (
@@ -107,7 +107,7 @@ function StatCard({ title, value, icon, subtitle, color = "text-indigo-400", tre
             </div>
           )}
         </div>
-        {subtitle && <p className="text-xs text-slate-500 mt-2">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-muted-foreground mt-2">{subtitle}</p>}
       </CardContent>
     </Card>
   );
@@ -129,21 +129,21 @@ function PeakHoursChart({ data }: PeakHoursChartProps) {
   const maxOrders = hasData ? Math.max(...data.map(d => d.orders)) : 1;
 
   return (
-    <Card className="bg-white/[0.03] border-white/[0.06]">
+    <Card className="bg-muted/30 border-border">
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-white">Peak Hours</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Order volume by hour</p>
+            <h3 className="text-sm font-semibold text-foreground">Peak Hours</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Order volume by hour</p>
           </div>
-          <Clock className="h-5 w-5 text-slate-400" />
+          <Clock className="h-5 w-5 text-muted-foreground" />
         </div>
 
         {!hasData ? (
           <div className="text-center py-8">
-            <Clock className="h-8 w-8 text-slate-500 mx-auto mb-2" />
-            <p className="text-sm text-slate-400">No hourly data available</p>
-            <p className="text-xs text-slate-500 mt-1">Try selecting a different date range</p>
+            <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No hourly data available</p>
+            <p className="text-xs text-muted-foreground mt-1">Try selecting a different date range</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -166,7 +166,7 @@ function PeakHoursChart({ data }: PeakHoursChartProps) {
                   <div key={index} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full flex flex-col items-center">
                       {/* Revenue value on top */}
-                      <span className="text-[10px] text-slate-400 mb-0.5">
+                      <span className="text-[10px] text-muted-foreground mb-0.5">
                         {item.orders}
                       </span>
                       {/* Bar */}
@@ -184,7 +184,7 @@ function PeakHoursChart({ data }: PeakHoursChartProps) {
                         title={`${hourLabel}: ${item.orders} orders, ${formatCompactCurrency(item.revenue)}`}
                       />
                     </div>
-                    <span className="text-[10px] text-slate-500 truncate w-full text-center mt-1">
+                    <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-1">
                       {hourLabel}
                     </span>
                   </div>
@@ -194,9 +194,9 @@ function PeakHoursChart({ data }: PeakHoursChartProps) {
 
             {/* Peak hour summary */}
             {maxOrders > 0 && (
-              <div className="pt-3 border-t border-white/[0.06]">
+              <div className="pt-3 border-t border-border">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-400">Peak Hour:</span>
+                  <span className="text-muted-foreground">Peak Hour:</span>
                   <span className="text-emerald-400 font-bold">
                     {(() => {
                       const peak = data.find(d => d.orders === maxOrders);
@@ -207,11 +207,11 @@ function PeakHoursChart({ data }: PeakHoursChartProps) {
                              `${peak.hour - 12} PM`;
                     })()}
                   </span>
-                  <span className="text-slate-400">Orders:</span>
-                  <span className="text-white font-bold">{maxOrders}</span>
+                  <span className="text-muted-foreground">Orders:</span>
+                  <span className="text-foreground font-bold">{maxOrders}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm mt-1">
-                  <span className="text-slate-400">Revenue at Peak:</span>
+                  <span className="text-muted-foreground">Revenue at Peak:</span>
                   <span className="text-emerald-400 font-bold">
                     {formatCompactCurrency(data.find(d => d.orders === maxOrders)?.revenue || 0)}
                   </span>
@@ -236,19 +236,19 @@ interface TopProductsProps {
 
 function TopProducts({ title, products, icon, color, accentColor }: TopProductsProps) {
   return (
-    <Card className="bg-white/[0.03] border-white/[0.06]">
+    <Card className="bg-muted/30 border-border">
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-white">{title}</h3>
-            <p className="text-xs text-slate-400 mt-0.5">By revenue</p>
+            <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">By revenue</p>
           </div>
           {icon}
         </div>
 
         {products.length === 0 ? (
           <div className="text-center py-6">
-            <p className="text-sm text-slate-400">No data available</p>
+            <p className="text-sm text-muted-foreground">No data available</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -257,18 +257,18 @@ function TopProducts({ title, products, icon, color, accentColor }: TopProductsP
                 <div className={cn(
                   "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
                   index === 0 ? "bg-yellow-500/20 text-yellow-400" :
-                  index === 1 ? "bg-slate-400/20 text-slate-300" :
+                  index === 1 ? "bg-slate-400/20 text-muted-foreground" :
                   index === 2 ? "bg-amber-700/20 text-amber-600" :
-                  "bg-white/5 text-slate-400"
+                  "bg-background text-muted-foreground"
                 )}>
                   {index + 1}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-white truncate">{product.name}</span>
-                    <span className="text-sm font-bold text-white">{formatCompactCurrency(product.revenue)}</span>
+                    <span className="text-sm text-foreground truncate">{product.name}</span>
+                    <span className="text-sm font-bold text-foreground">{formatCompactCurrency(product.revenue)}</span>
                   </div>
-                  <div className="w-full bg-white/5 rounded-full h-1.5 mt-1">
+                  <div className="w-full bg-background rounded-full h-1.5 mt-1">
                     <div 
                       className={cn("h-1.5 rounded-full transition-all", accentColor)}
                       style={{ width: `${Math.min(product.percentage, 100)}%` }}
@@ -278,7 +278,7 @@ function TopProducts({ title, products, icon, color, accentColor }: TopProductsP
               </div>
             ))}
             {products.length > 5 && (
-              <p className="text-xs text-slate-500 text-center mt-2">
+              <p className="text-xs text-muted-foreground text-center mt-2">
                 +{products.length - 5} more items
               </p>
             )}
@@ -299,20 +299,20 @@ function DailySalesTrend({ data }: DailySalesTrendProps) {
   const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
 
   return (
-    <Card className="bg-white/[0.03] border-white/[0.06]">
+    <Card className="bg-muted/30 border-border">
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-white">Daily Sales Trend</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Revenue trend over time</p>
+            <h3 className="text-sm font-semibold text-foreground">Daily Sales Trend</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Revenue trend over time</p>
           </div>
-          <BarChart3 className="h-5 w-5 text-slate-400" />
+          <BarChart3 className="h-5 w-5 text-muted-foreground" />
         </div>
 
         {data.length === 0 || data.every(d => d.revenue === 0) ? (
           <div className="text-center py-8">
-            <BarChart3 className="h-8 w-8 text-slate-500 mx-auto mb-2" />
-            <p className="text-sm text-slate-400">No daily trend data available</p>
+            <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No daily trend data available</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -334,7 +334,7 @@ function DailySalesTrend({ data }: DailySalesTrendProps) {
                       }}
                       title={`${item.date}: ${formatCompactCurrency(item.revenue)}`}
                     />
-                    <span className="text-[10px] text-slate-500 truncate w-full text-center">
+                    <span className="text-[10px] text-muted-foreground truncate w-full text-center">
                       {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' })}
                     </span>
                   </div>
@@ -559,8 +559,8 @@ export default function InsightsPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">Something went wrong</h2>
-          <p className="text-slate-400 mb-4">{error}</p>
+          <h2 className="text-xl font-bold text-foreground mb-2">Something went wrong</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" /> Try Again
           </Button>
@@ -574,8 +574,8 @@ export default function InsightsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Business Insights</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Business Insights</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Peak hours, best sellers, and performance metrics
           </p>
         </div>
@@ -592,17 +592,17 @@ export default function InsightsPage() {
       </div>
 
       {/* Branch and Date Filters */}
-      <Card className="bg-white/[0.03] border-white/[0.06]">
+      <Card className="bg-muted/30 border-border">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <Store className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-400 font-medium">Branch:</span>
+              <Store className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground font-medium">Branch:</span>
             </div>
             <select
               value={selectedBranch === null ? "all" : selectedBranch.toString()}
               onChange={(e) => handleBranchChange(e.target.value)}
-              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
             >
               <option value="all">All Branches</option>
               {branches.map((branch) => (
@@ -613,21 +613,21 @@ export default function InsightsPage() {
             </select>
             
             <div className="flex items-center gap-2 ml-4">
-              <Calendar className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-400 font-medium">From:</span>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground font-medium">From:</span>
             </div>
             <input
               type="date"
               value={dateRange.start_date}
               onChange={(e) => setDateRange({ ...dateRange, start_date: e.target.value })}
-              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <span className="text-sm text-slate-400">to</span>
+            <span className="text-sm text-muted-foreground">to</span>
             <input
               type="date"
               value={dateRange.end_date}
               onChange={(e) => setDateRange({ ...dateRange, end_date: e.target.value })}
-              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
         </CardContent>
@@ -691,15 +691,15 @@ export default function InsightsPage() {
 
       {/* Additional Insights */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-white/[0.03] border-white/[0.06]">
+        <Card className="bg-muted/30 border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
                 <Users className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-slate-400">Avg Daily Orders</p>
-                <p className="text-xl font-bold text-white">
+                <p className="text-sm text-muted-foreground">Avg Daily Orders</p>
+                <p className="text-xl font-bold text-foreground">
                   {Math.round(stats.totalOrders / Math.max(1, 
                     Math.ceil((new Date(dateRange.end_date).getTime() - new Date(dateRange.start_date).getTime()) / (1000 * 60 * 60 * 24))
                   ))}
@@ -709,15 +709,15 @@ export default function InsightsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/[0.03] border-white/[0.06]">
+        <Card className="bg-muted/30 border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
                 <Activity className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-slate-400">Busiest Day</p>
-                <p className="text-xl font-bold text-white">
+                <p className="text-sm text-muted-foreground">Busiest Day</p>
+                <p className="text-xl font-bold text-foreground">
                   {busiestDay || 'No data'}
                 </p>
               </div>
@@ -725,14 +725,14 @@ export default function InsightsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/[0.03] border-white/[0.06]">
+        <Card className="bg-muted/30 border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
                 <BarChart3 className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-slate-400">Revenue Per Day</p>
+                <p className="text-sm text-muted-foreground">Revenue Per Day</p>
                 <p className="text-xl font-bold text-white">
                   {formatCurrency(stats.totalRevenue / Math.max(1, 
                     Math.ceil((new Date(dateRange.end_date).getTime() - new Date(dateRange.start_date).getTime()) / (1000 * 60 * 60 * 24))

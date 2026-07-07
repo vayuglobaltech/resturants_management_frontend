@@ -61,8 +61,8 @@ export default function RecipeByProductPage({ params }: RecipeByProductPageProps
         className="flex flex-col items-center justify-center min-h-[60vh] text-center"
       >
         <AlertCircle className="h-10 w-10 text-red-400 mb-4" />
-        <h2 className="text-2xl font-bold text-white">Recipe Not Found</h2>
-        <p className="text-slate-400 max-w-md mt-2">{error || "No recipe exists for this product."}</p>
+        <h2 className="text-2xl font-bold text-foreground">Recipe Not Found</h2>
+        <p className="text-muted-foreground max-w-md mt-2">{error || "No recipe exists for this product."}</p>
         <Button variant="ghost" onClick={() => router.back()} className="mt-6">
           <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
         </Button>
@@ -77,13 +77,13 @@ export default function RecipeByProductPage({ params }: RecipeByProductPageProps
       transition={{ duration: 0.3 }}
       className="space-y-6 max-w-3xl mx-auto"
     >
-      <Button variant="ghost" size="sm" onClick={() => router.back()} className="text-slate-400 hover:text-white gap-1">
+      <Button variant="ghost" size="sm" onClick={() => router.back()} className="text-muted-foreground hover:text-foreground gap-1">
         <ArrowLeft className="h-4 w-4" /> Back
       </Button>
 
-      <Card className="bg-white/[0.03] border-white/[0.08]">
+      <Card className="bg-muted/30 border-border">
         <CardHeader>
-          <CardTitle className="text-2xl text-white flex items-center gap-2">
+          <CardTitle className="text-2xl text-foreground flex items-center gap-2">
             <Package className="h-6 w-6 text-indigo-400" />
             {recipe.product_name}
           </CardTitle>
@@ -98,7 +98,7 @@ export default function RecipeByProductPage({ params }: RecipeByProductPageProps
             >
               {recipe.is_active ? "Active" : "Inactive"}
             </span>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-white/5 text-slate-400 border border-white/5">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-background text-muted-foreground border border-border">
               {recipe.ingredients?.length || 0} ingredients
             </span>
           </div>
@@ -106,47 +106,47 @@ export default function RecipeByProductPage({ params }: RecipeByProductPageProps
         <CardContent className="space-y-4">
           {recipe.description && (
             <div>
-              <h3 className="text-sm font-medium text-slate-400">Description</h3>
-              <p className="text-slate-200 mt-1">{recipe.description}</p>
+              <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
+              <p className="text-foreground mt-1">{recipe.description}</p>
             </div>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-slate-400" />
-              <span className="text-slate-400">Prep Time:</span>
-              <span className="text-white">{recipe.prep_time_minutes || 0} minutes</span>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Prep Time:</span>
+              <span className="text-foreground">{recipe.prep_time_minutes || 0} minutes</span>
             </div>
             <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-slate-400" />
-              <span className="text-slate-400">Yields:</span>
-              <span className="text-white">{recipe.yields || 1}</span>
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Yields:</span>
+              <span className="text-foreground">{recipe.yields || 1}</span>
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-indigo-400" />
-              <span className="text-slate-400">Cost:</span>
-              <span className="text-white">${parseFloat(recipe.cost_price || "0").toFixed(2)}</span>
+              <span className="text-muted-foreground">Cost:</span>
+              <span className="text-foreground">${parseFloat(recipe.cost_price || "0").toFixed(2)}</span>
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-slate-400 mb-2">Ingredients</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Ingredients</h3>
             <div className="space-y-1.5">
               {recipe.ingredients?.length > 0 ? (
                 recipe.ingredients.map((ing: any) => (
-                  <div key={ing.id} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5">
+                  <div key={ing.id} className="flex justify-between items-center p-2 rounded-lg bg-background border border-border">
                     <div>
-                      <span className="text-white text-sm">{ing.ingredient_name}</span>
+                      <span className="text-foreground text-sm">{ing.ingredient_name}</span>
                       {ing.preparation_note && (
-                        <span className="text-xs text-slate-400 ml-2">({ing.preparation_note})</span>
+                        <span className="text-xs text-muted-foreground ml-2">({ing.preparation_note})</span>
                       )}
                     </div>
-                    <span className="text-slate-300 text-sm">
+                    <span className="text-muted-foreground text-sm">
                       {ing.quantity} {ing.unit}
                     </span>
                   </div>
                 ))
               ) : (
-                <p className="text-slate-400 text-sm">No ingredients defined.</p>
+                <p className="text-muted-foreground text-sm">No ingredients defined.</p>
               )}
             </div>
           </div>

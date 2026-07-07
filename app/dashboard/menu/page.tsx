@@ -65,7 +65,7 @@ export default function MenuPage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm">Loading menu items...</p>
+          <p className="text-muted-foreground text-sm">Loading menu items...</p>
         </div>
       </div>
     );
@@ -75,7 +75,7 @@ export default function MenuPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold text-white">Menu Management</h1>
+        <h1 className="text-2xl font-bold text-foreground">Menu Management</h1>
         {canManage && (
           
           <Link href="/dashboard/menu/add">
@@ -87,8 +87,8 @@ export default function MenuPage() {
       </div>
 
       {filteredItems.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-          <p className="text-slate-400">
+        <div className="text-center py-16 border border-dashed border-border rounded-2xl">
+          <p className="text-muted-foreground">
             {categoryParam
               ? `No items found for this category.`
               : "No menu items found."}
@@ -105,7 +105,7 @@ export default function MenuPage() {
           {filteredItems.map((item) => (
             <Card
               key={item.id}
-              className="relative group py-5 md:py-3 mb-2 bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] hover:border-indigo-500/30 transition-all duration-200 cursor-pointer overflow-hidden"
+              className="relative group py-5 md:py-3 mb-2 bg-muted/30 border-border hover:bg-muted/30 hover:border-indigo-500/30 transition-all duration-200 cursor-pointer overflow-hidden"
             >
               {/* Action buttons - top right */}
               {/* Action buttons - only for managers */}
@@ -121,7 +121,7 @@ export default function MenuPage() {
                     e.stopPropagation();
                     handleEdit(item.id);
                   }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted active:bg-white/20 transition-colors"
                   aria-label="Edit"
                 >
                   <Edit2 className="h-4 w-4" />
@@ -131,7 +131,7 @@ export default function MenuPage() {
                     e.stopPropagation();
                     setDeleteTarget({ id: item.id, name: item.name });
                   }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
                   aria-label="Delete"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -143,7 +143,7 @@ export default function MenuPage() {
                 <CardContent className="p-4 pr-12">
                   {/* Name + Availability */}
                   <div className="flex items-start justify-between gap-2 py-3">
-                    <h3 className="text-white font-semibold text-base truncate pr-2">
+                    <h3 className="text-foreground font-semibold text-base truncate pr-2">
                       {item.name}
                     </h3>
                     <span
@@ -160,19 +160,19 @@ export default function MenuPage() {
 
                   {/* Description */}
                   {item.description && (
-                    <p className="text-slate-400 text-sm line-clamp-2 mt-1.5">
+                    <p className="text-muted-foreground text-sm line-clamp-2 mt-1.5">
                       {item.description}
                     </p>
                   )}
 
                   {/* Price + Meta */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-white/5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-border">
                     <span className="text-indigo-400 font-bold text-lg">
                       ${parseFloat(item.price).toFixed(2)}
                     </span>
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       {item.category_name && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-background">
                           <Tag className="h-3 w-3" />
                           {item.category_name}
                         </span>

@@ -270,7 +270,7 @@ export default function UsersPage() {
   if (!canManage) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-slate-400">You don't have permission to view this page.</p>
+        <p className="text-muted-foreground">You don't have permission to view this page.</p>
       </div>
     );
   }
@@ -289,7 +289,7 @@ export default function UsersPage() {
     <div className="space-y-6">
       {/* ─── Header ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <Users className="h-6 w-6 text-indigo-400" /> Employee Management
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
@@ -305,7 +305,7 @@ export default function UsersPage() {
       {/* ─── Controls ─── */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search users..."
             value={searchTerm}
@@ -316,13 +316,13 @@ export default function UsersPage() {
         <select
           value={filterApproved}
           onChange={(e) => setFilterApproved(e.target.value as any)}
-          className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <option value="all">All Status</option>
           <option value="approved">Approved</option>
           <option value="pending">Pending Approval</option>
         </select>
-        <div className="flex gap-1 border border-white/10 rounded-md p-1 bg-white/5">
+        <div className="flex gap-1 border border-border rounded-md p-1 bg-background">
           <Button
             size="sm"
             variant={viewMode === "list" ? "default" : "ghost"}
@@ -344,10 +344,10 @@ export default function UsersPage() {
 
       {/* ─── View: List ─── */}
       {viewMode === "list" && (
-        <Card className="border-white/[0.05] bg-white/[0.02] overflow-hidden">
+        <Card className="border-border bg-muted/30 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-slate-300">
-              <thead className="bg-white/[0.04] text-xs uppercase text-slate-400 font-semibold border-b border-white/[0.08]">
+            <table className="w-full text-sm text-muted-foreground">
+              <thead className="bg-muted/30 text-xs uppercase text-muted-foreground font-semibold border-b border-border">
                 <tr>
                   <th className="px-6 py-4 text-left">Username</th>
                   <th className="px-6 py-4 text-left">Email</th>
@@ -362,16 +362,16 @@ export default function UsersPage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {!Array.isArray(filteredUsers) || filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-slate-500">
+                    <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
                       No users found.
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4 font-medium text-white">
+                    <tr key={u.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4 font-medium text-foreground">
                         {u.username}
-                        {u.first_name && <span className="text-xs text-slate-400 ml-2">({u.first_name})</span>}
+                        {u.first_name && <span className="text-xs text-muted-foreground ml-2">({u.first_name})</span>}
                       </td>
                       <td className="px-6 py-4">{u.email}</td>
                       <td className="px-6 py-4 capitalize">{u.role?.name?.replace("_", " ") || "—"}</td>
@@ -406,7 +406,7 @@ export default function UsersPage() {
                             "inline-block text-xs px-2 py-1 rounded-full border",
                             u.is_email_verified
                               ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                              : "bg-slate-500/20 text-slate-400 border-slate-500/30"
+                              : "bg-slate-500/20 text-muted-foreground border-slate-500/30"
                           )}
                         >
                           {u.is_email_verified ? "Verified" : "Unverified"}
@@ -416,7 +416,7 @@ export default function UsersPage() {
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => openEditModal(u)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
                             title="Edit user"
                           >
                             <Pencil className="h-4 w-4" />
@@ -452,12 +452,12 @@ export default function UsersPage() {
       {viewMode === "cards" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {!Array.isArray(filteredUsers) || filteredUsers.length === 0 ? (
-            <div className="col-span-full text-center py-8 text-slate-500">No users found.</div>
+            <div className="col-span-full text-center py-8 text-muted-foreground">No users found.</div>
           ) : (
             filteredUsers.map((u) => (
-              <Card key={u.id} className="bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] transition-colors">
+              <Card key={u.id} className="bg-muted/30 border-border hover:bg-muted/30 transition-colors">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-white flex justify-between">
+                  <CardTitle className="text-foreground flex justify-between">
                     <span>{u.username}</span>
                     <span
                       className={cn(
@@ -471,10 +471,10 @@ export default function UsersPage() {
                     </span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-1 text-sm text-slate-300">
-                  <p><span className="text-slate-400">Email:</span> {u.email}</p>
-                  <p><span className="text-slate-400">Role:</span> {u.role?.name?.replace("_", " ") || "—"}</p>
-                  <p><span className="text-slate-400">Branch:</span> {getUserBranch(u)}</p>
+                <CardContent className="space-y-1 text-sm text-muted-foreground">
+                  <p><span className="text-muted-foreground">Email:</span> {u.email}</p>
+                  <p><span className="text-muted-foreground">Role:</span> {u.role?.name?.replace("_", " ") || "—"}</p>
+                  <p><span className="text-muted-foreground">Branch:</span> {getUserBranch(u)}</p>
                   <div className="flex flex-wrap gap-2 pt-2">
                     <span className={cn(
                       "text-xs px-2 py-0.5 rounded-full border",
@@ -484,7 +484,7 @@ export default function UsersPage() {
                     </span>
                     <span className={cn(
                       "text-xs px-2 py-0.5 rounded-full border",
-                      u.is_email_verified ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-slate-500/20 text-slate-400 border-slate-500/30"
+                      u.is_email_verified ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-slate-500/20 text-muted-foreground border-slate-500/30"
                     )}>
                       {u.is_email_verified ? "Verified" : "Unverified"}
                     </span>
@@ -492,7 +492,7 @@ export default function UsersPage() {
                   <div className="flex flex-wrap gap-1 mt-2">
                     <button
                       onClick={() => openEditModal(u)}
-                      className="flex-1 px-2 py-1.5 rounded-lg text-xs bg-white/5 hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-400 transition-colors"
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs bg-background hover:bg-indigo-500/20 text-muted-foreground hover:text-indigo-400 transition-colors"
                     >
                       Edit
                     </button>
@@ -523,10 +523,10 @@ export default function UsersPage() {
       {/* ─── Add User Modal ─── */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#121826] border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#121826] border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">Add New User</h2>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">
+              <h2 className="text-xl font-bold text-foreground">Add New User</h2>
+              <button onClick={() => setShowAddModal(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -534,40 +534,40 @@ export default function UsersPage() {
               {/* ... same as before ... (unchanged) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Username <span className="text-red-400">*</span></label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Username <span className="text-red-400">*</span></label>
                   <Input value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Email <span className="text-red-400">*</span></label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Email <span className="text-red-400">*</span></label>
                   <Input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Password <span className="text-red-400">*</span></label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Password <span className="text-red-400">*</span></label>
                   <Input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Confirm Password <span className="text-red-400">*</span></label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Confirm Password <span className="text-red-400">*</span></label>
                   <Input type="password" value={newUser.password2} onChange={(e) => setNewUser({ ...newUser, password2: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">First Name</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">First Name</label>
                   <Input value={newUser.first_name} onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Last Name</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Last Name</label>
                   <Input value={newUser.last_name} onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Phone Number</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Phone Number</label>
                   <Input value={newUser.phone_number} onChange={(e) => setNewUser({ ...newUser, phone_number: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Role <span className="text-red-400">*</span></label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Role <span className="text-red-400">*</span></label>
                   <select
                     value={newUser.role}
                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                     required
-                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select role</option>
                     <option value="4">Waiter</option>
@@ -577,27 +577,27 @@ export default function UsersPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Branch (auto-assigned)</label>
-                <div className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white/60">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Branch (auto-assigned)</label>
+                <div className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground/60">
                   {managerBranchName || "Your branch"}
                 </div>
               </div>
               <div className="flex flex-wrap gap-6">
-                <label className="flex items-center gap-2 text-sm text-slate-300">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={newUser.is_approved}
                     onChange={(e) => setNewUser({ ...newUser, is_approved: e.target.checked })}
-                    className="rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                    className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
                   />
                   Approve immediately
                 </label>
-                <label className="flex items-center gap-2 text-sm text-slate-300">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={newUser.is_active}
                     onChange={(e) => setNewUser({ ...newUser, is_active: e.target.checked })}
-                    className="rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                    className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
                   />
                   Active
                 </label>
@@ -617,10 +617,10 @@ export default function UsersPage() {
       {/* ─── Edit User Modal ─── */}
       {isEditModalOpen && editingUser && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#121826] border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#121826] border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">Edit User</h2>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-white">
+              <h2 className="text-xl font-bold text-foreground">Edit User</h2>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -628,28 +628,28 @@ export default function UsersPage() {
               {/* Read‑only fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Username</label>
-                  <div className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white/60">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Username</label>
+                  <div className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground/60">
                     {editingUser.username}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
-                  <div className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white/60">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
+                  <div className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground/60">
                     {editingUser.email}
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">First Name</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">First Name</label>
                   <Input
                     value={editFormData.first_name}
                     onChange={(e) => setEditFormData({ ...editFormData, first_name: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Last Name</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Last Name</label>
                   <Input
                     value={editFormData.last_name}
                     onChange={(e) => setEditFormData({ ...editFormData, last_name: e.target.value })}
@@ -657,19 +657,19 @@ export default function UsersPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Phone Number</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Phone Number</label>
                 <Input
                   value={editFormData.phone_number}
                   onChange={(e) => setEditFormData({ ...editFormData, phone_number: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Role <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Role <span className="text-red-400">*</span></label>
                 <select
                   value={editFormData.role}
                   onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
                   required
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Select role</option>
                   <option value="4">Waiter</option>
@@ -678,27 +678,27 @@ export default function UsersPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Branch</label>
-                <div className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white/60">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Branch</label>
+                <div className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground/60">
                   {getUserBranch(editingUser)}
                 </div>
               </div>
               <div className="flex flex-wrap gap-6">
-                <label className="flex items-center gap-2 text-sm text-slate-300">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={editFormData.is_approved}
                     onChange={(e) => setEditFormData({ ...editFormData, is_approved: e.target.checked })}
-                    className="rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                    className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
                   />
                   Approved
                 </label>
-                <label className="flex items-center gap-2 text-sm text-slate-300">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={editFormData.is_active}
                     onChange={(e) => setEditFormData({ ...editFormData, is_active: e.target.checked })}
-                    className="rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                    className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
                   />
                   Active
                 </label>

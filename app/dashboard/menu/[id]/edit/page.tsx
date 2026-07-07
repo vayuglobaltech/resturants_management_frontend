@@ -142,14 +142,14 @@ export default function EditMenuItemPage({ params }: EditMenuItemPageProps) {
       className="space-y-6 max-w-2xl"
     >
       <Link href={`/dashboard/menu/${id}`}>
-        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white gap-1">
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1">
           <ArrowLeft className="h-4 w-4" /> Back to Item
         </Button>
       </Link>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-white">Edit Menu Item</CardTitle>
+          <CardTitle className="text-foreground">Edit Menu Item</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -188,13 +188,13 @@ export default function EditMenuItemPage({ params }: EditMenuItemPageProps) {
               />
             </div>
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-slate-300 mb-1">
+              <label htmlFor="category" className="block text-sm font-medium text-muted-foreground mb-1">
                 Category *
               </label>
               <select
                 id="category"
                 {...register("category", { required: "Category is required" })}
-                className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Select a category</option>
                 {categories.map((cat) => (
@@ -218,7 +218,7 @@ export default function EditMenuItemPage({ params }: EditMenuItemPageProps) {
                 {...register("is_available")}
                 className="w-4 h-4 accent-indigo-500"
               />
-              <label htmlFor="is_available" className="text-sm text-slate-300">
+              <label htmlFor="is_available" className="text-sm text-muted-foreground">
                 Available
               </label>
             </div>

@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import { Menu, LogOut, ChevronDown, User, Settings, Sparkles } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
+import { Menu, LogOut, ChevronDown, User, Settings, Sparkles, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
@@ -71,6 +72,7 @@ export function DashboardNavbar({
 }: NavbarProps) {
   const router = useRouter();
   const { logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -111,20 +113,20 @@ export function DashboardNavbar({
 
   return (
     <>
-      <nav className="sticky top-0 z-30 border-b border-white/[0.07] bg-[#0a0e1a]/80 backdrop-blur-xl px-2 sm:px-4 h-16 flex items-center justify-between">
+      <nav className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl px-2 sm:px-4 h-16 flex items-center justify-between transition-colors duration-200">
         {/* Left section */}
         <div className="flex items-center gap-2 sm:gap-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={onToggleSidebar}
-            className="text-slate-400 hover:text-white hover:bg-white/5 p-1.5 sm:p-2"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted p-1.5 sm:p-2"
             aria-label="Toggle sidebar"
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="text-lg sm:text-xl font-bold text-white whitespace-nowrap">
-            🍽️ Vayu<span className="text-indigo-400">Tech</span>
+          <span className="text-lg sm:text-xl font-bold text-foreground whitespace-nowrap">
+            🍽️ Vayu<span className="text-indigo-600 dark:text-indigo-400">Tech</span>
           </span>
           <div className="hidden md:flex items-center gap-1 lg:gap-2 overflow-x-auto ml-14">
             {features.map((f) => (
@@ -137,8 +139,8 @@ export function DashboardNavbar({
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 whitespace-nowrap",
                   selectedFeature === f.id
-                    ? "bg-indigo-500/20 text-indigo-400"
-                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                    ? "bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
                 {f.label}
@@ -149,13 +151,29 @@ export function DashboardNavbar({
 
         {/* Right section */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted p-1.5 sm:p-2 rounded-xl transition-all duration-200"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5 text-amber-400 animate-pulse" />
+            ) : (
+              <Moon className="h-5 w-5 text-indigo-600" />
+            )}
+          </Button>
+
           {/* Notification Bell */}
           <NotificationBell/>
+
           {/* Mobile feature dropdown toggle */}
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1 text-slate-400 hover:text-white"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
               aria-label="Toggle feature menu"
             >
               <ChevronDown className="h-5 w-5" />
@@ -166,7 +184,7 @@ export function DashboardNavbar({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[10px] sm:text-xs font-bold shadow-[0_0_12px_rgba(99,102,241,0.4)] hover:shadow-[0_0_20px_rgba(99,102,241,0.6)] transition-shadow focus:outline-none"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-650 flex items-center justify-center text-white text-[10px] sm:text-xs font-bold shadow-[0_0_12px_rgba(99,102,241,0.3)] hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all focus:outline-none"
               aria-label="Profile menu"
             >
               {initials}
@@ -180,30 +198,30 @@ export function DashboardNavbar({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-2 w-56 bg-[#0d1323] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden z-50"
+                  className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50"
                 >
-                  <div className="px-4 py-3 border-b border-white/5">
-                    <p className="text-sm font-semibold text-white">{fullName}</p>
-                    <p className="text-xs text-slate-400">{user.email}</p>
-                    <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  <div className="px-4 py-3 border-b border-border">
+                    <p className="text-sm font-semibold text-foreground">{fullName}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                    <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/20 dark:border-indigo-500/30">
                       {roleName.replace("_", " ").toUpperCase()}
                     </span>
                   </div>
                   <div className="p-1">
                     <Link
                       href="/dashboard/profile"
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-white/5 transition-colors"
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-foreground/80 hover:bg-muted transition-colors"
                       onClick={() => setIsProfileOpen(false)}
                     >
-                      <User className="h-4 w-4 text-slate-500" />
+                      <User className="h-4 w-4 text-muted-foreground" />
                       Profile
                     </Link>
                     <Link
                       href="/dashboard/settings"
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-white/5 transition-colors"
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-white/80 hover:bg-muted transition-colors"
                       onClick={() => setIsProfileOpen(false)}
                     >
-                      <Settings className="h-4 w-4 text-slate-500" />
+                      <Settings className="h-4 w-4 text-muted-foreground" />
                       Settings
                     </Link>
                     <button
@@ -211,7 +229,7 @@ export function DashboardNavbar({
                         setIsProfileOpen(false);
                         setShowLogoutModal(true);
                       }}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-red-500 dark:text-red-400 hover:bg-red-500/10 transition-colors"
                     >
                       <LogOut className="h-4 w-4" />
                       Logout
@@ -223,13 +241,9 @@ export function DashboardNavbar({
           </div>
 
           {/* Role badge (hidden on small) */}
-          <span className="hidden xs:inline-block text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 whitespace-nowrap">
+          <span className="hidden xs:inline-block text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-650 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/20 dark:border-indigo-500/30 whitespace-nowrap">
             {roleName.replace("_", " ").toUpperCase()}
           </span>
-
-          {/* Logout button (replaced by dropdown) – we can remove or keep as icon only */}
-          {/* We'll keep the logout button as a fallback, but since we have dropdown, we can remove it */}
-          {/* Let's remove the separate logout button to avoid duplication */}
         </div>
 
         {/* Mobile feature menu dropdown */}
@@ -240,7 +254,7 @@ export function DashboardNavbar({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="absolute top-16 left-0 right-0 bg-[#0d1323] border-b border-white/[0.06] p-2 md:hidden z-40 shadow-lg"
+              className="absolute top-16 left-0 right-0 bg-card border-b border-border p-2 md:hidden z-40 shadow-lg"
             >
               <div className="flex flex-wrap gap-1 max-h-60 overflow-y-auto">
                 {features.map((f) => (
@@ -254,8 +268,8 @@ export function DashboardNavbar({
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 w-full text-left",
                       selectedFeature === f.id
-                        ? "bg-indigo-500/20 text-indigo-400"
-                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                        ? "bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     )}
                   >
                     {f.label}
@@ -272,7 +286,7 @@ export function DashboardNavbar({
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         title="Confirm Logout"
-        icon={<LogOut className="h-8 w-8 text-red-400" />}
+        icon={<LogOut className="h-8 w-8 text-red-500 dark:text-red-400" />}
         description="Are you sure you want to sign out of your account? You will need to log in again to access your dashboard."
         confirmText="Sign Out"
         cancelText="Cancel"

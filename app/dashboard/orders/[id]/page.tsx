@@ -287,7 +287,7 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
   if (!order) {
     return (
       <div className="text-center py-16">
-        <p className="text-slate-400">Order not found.</p>
+        <p className="text-muted-foreground">Order not found.</p>
         <Button variant="ghost" onClick={() => router.back()} className="mt-4">
           <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
         </Button>
@@ -295,7 +295,7 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
     );
   }
 
-  const statusColor = STATUS_COLORS[order.status] || "bg-slate-500/20 text-slate-400 border-slate-500/30";
+  const statusColor = STATUS_COLORS[order.status] || "bg-slate-500/20 text-muted-foreground border-slate-500/30";
 
   // ─── Compute discount total ──────────────────────────────────
   const totalDiscount = order.discounts?.reduce((sum: number, d: any) => sum + parseFloat(d.amount), 0) || 0;
@@ -307,12 +307,12 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-2 text-sm text-slate-400">
-          <Link href="/dashboard/orders" className="hover:text-white transition-colors">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link href="/dashboard/orders" className="hover:text-foreground transition-colors">
             Orders
           </Link>
           <ChevronRight className="h-4 w-4" />
-          <span className="text-white font-medium">{order.order_number}</span>
+          <span className="text-foreground font-medium">{order.order_number}</span>
         </div>
         <div className="flex items-center gap-3">
           <span className={cn("px-3 py-1 text-xs font-semibold rounded-full border", statusColor)}>
@@ -324,7 +324,7 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Select Status</option>
                 {availableStatuses.map((status) => (
@@ -354,8 +354,8 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Order Items */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-white/[0.05] bg-white/[0.02]">
-            <CardHeader className="pb-4 border-b border-white/[0.05]">
+          <Card className="border-border bg-muted/30">
+            <CardHeader className="pb-4 border-b border-border">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5 text-indigo-400" />
@@ -376,14 +376,14 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
             <CardContent className="p-0">
               {/* Add Item Form */}
               {showAddItem && canModify && (
-                <div className="p-4 border-b border-white/5 bg-white/[0.03]">
+                <div className="p-4 border-b border-border bg-muted/30">
                   <div className="flex flex-wrap items-end gap-3">
                     <div className="flex-1 min-w-[150px]">
-                      <label className="text-xs text-slate-400 block mb-1">Product</label>
+                      <label className="text-xs text-muted-foreground block mb-1">Product</label>
                       <select
                         value={newItemProduct}
                         onChange={(e) => setNewItemProduct(e.target.value)}
-                        className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       >
                         <option value="">Select...</option>
                         {fetchingMenu ? (
@@ -398,13 +398,13 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
                       </select>
                     </div>
                     <div className="w-24">
-                      <label className="text-xs text-slate-400 block mb-1">Qty</label>
+                      <label className="text-xs text-muted-foreground block mb-1">Qty</label>
                       <input
                         type="number"
                         min="1"
                         value={newItemQty}
                         onChange={(e) => setNewItemQty(parseInt(e.target.value) || 1)}
-                        className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm"
+                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm"
                       />
                     </div>
                     <Button size="sm" onClick={handleAddItem} className="mb-0.5">
@@ -431,15 +431,15 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
                     const ingredients = recipe?.ingredients || [];
 
                     return (
-                      <div key={item.id} className="p-4 hover:bg-white/[0.02] transition-colors">
+                      <div key={item.id} className="p-4 hover:bg-muted/30 transition-colors">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
                             <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
                               <span className="text-indigo-400 font-bold">{item.quantity}x</span>
                             </div>
                             <div>
-                              <h4 className="text-white font-medium">{item.product_name || "Unknown Product"}</h4>
-                              <p className="text-xs text-slate-400 mt-0.5">SKU: {item.product_sku}</p>
+                              <h4 className="text-foreground font-medium">{item.product_name || "Unknown Product"}</h4>
+                              <p className="text-xs text-muted-foreground mt-0.5">SKU: {item.product_sku}</p>
                               {item.product && (
                                 <button
                                   onClick={() => toggleRecipe(item.id, item.product, order.branch)}
@@ -454,8 +454,8 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-right">
-                              <div className="text-white font-bold">${parseFloat(item.price_at_order).toFixed(2)}</div>
-                              <div className="text-xs text-slate-400 mt-0.5">
+                              <div className="text-foreground font-bold">${parseFloat(item.price_at_order).toFixed(2)}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
                                 ${(parseFloat(item.price_at_order) * item.quantity).toFixed(2)} total
                               </div>
                             </div>
@@ -463,7 +463,7 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => handleDeleteItem(item.id)}
-                                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                  className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
@@ -474,26 +474,26 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
 
                         {/* Recipe Ingredients (expanded) */}
                         {isExpanded && (
-                          <div className="mt-3 pt-3 border-t border-white/5">
+                          <div className="mt-3 pt-3 border-t border-border">
                             {ingredients.length === 0 ? (
-                              <p className="text-xs text-slate-400">No ingredients defined for this recipe.</p>
+                              <p className="text-xs text-muted-foreground">No ingredients defined for this recipe.</p>
                             ) : (
                               <div className="space-y-1.5">
-                                <p className="text-xs font-medium text-slate-400 mb-1">Ingredients & Stock</p>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Ingredients & Stock</p>
                                 {ingredients.map((ing: any) => {
                                   const stock = inventoryData[ing.ingredient] ?? 0;
                                   const required = parseFloat(ing.quantity) * item.quantity;
                                   const isSufficient = stock >= required;
                                   return (
-                                    <div key={ing.id} className="flex items-center justify-between text-sm bg-white/5 p-2 rounded-lg">
+                                    <div key={ing.id} className="flex items-center justify-between text-sm bg-background p-2 rounded-lg">
                                       <div className="flex items-center gap-2">
-                                        <span className="text-white">{ing.ingredient_name}</span>
-                                        <span className="text-slate-400 text-xs">
+                                        <span className="text-foreground">{ing.ingredient_name}</span>
+                                        <span className="text-muted-foreground text-xs">
                                           {ing.quantity} {ing.unit} × {item.quantity} = {required} {ing.unit}
                                         </span>
                                       </div>
                                       <div className="flex items-center gap-3">
-                                        <span className="text-slate-300">
+                                        <span className="text-muted-foreground">
                                           Stock: {stock} {ing.unit}
                                         </span>
                                         <span className={cn(
@@ -514,7 +514,7 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
                     );
                   })
                 ) : (
-                  <div className="p-8 text-center text-slate-400">No items in this order.</div>
+                  <div className="p-8 text-center text-muted-foreground">No items in this order.</div>
                 )}
               </div>
             </CardContent>
@@ -524,7 +524,7 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
             <Card className="border-amber-500/20 bg-amber-500/5">
               <CardContent className="p-4">
                 <h4 className="text-sm font-semibold text-amber-400 mb-2">Special Instructions</h4>
-                <p className="text-sm text-slate-300">{order.special_instructions}</p>
+                <p className="text-sm text-muted-foreground">{order.special_instructions}</p>
               </CardContent>
             </Card>
           )}
@@ -532,42 +532,42 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
 
         {/* Right Column: Order Summary */}
 <div className="space-y-6">
-  <Card className="border-white/[0.05] bg-white/[0.02]">
-    <CardHeader className="pb-4 border-b border-white/[0.05]">
+  <Card className="border-border bg-muted/30">
+    <CardHeader className="pb-4 border-b border-border">
       <CardTitle className="text-lg">Order Summary</CardTitle>
     </CardHeader>
     <CardContent className="p-4 space-y-4">
       <div className="flex justify-between items-center text-sm">
-        <span className="text-slate-400 flex items-center gap-2"><Hash className="h-4 w-4"/> Order ID</span>
-        <span className="text-white">{order.order_number}</span>
+        <span className="text-muted-foreground flex items-center gap-2"><Hash className="h-4 w-4"/> Order ID</span>
+        <span className="text-foreground">{order.order_number}</span>
       </div>
       <div className="flex justify-between items-center text-sm">
-        <span className="text-slate-400 flex items-center gap-2"><User className="h-4 w-4"/> Server/User</span>
-        <span className="text-white">{order.user_name || "Guest"}</span>
+        <span className="text-muted-foreground flex items-center gap-2"><User className="h-4 w-4"/> Server/User</span>
+        <span className="text-foreground">{order.user_name || "Guest"}</span>
       </div>
       <div className="flex justify-between items-center text-sm">
-        <span className="text-slate-400 flex items-center gap-2"><Clock className="h-4 w-4"/> Created At</span>
-        <span className="text-white">
+        <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4"/> Created At</span>
+        <span className="text-foreground">
           {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
       <div className="flex justify-between items-center text-sm">
-        <span className="text-slate-400 flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> Priority</span>
-        <span className="text-white">{order.priority}</span>
+        <span className="text-muted-foreground flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> Priority</span>
+        <span className="text-foreground">{order.priority}</span>
       </div>
 
       {/* ─── Discounts Applied ─── */}
       {order.discounts && order.discounts.length > 0 && (
-        <div className="pt-2 border-t border-white/5">
-          <h4 className="text-sm font-medium text-slate-400 mb-1">Discounts Applied</h4>
+        <div className="pt-2 border-t border-border">
+          <h4 className="text-sm font-medium text-muted-foreground mb-1">Discounts Applied</h4>
           {order.discounts.map((disc: any) => (
             <div key={disc.id} className="flex justify-between text-sm">
-              <span className="text-slate-300">{disc.discount_name}</span>
+              <span className="text-muted-foreground">{disc.discount_name}</span>
               <span className="text-emerald-400">-${parseFloat(disc.amount).toFixed(2)}</span>
             </div>
           ))}
-          <div className="flex justify-between text-sm font-medium pt-1 border-t border-white/5">
-            <span className="text-slate-400">Total Discount</span>
+          <div className="flex justify-between text-sm font-medium pt-1 border-t border-border">
+            <span className="text-muted-foreground">Total Discount</span>
             <span className="text-emerald-400">-${totalDiscount.toFixed(2)}</span>
           </div>
         </div>
@@ -576,16 +576,16 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
       {/* ─── Apply Discount (Cashier/Manager/Admin only) ─── */}
       {/* ─── Apply Discount (Cashier/Manager/Admin only) ─── */}
 {canApplyDiscountHere && (
-  <div className="pt-2 border-t border-white/5">
+  <div className="pt-2 border-t border-border">
     <div className="flex items-center gap-2">
       <div className="flex-1">
-        <label className="block text-sm font-medium text-slate-300 mb-1">
+        <label className="block text-sm font-medium text-muted-foreground mb-1">
           Apply Discount
         </label>
         <select
           value={selectedDiscountId}
           onChange={(e) => setSelectedDiscountId(e.target.value)}
-          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           disabled={updatingDiscount}
         >
           <option value="">No discount</option>
@@ -596,7 +596,7 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
             </option>
           ))}
         </select>
-        {updatingDiscount && <p className="text-xs text-slate-500 mt-1">Updating...</p>}
+        {updatingDiscount && <p className="text-xs text-muted-foreground mt-1">Updating...</p>}
       </div>
 
       {/* ─── Remove discount button ─── */}
@@ -616,7 +616,7 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
              }
           }}
           disabled={updatingDiscount}
-          className="mt-5 p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          className="mt-5 p-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
           title="Remove discount"
         >
           <X className="h-4 w-4" />
@@ -627,7 +627,7 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
     {/* ─── Promo Code Input ─── */}
     {selectedDiscountId && discounts.find(d => String(d.id) === selectedDiscountId)?.requires_code && (
       <div className="mt-2">
-        <label className="block text-xs font-medium text-slate-400 mb-1">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Promo Code
         </label>
         <input
@@ -635,7 +635,7 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
           value={promoCode}
           onChange={(e) => setPromoCode(e.target.value)}
           placeholder="Enter promo code..."
-          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
     )}
@@ -653,9 +653,9 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
   </div>
 )}
 
-      <div className="pt-4 border-t border-white/[0.05]">
+      <div className="pt-4 border-t border-border">
         <div className="flex justify-between items-center">
-          <span className="text-slate-300 font-medium">Total Amount</span>
+          <span className="text-muted-foreground font-medium">Total Amount</span>
           <span className="text-xl font-bold text-emerald-400">
             ${parseFloat(order.total_amount || 0).toFixed(2)}
           </span>

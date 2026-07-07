@@ -54,7 +54,7 @@ export default function PaymentsPage() {
       case "COMPLETED": return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
       case "PENDING": return "bg-amber-500/20 text-amber-400 border-amber-500/30";
       case "FAILED": return "bg-red-500/20 text-red-400 border-red-500/30";
-      default: return "bg-slate-500/20 text-slate-400 border-slate-500/30";
+      default: return "bg-slate-500/20 text-muted-foreground border-slate-500/30";
     }
   };
 
@@ -69,7 +69,7 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <CreditCard className="h-6 w-6 text-indigo-400" />
           Payments
         </h1>
@@ -79,15 +79,15 @@ export default function PaymentsPage() {
       </div>
 
       {payments.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-          <p className="text-slate-400">No payments recorded yet.</p>
+        <div className="text-center py-16 border border-dashed border-border rounded-2xl">
+          <p className="text-muted-foreground">No payments recorded yet.</p>
         </div>
       ) : (
         <>
-          <Card className="border-white/[0.05] bg-white/[0.02] overflow-hidden">
+          <Card className="border-border bg-muted/30 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-slate-300">
-                <thead className="bg-white/[0.04] text-xs uppercase text-slate-400 font-semibold border-b border-white/[0.08]">
+              <table className="w-full text-sm text-muted-foreground">
+                <thead className="bg-muted/30 text-xs uppercase text-muted-foreground font-semibold border-b border-border">
                   <tr>
                     <th className="px-6 py-4 text-left">Order</th>
                     <th className="px-6 py-4 text-left">Amount</th>
@@ -98,8 +98,8 @@ export default function PaymentsPage() {
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
                   {payments.map((payment) => (
-                    <tr key={payment.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4 font-medium text-white">
+                    <tr key={payment.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4 font-medium text-foreground">
                         #{payment.order_number || payment.order}
                       </td>
                       <td className="px-6 py-4">
@@ -111,7 +111,7 @@ export default function PaymentsPage() {
                           {payment.status || "UNKNOWN"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-400">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {payment.created_at ? new Date(payment.created_at).toLocaleDateString() : "—"}
                       </td>
                     </tr>
@@ -122,8 +122,8 @@ export default function PaymentsPage() {
           </Card>
 
           {/* ─── Pagination Controls ─── */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-white/10 pt-4">
-            <span className="text-sm text-slate-400">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-border pt-4">
+            <span className="text-sm text-muted-foreground">
               Showing page {page} of {totalPages} · Total {totalCount} records
             </span>
             <div className="flex gap-2">
@@ -132,7 +132,7 @@ export default function PaymentsPage() {
                 size="sm"
                 onClick={handlePrev}
                 disabled={page <= 1}
-                className="gap-1 text-white border-white/20 hover:bg-white/10"
+                className="gap-1 text-foreground border-border hover:bg-muted"
               >
                 <ChevronLeft className="h-4 w-4" /> Previous
               </Button>
@@ -141,7 +141,7 @@ export default function PaymentsPage() {
                 size="sm"
                 onClick={handleNext}
                 disabled={page >= totalPages}
-                className="gap-1 text-white border-white/20 hover:bg-white/10"
+                className="gap-1 text-foreground border-border hover:bg-muted"
               >
                 Next <ChevronRight className="h-4 w-4" />
               </Button>

@@ -12,7 +12,7 @@ export default function TablesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-white">Tables</h1>
+        <h1 className="text-2xl font-bold text-foreground">Tables</h1>
         <div className="flex items-center gap-3">
           {canManage && (
             <Link href="/dashboard/tables/add">
@@ -21,7 +21,7 @@ export default function TablesPage() {
               </Button>
             </Link>
           )}
-          <span className="text-sm text-slate-400">Drag and drop to update status</span>
+          <span className="text-sm text-muted-foreground">Drag and drop to update status</span>
         </div>
       </div>
       <TablesKanban />

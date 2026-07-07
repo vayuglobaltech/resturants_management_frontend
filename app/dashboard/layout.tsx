@@ -38,7 +38,7 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
       </div>
     );
@@ -49,7 +49,7 @@ export default function DashboardLayout({
   return (
     <WebSocketProvider>
       <ToastProvider>
-        <div className="min-h-screen bg-[#0a0e1a] flex flex-col print:bg-white print:block">
+        <div className="min-h-screen bg-background text-foreground flex flex-col print:bg-white print:block transition-colors duration-200">
           <div className="print:hidden">
             <DashboardNavbar
               user={user}

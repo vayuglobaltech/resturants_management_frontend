@@ -21,7 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { updateOrder } from "@/lib/ordersApi";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -44,7 +44,7 @@ const STATUS_COLORS: Record<string, string> = {
   QUEUED: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
   PREPARING: "bg-purple-500/20 text-purple-400 border-purple-500/30",
   READY: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  DELIVERED: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+  DELIVERED: "bg-slate-500/20 text-muted-foreground border-slate-500/30",
   PAID: "bg-green-500/20 text-green-400 border-green-500/30",
   CANCELLED: "bg-red-500/20 text-red-400 border-red-500/30",
 };
@@ -83,7 +83,7 @@ function OrderCard({ order, onClick }: OrderCardProps) {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const statusColor = STATUS_COLORS[order.status] || "bg-slate-500/20 text-slate-400";
+  const statusColor = STATUS_COLORS[order.status] || "bg-slate-500/20 text-muted-foreground";
 
   return (
     <div
@@ -93,21 +93,21 @@ function OrderCard({ order, onClick }: OrderCardProps) {
       {...listeners}
       onClick={() => onClick?.(order.id)}
       className={cn(
-        "p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-colors cursor-grab active:cursor-grabbing touch-none"
+        "p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors cursor-grab active:cursor-grabbing touch-none"
       )}
     >
       <div className="flex justify-between items-start">
         <div>
-          <h4 className="text-white font-medium text-sm">{order.order_number}</h4>
-          <p className="text-xs text-slate-400">Table {order.table_number_display || order.table_number}</p>
+          <h4 className="text-foreground font-medium text-sm">{order.order_number}</h4>
+          <p className="text-xs text-muted-foreground">Table {order.table_number_display || order.table_number}</p>
         </div>
         <Badge className={cn("text-xs", statusColor)}>
           {STATUS_LABELS[order.status] || order.status}
         </Badge>
       </div>
       <div className="mt-2 flex justify-between items-center">
-        <span className="text-xs text-slate-400">{order.items?.length || 0} items</span>
-        <span className="text-white font-bold text-sm">
+        <span className="text-xs text-muted-foreground">{order.items?.length || 0} items</span>
+        <span className="text-foreground font-bold text-sm">
           ${parseFloat(order.total_amount || 0).toFixed(2)}
         </span>
       </div>
@@ -130,14 +130,14 @@ function KanbanColumn({ status, orders, onCardClick }: KanbanColumnProps) {
     <div
       ref={setNodeRef}
       className={cn(
-        "flex-1 min-w-[260px] max-w-[320px] bg-white/[0.02] rounded-xl p-4 border border-white/[0.05] transition-colors",
+        "flex-1 min-w-[260px] max-w-[320px] bg-muted/30 rounded-xl p-4 border border-border transition-colors",
         isOver && "border-indigo-500/50 bg-indigo-500/5 shadow-lg shadow-indigo-500/20"
       )}
       style={{ minHeight: "400px" }}
     >
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-slate-200">{STATUS_LABELS[status]}</h3>
-        <span className="text-xs text-slate-500 bg-white/5 px-2 py-0.5 rounded-full">
+        <h3 className="text-sm font-semibold text-foreground">{STATUS_LABELS[status]}</h3>
+        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
           {orders.length}
         </span>
       </div>
@@ -151,7 +151,7 @@ function KanbanColumn({ status, orders, onCardClick }: KanbanColumnProps) {
           ))}
         </SortableContext>
         {orders.length === 0 && (
-          <div className="text-xs text-slate-500 text-center py-8 border border-dashed border-white/10 rounded-lg">
+          <div className="text-xs text-muted-foreground text-center py-8 border border-dashed border-border rounded-lg">
             Drop orders here
           </div>
         )}

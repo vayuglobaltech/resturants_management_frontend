@@ -32,14 +32,14 @@ export default function ForgotPasswordPage() {
       <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-violet-600/15 blur-[90px] animate-pulse [animation-delay:1.5s]" />
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_80px_rgba(99,102,241,0.15)] px-8 py-10 animate-[fadeUp_0.4s_cubic-bezier(0.22,1,0.36,1)_both]">
+        <div className="rounded-2xl border border-border bg-muted/30 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_80px_rgba(99,102,241,0.15)] px-8 py-10 animate-[fadeUp_0.4s_cubic-bezier(0.22,1,0.36,1)_both]">
 
           <div className="text-5xl text-center mb-4 drop-shadow-[0_0_16px_rgba(99,102,241,0.5)]">🔑</div>
 
-          <h1 className="text-2xl font-bold text-center text-slate-100 tracking-tight mb-1">
+          <h1 className="text-2xl font-bold text-center text-foreground tracking-tight mb-1">
             Forgot Password
           </h1>
-          <p className="text-sm text-center text-slate-400 mb-7">
+          <p className="text-sm text-center text-muted-foreground mb-7">
             Enter your email and we&apos;ll send a reset link
           </p>
 
@@ -61,7 +61,7 @@ export default function ForgotPasswordPage() {
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="forgot-email" className="text-xs font-medium text-slate-400 tracking-wide">
+                  <label htmlFor="forgot-email" className="text-xs font-medium text-muted-foreground tracking-wide">
                     Email Address
                   </label>
                   <input
@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="john@example.com"
-                    className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-600 text-sm outline-none transition-all focus:border-indigo-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-indigo-500/15"
+                    className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none transition-all focus:border-indigo-500/70 focus:bg-muted/30 focus:ring-2 focus:ring-indigo-500/15"
                   />
                 </div>
 
@@ -79,10 +79,10 @@ export default function ForgotPasswordPage() {
                   id="forgot-submit"
                   type="submit"
                   disabled={loading}
-                  className="mt-1 w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-500 to-violet-600 shadow-[0_4px_20px_rgba(99,102,241,0.4)] hover:shadow-[0_6px_28px_rgba(99,102,241,0.55)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all duration-200"
+                  className="mt-1 w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-foreground bg-gradient-to-r from-indigo-500 to-violet-600 shadow-[0_4px_20px_rgba(99,102,241,0.4)] hover:shadow-[0_6px_28px_rgba(99,102,241,0.55)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all duration-200"
                 >
                   {loading ? (
-                    <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    <span className="w-5 h-5 rounded-full border-2 border-border border-t-white animate-spin" />
                   ) : (
                     "Send Reset Link"
                   )}
@@ -91,7 +91,7 @@ export default function ForgotPasswordPage() {
             </>
           )}
 
-          <p className="text-center text-sm text-slate-400 mt-7">
+          <p className="text-center text-sm text-muted-foreground mt-7">
             <Link href="/auth/login" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
               ← Back to Login
             </Link>

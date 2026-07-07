@@ -21,7 +21,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { listTables, updateTable } from "@/lib/tableApi";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 import { Loader2, Users, Table as TableIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -65,7 +65,7 @@ function TableCard({ table, onClick }: TableCardProps) {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const statusColor = STATUS_COLORS[table.status] || "bg-slate-500/20 text-slate-400";
+  const statusColor = STATUS_COLORS[table.status] || "bg-slate-500/20 text-muted-foreground";
 
   return (
     <div
@@ -75,29 +75,29 @@ function TableCard({ table, onClick }: TableCardProps) {
       {...listeners}
       onClick={() => onClick?.(table.id)}
       className={cn(
-        "p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-colors cursor-grab active:cursor-grabbing touch-none"
+        "p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors cursor-grab active:cursor-grabbing touch-none"
       )}
     >
       <div className="flex items-center justify-between">
-        <h4 className="text-white font-medium text-sm">
+        <h4 className="text-foreground font-medium text-sm">
           Table {table.table_number}
         </h4>
         <Badge className={cn("text-xs", statusColor)}>
           {STATUS_LABELS[table.status] || table.status}
         </Badge>
       </div>
-      <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
         <Users className="h-3 w-3" />
         <span>Capacity: {table.capacity}</span>
         {table.area && (
           <>
-            <span className="text-slate-500">•</span>
+            <span className="text-muted-foreground">•</span>
             <span>{table.area}</span>
           </>
         )}
       </div>
       {table.server && (
-        <div className="mt-1 text-xs text-slate-400">
+        <div className="mt-1 text-xs text-muted-foreground">
           Server: {table.server.username}
         </div>
       )}
@@ -120,16 +120,16 @@ function KanbanColumn({ status, tables, onCardClick }: KanbanColumnProps) {
     <div
       ref={setNodeRef}
       className={cn(
-        "flex-1 min-w-[200px] bg-white/[0.02] rounded-xl p-3 border border-white/[0.05] transition-colors",
+        "flex-1 min-w-[200px] bg-muted/30 rounded-xl p-3 border border-border transition-colors",
         isOver && "border-indigo-500/50 bg-indigo-500/5 shadow-lg shadow-indigo-500/20"
       )}
       style={{ minHeight: "300px" }}
     >
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-slate-200">
+        <h3 className="text-sm font-semibold text-foreground">
           {STATUS_LABELS[status] || status}
         </h3>
-        <span className="text-xs text-slate-500 bg-white/5 px-2 py-0.5 rounded-full">
+        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
           {tables.length}
         </span>
       </div>
@@ -143,7 +143,7 @@ function KanbanColumn({ status, tables, onCardClick }: KanbanColumnProps) {
           ))}
         </SortableContext>
         {tables.length === 0 && (
-          <div className="text-xs text-slate-500 text-center py-6 border border-dashed border-white/10 rounded-lg">
+          <div className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
             Drop tables here
           </div>
         )}

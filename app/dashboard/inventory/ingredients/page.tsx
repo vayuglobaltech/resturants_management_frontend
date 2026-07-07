@@ -235,7 +235,7 @@ export default function IngredientsPage() {
       <div className="flex justify-center items-center h-[60vh]">
         <div className="text-center">
           <span className="w-8 h-8 rounded-full border-4 border-orange-500/30 border-t-orange-500 animate-spin inline-block" />
-          <p className="text-slate-400 mt-4">Loading...</p>
+          <p className="text-muted-foreground mt-4">Loading...</p>
         </div>
       </div>
     );
@@ -250,11 +250,11 @@ export default function IngredientsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Ingredients</h1>
-          <p className="text-slate-400 mt-1 text-sm">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Ingredients</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Manage raw ingredients used in production.
             {userRole && (
-              <span className="ml-2 text-xs bg-white/5 px-2 py-1 rounded-lg border border-white/10">
+              <span className="ml-2 text-xs bg-background px-2 py-1 rounded-lg border border-border">
                 Role: {userRole.replace('_', ' ').toUpperCase()}
               </span>
             )}
@@ -265,19 +265,19 @@ export default function IngredientsPage() {
           {canManage && (
             <button
               onClick={openCreateModal}
-              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-orange-600 hover:bg-orange-700 shadow-[0_4px_16px_rgba(234,88,12,0.3)] transition-all"
+              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-orange-600 hover:bg-orange-700 shadow-[0_4px_16px_rgba(234,88,12,0.3)] transition-all"
             >
               + Add Ingredient
             </button>
           )}
           
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">🔍</span>
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search ingredients..."
-              className="w-full md:w-64 pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-slate-100 placeholder-slate-500 text-sm focus:border-orange-500/70 focus:bg-white/[0.06] focus:ring-1 focus:ring-orange-500/70 outline-none transition-all"
+              className="w-full md:w-64 pl-10 pr-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-orange-500/70 focus:bg-muted/30 focus:ring-1 focus:ring-orange-500/70 outline-none transition-all"
             />
           </div>
         </div>
@@ -304,7 +304,7 @@ export default function IngredientsPage() {
         /* Ingredients Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredIngredients.length === 0 ? (
-            <div className="col-span-full py-10 text-center text-slate-500 bg-white/[0.02] border border-white/[0.05] rounded-2xl">
+            <div className="col-span-full py-10 text-center text-muted-foreground bg-muted/30 border border-border rounded-2xl">
               {searchTerm ? 'No ingredients found matching your search.' : 'No ingredients available. Add your first ingredient!'}
             </div>
           ) : (
@@ -315,7 +315,7 @@ export default function IngredientsPage() {
               return (
                 <div 
                   key={ing.id} 
-                  className="p-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-md flex flex-col hover:border-orange-500/30 hover:bg-white/[0.05] transition-colors group"
+                  className="p-5 rounded-2xl border border-border bg-muted/30 backdrop-blur-md flex flex-col hover:border-orange-500/30 hover:bg-muted/30 transition-colors group"
                 >
                   <div>
                     {/* Status Badge & Actions */}
@@ -332,7 +332,7 @@ export default function IngredientsPage() {
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={() => openEditModal(ing.id)}
-                            className="p-1.5 text-slate-400 hover:text-blue-400 transition-colors rounded-lg hover:bg-white/5"
+                            className="p-1.5 text-muted-foreground hover:text-blue-400 transition-colors rounded-lg hover:bg-background"
                             title="Edit"
                           >
                             ✏️
@@ -340,7 +340,7 @@ export default function IngredientsPage() {
                           {ing.is_active && (
                             <button 
                               onClick={() => handleDelete(ing.id, ing.name)}
-                              className="p-1.5 text-slate-400 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5"
+                              className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors rounded-lg hover:bg-background"
                               title="Delete"
                             >
                               🗑️
@@ -351,20 +351,20 @@ export default function IngredientsPage() {
                     </div>
                     
                     {/* Ingredient Info */}
-                    <h3 className="text-xl font-bold text-slate-100">{ing.name}</h3>
-                    <p className="text-slate-400 text-xs mt-1">SKU: {ing.sku}</p>
+                    <h3 className="text-xl font-bold text-foreground">{ing.name}</h3>
+                    <p className="text-muted-foreground text-xs mt-1">SKU: {ing.sku}</p>
                     
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="px-2 py-1 text-[10px] bg-white/5 rounded-lg text-slate-400 border border-white/5">
+                      <span className="px-2 py-1 text-[10px] bg-background rounded-lg text-muted-foreground border border-border">
                         📦 {ing.default_unit}
                       </span>
                       {ing.category && (
-                        <span className="px-2 py-1 text-[10px] bg-white/5 rounded-lg text-slate-400 border border-white/5">
+                        <span className="px-2 py-1 text-[10px] bg-background rounded-lg text-muted-foreground border border-border">
                           🏷️ {ing.category}
                         </span>
                       )}
                       {ing.branch_name && (
-                        <span className="px-2 py-1 text-[10px] bg-white/5 rounded-lg text-slate-400 border border-white/5">
+                        <span className="px-2 py-1 text-[10px] bg-background rounded-lg text-muted-foreground border border-border">
                           🏢 {ing.branch_name}
                         </span>
                       )}
@@ -372,26 +372,26 @@ export default function IngredientsPage() {
                   </div>
                   
                   {/* Stock Info */}
-                  <div className="mt-4 pt-4 border-t border-white/[0.05] grid grid-cols-2 gap-3">
+                  <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Cost / Unit</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Cost / Unit</p>
                       <p className="text-lg font-bold text-orange-400">
                         ${parseFloat(ing.cost_per_unit || '0').toFixed(2)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Min Stock</p>
-                      <p className={`text-sm font-semibold ${hasStockAlert ? 'text-yellow-400' : 'text-slate-300'}`}>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Min Stock</p>
+                      <p className={`text-sm font-semibold ${hasStockAlert ? 'text-yellow-400' : 'text-muted-foreground'}`}>
                         {minStock > 0 ? `${minStock} ${ing.default_unit}` : 'Not set'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Lead Time</p>
-                      <p className="text-sm text-slate-300">{ing.lead_time_days || 2} days</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Lead Time</p>
+                      <p className="text-sm text-muted-foreground">{ing.lead_time_days || 2} days</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Safety Buffer</p>
-                      <p className="text-sm text-slate-300">{ing.safety_buffer_days || 1} days</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Safety Buffer</p>
+                      <p className="text-sm text-muted-foreground">{ing.safety_buffer_days || 1} days</p>
                     </div>
                   </div>
                 </div>
@@ -404,19 +404,19 @@ export default function IngredientsPage() {
       {/* Create/Edit Modal */}
       {showModal && canManage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn ">
-          <div className="relative w-full max-w-2xl bg-slate-900 rounded-2xl border border-white/10 shadow-2xl p-6 md:p-8 animate-slideUp max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-slate-900 rounded-2xl border border-border shadow-2xl p-6 md:p-8 animate-slideUp max-h-[90vh] overflow-y-auto">
             {/* Close button */}
             <button
               onClick={() => {
                 setShowModal(false);
                 resetForm();
               }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors text-2xl z-10"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors text-2xl z-10"
             >
               ×
             </button>
             
-            <h2 className="text-2xl font-bold text-slate-100 mb-6 pr-8">
+            <h2 className="text-2xl font-bold text-foreground mb-6 pr-8">
               {editingId ? 'Edit Ingredient' : 'Add New Ingredient'}
             </h2>
             
@@ -424,47 +424,47 @@ export default function IngredientsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Name */}
                 <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">Name *</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Name *</label>
                   <input
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     placeholder="e.g., Chicken Breast"
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all"
                   />
                 </div>
                 
                 {/* SKU */}
                 <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">SKU *</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">SKU *</label>
                   <input
                     required
                     value={formData.sku}
                     onChange={(e) => setFormData({...formData, sku: e.target.value})}
                     placeholder="e.g., CHK-001"
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all"
                   />
                 </div>
                 
                 {/* Category */}
                 <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">Category</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category</label>
                   <input
                     value={formData.category}
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
                     placeholder="e.g., Meat, Vegetables, Dairy"
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all"
                   />
                 </div>
                 
                 {/* Default Unit */}
                 <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">Default Unit *</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Default Unit *</label>
                   <select
                     required
                     value={formData.default_unit}
                     onChange={(e) => setFormData({...formData, default_unit: e.target.value})}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-orange-500/50 appearance-none transition-all"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50 appearance-none transition-all"
                   >
                     <option value="kg">Kilogram (kg)</option>
                     <option value="g">Gram (g)</option>
@@ -478,7 +478,7 @@ export default function IngredientsPage() {
                 
                 {/* Cost Per Unit */}
                 <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">Cost Per Unit ($) *</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Cost Per Unit ($) *</label>
                   <input
                     required
                     type="number"
@@ -487,13 +487,13 @@ export default function IngredientsPage() {
                     value={formData.cost_per_unit}
                     onChange={(e) => setFormData({...formData, cost_per_unit: e.target.value})}
                     placeholder="0.00"
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all"
                   />
                 </div>
                 
                 {/* Minimum Stock */}
                 <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">Minimum Stock</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Minimum Stock</label>
                   <input
                     type="number"
                     step="0.001"
@@ -501,43 +501,43 @@ export default function IngredientsPage() {
                     value={formData.minimum_stock}
                     onChange={(e) => setFormData({...formData, minimum_stock: e.target.value})}
                     placeholder="0"
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all"
                   />
                 </div>
                 
                 {/* Lead Time */}
                 <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">Lead Time (days)</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Lead Time (days)</label>
                   <input
                     type="number"
                     min="0"
                     value={formData.lead_time_days}
                     onChange={(e) => setFormData({...formData, lead_time_days: parseInt(e.target.value) || 0})}
                     placeholder="2"
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all"
                   />
                 </div>
                 
                 {/* Safety Buffer */}
                 <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">Safety Buffer (days)</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Safety Buffer (days)</label>
                   <input
                     type="number"
                     min="0"
                     value={formData.safety_buffer_days}
                     onChange={(e) => setFormData({...formData, safety_buffer_days: parseInt(e.target.value) || 0})}
                     placeholder="1"
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all"
                   />
                 </div>
                 
                 {/* Branch */}
                 <div className="md:col-span-2">
-                  <label className="text-xs font-medium text-slate-400 mb-1.5 block">Branch</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Branch</label>
                   <select
                     value={formData.branch}
                     onChange={(e) => setFormData({...formData, branch: e.target.value})}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-orange-500/50 appearance-none transition-all"
+                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50 appearance-none transition-all"
                     disabled={branchesLoading}
                   >
                     <option value="" className="text-black">
@@ -558,10 +558,10 @@ export default function IngredientsPage() {
               </div>
               
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10 sticky bottom-0 bg-slate-900/95 backdrop-blur-sm -mx-6 px-6 py-4 md:-mx-8 md:px-8">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border sticky bottom-0 bg-slate-900/95 backdrop-blur-sm -mx-6 px-6 py-4 md:-mx-8 md:px-8">
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-orange-600 hover:bg-orange-700 transition-all shadow-[0_4px_16px_rgba(234,88,12,0.3)]"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-orange-600 hover:bg-orange-700 transition-all shadow-[0_4px_16px_rgba(234,88,12,0.3)]"
                 >
                   {editingId ? 'Update Ingredient' : 'Save Ingredient'}
                 </button>
@@ -571,7 +571,7 @@ export default function IngredientsPage() {
                     setShowModal(false);
                     resetForm();
                   }}
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-slate-300 bg-slate-700/50 hover:bg-slate-700 transition-all"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-muted-foreground bg-slate-700/50 hover:bg-slate-700 transition-all"
                 >
                   Cancel
                 </button>
@@ -586,9 +586,9 @@ export default function IngredientsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
           <div className="relative w-full max-w-md bg-slate-900 rounded-2xl border border-red-500/20 shadow-2xl p-8 text-center">
             <div className="text-6xl mb-4">🔒</div>
-            <h2 className="text-2xl font-bold text-slate-100 mb-2">Access Denied</h2>
-            <p className="text-slate-400 mb-6">You don't have permission to manage ingredients.</p>
-            <p className="text-slate-500 text-sm mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-6">You don't have permission to manage ingredients.</p>
+            <p className="text-muted-foreground text-sm mb-6">
               Required role: Admin or Branch Manager
             </p>
             <button
@@ -596,7 +596,7 @@ export default function IngredientsPage() {
                 setShowModal(false);
                 resetForm();
               }}
-              className="px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-slate-700 hover:bg-slate-600 transition-all"
+              className="px-6 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-slate-700 hover:bg-slate-600 transition-all"
             >
               Close
             </button>

@@ -137,22 +137,22 @@ export default function EditRecipePage({ params }: EditRecipePageProps) {
         className="space-y-6 max-w-4xl"
       >
         <Link href={`/dashboard/inventory/recipes/${id}`}>
-          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white gap-1">
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1">
             <ArrowLeft className="h-4 w-4" /> Back to Recipe
           </Button>
         </Link>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-white">Edit Recipe</CardTitle>
+            <CardTitle className="text-foreground">Edit Recipe</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Product *</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Product *</label>
                 <select
                   {...register("product", { required: "Product is required" })}
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Select a product</option>
                   {products.map((p) => (
@@ -173,12 +173,12 @@ export default function EditRecipePage({ params }: EditRecipePageProps) {
 
               <div className="flex items-center gap-3">
                 <input type="checkbox" id="is_active" {...register("is_active")} className="w-4 h-4 accent-indigo-500" />
-                <label htmlFor="is_active" className="text-sm text-slate-300">Active</label>
+                <label htmlFor="is_active" className="text-sm text-muted-foreground">Active</label>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-slate-300">Ingredients</h4>
+                  <h4 className="text-sm font-medium text-muted-foreground">Ingredients</h4>
                   <button
                     type="button"
                     onClick={() =>
@@ -191,12 +191,12 @@ export default function EditRecipePage({ params }: EditRecipePageProps) {
                 </div>
                 <div className="space-y-2">
                   {fields.map((field, index) => (
-                    <div key={field.id} className="flex flex-wrap items-end gap-2 bg-white/5 p-3 rounded-xl">
+                    <div key={field.id} className="flex flex-wrap items-end gap-2 bg-background p-3 rounded-xl">
                       <div className="flex-1 min-w-[100px]">
-                        <label className="text-xs text-slate-400 block mb-1">Ingredient *</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Ingredient *</label>
                         <select
                           {...register(`ingredients.${index}.ingredient` as const, { required: true })}
-                          className="w-full rounded border border-white/10 bg-white/5 px-2 py-1.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-full rounded border border-border bg-background px-2 py-1.5 text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         >
                           <option value="">Select</option>
                           {ingredients.map((ing) => (
@@ -207,34 +207,34 @@ export default function EditRecipePage({ params }: EditRecipePageProps) {
                         </select>
                       </div>
                       <div className="w-20">
-                        <label className="text-xs text-slate-400 block mb-1">Qty</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Qty</label>
                         <input
                           type="number"
                           step="0.01"
                           {...register(`ingredients.${index}.quantity` as const, { required: true })}
-                          className="w-full rounded border border-white/10 bg-white/5 px-2 py-1.5 text-white text-sm"
+                          className="w-full rounded border border-border bg-background px-2 py-1.5 text-foreground text-sm"
                         />
                       </div>
                       <div className="w-24">
-                        <label className="text-xs text-slate-400 block mb-1">Unit</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Unit</label>
                         <input
                           {...register(`ingredients.${index}.unit` as const)}
-                          className="w-full rounded border border-white/10 bg-white/5 px-2 py-1.5 text-white text-sm"
+                          className="w-full rounded border border-border bg-background px-2 py-1.5 text-foreground text-sm"
                           placeholder="kg"
                         />
                       </div>
                       <div className="flex-1 min-w-[120px]">
-                        <label className="text-xs text-slate-400 block mb-1">Note</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Note</label>
                         <input
                           {...register(`ingredients.${index}.preparation_note` as const)}
-                          className="w-full rounded border border-white/10 bg-white/5 px-2 py-1.5 text-white text-sm"
+                          className="w-full rounded border border-border bg-background px-2 py-1.5 text-foreground text-sm"
                           placeholder="e.g., finely chopped"
                         />
                       </div>
                       <button
                         type="button"
                         onClick={() => remove(index)}
-                        className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
                         disabled={fields.length === 1}
                       >
                         <X className="h-4 w-4" />
@@ -244,7 +244,7 @@ export default function EditRecipePage({ params }: EditRecipePageProps) {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-white/5">
+              <div className="flex justify-end gap-3 pt-3 border-t border-border">
                 <Link href={`/dashboard/inventory/recipes/${id}`}>
                   <Button type="button" variant="ghost">Cancel</Button>
                 </Link>

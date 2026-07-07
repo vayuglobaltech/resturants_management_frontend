@@ -145,13 +145,13 @@ export default function AddMenuItemPage() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-slate-400 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold text-white">Add Menu Item</h1>
+        <h1 className="text-2xl font-bold text-foreground">Add Menu Item</h1>
       </div>
 
       <Card className="max-w-2xl">
@@ -196,14 +196,14 @@ export default function AddMenuItemPage() {
             <div>
               <label
                 htmlFor="category"
-                className="block text-sm font-medium text-slate-300 mb-1"
+                className="block text-sm font-medium text-muted-foreground mb-1"
               >
                 Category *
               </label>
               <select
                 id="category"
                 {...register("category", { required: "Category is required" })}
-                className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Select a category</option>
                 {fetchingCategories ? (

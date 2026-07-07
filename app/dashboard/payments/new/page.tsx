@@ -372,7 +372,7 @@ export default function NewPaymentPage() {
           ${
             isSelected
               ? "bg-indigo-500/20 border-2 border-indigo-400 shadow-lg shadow-indigo-500/20 scale-105"
-              : "bg-white/5 border border-white/10 hover:bg-white/10 hover:scale-105"
+              : "bg-background border border-border hover:bg-muted hover:scale-105"
           }
         `}
       >
@@ -392,7 +392,7 @@ export default function NewPaymentPage() {
               />
             </div>
             <div>
-              <h3 className="text-white font-semibold text-lg">
+              <h3 className="text-foreground font-semibold text-lg">
                 Table {table.table_number}
               </h3>
               <div className="flex items-center gap-2 mt-0.5">
@@ -407,7 +407,7 @@ export default function NewPaymentPage() {
           </div>
           <div className="flex items-center gap-2">
             {isOccupied && (
-              <span className="text-xs text-slate-400 bg-white/5 px-2 py-1 rounded-full">
+              <span className="text-xs text-muted-foreground bg-background px-2 py-1 rounded-full">
                 Active
               </span>
             )}
@@ -434,21 +434,21 @@ export default function NewPaymentPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-slate-400 hover:text-white hover:bg-white/5 gap-2 transition-all"
+              className="text-muted-foreground hover:text-foreground hover:bg-background gap-2 transition-all"
             >
               <ArrowLeft className="h-4 w-4" /> Back to Payments
             </Button>
           </Link>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
+            <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border border-border">
               <Building2 className="h-4 w-4 text-indigo-400" />
-              <span className="text-sm text-white/70">
+              <span className="text-sm text-foreground/70">
                 {user?.branch?.name || "Main Branch"}
               </span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
+            <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border border-border">
               <User className="h-4 w-4 text-indigo-400" />
-              <span className="text-sm text-white/70">{cashierName}</span>
+              <span className="text-sm text-foreground/70">{cashierName}</span>
             </div>
           </div>
         </div>
@@ -459,23 +459,23 @@ export default function NewPaymentPage() {
             {/* ─── LEFT: Tables Grid (4 columns) ─── */}
             <div className="lg:col-span-4">
               <div className="sticky top-6">
-                <h2 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
+                <h2 className="text-foreground text-lg font-semibold mb-4 flex items-center gap-2">
                   <TableIcon className="h-5 w-5 text-indigo-400" />
                   Active Tables
-                  <span className="text-sm font-normal text-slate-400 ml-2">
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
                     ({tables.length} occupied)
                   </span>
                 </h2>
                 {loadingTables ? (
-                  <div className="flex items-center justify-center py-8 bg-white/5 rounded-xl border border-white/10">
+                  <div className="flex items-center justify-center py-8 bg-background rounded-xl border border-border">
                     <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
-                    <span className="ml-3 text-slate-400">
+                    <span className="ml-3 text-muted-foreground">
                       Loading tables...
                     </span>
                   </div>
                 ) : tables.length === 0 ? (
-                  <div className="bg-white/5 rounded-xl border border-white/10 p-8 text-center">
-                    <div className="text-slate-400">
+                  <div className="bg-background rounded-xl border border-border p-8 text-center">
+                    <div className="text-muted-foreground">
                       <TableIcon className="h-12 w-12 mx-auto mb-3 opacity-30" />
                       <p className="text-sm">No occupied tables available</p>
                     </div>
@@ -496,9 +496,9 @@ export default function NewPaymentPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Payment Form */}
                   <div className="space-y-6">
-                    <Card className="bg-white/[0.04] border-white/[0.08] backdrop-blur-sm shadow-xl">
-                      <CardHeader className="border-b border-white/5 pb-4">
-                        <CardTitle className="text-white flex items-center gap-3">
+                    <Card className="bg-muted/30 border-border backdrop-blur-sm shadow-xl">
+                      <CardHeader className="border-b border-border pb-4">
+                        <CardTitle className="text-foreground flex items-center gap-3">
                           <div className="p-2 bg-indigo-500/20 rounded-lg">
                             <CreditCard className="h-5 w-5 text-indigo-400" />
                           </div>
@@ -516,9 +516,9 @@ export default function NewPaymentPage() {
                           <input type="hidden" {...register("table")} />
 
                           {/* Table Info */}
-                          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                            <span className="text-slate-300">Table</span>
-                            <span className="text-white font-semibold">
+                          <div className="flex items-center justify-between p-3 bg-background rounded-lg border border-border">
+                            <span className="text-muted-foreground">Table</span>
+                            <span className="text-foreground font-semibold">
                               Table {selectedTable?.table_number}
                               <span className="ml-2">
                                 <StatusBadge status={selectedTable?.status} />
@@ -530,27 +530,27 @@ export default function NewPaymentPage() {
                           <div>
                             <label
                               htmlFor="order"
-                              className="block text-sm font-medium text-slate-300 mb-1.5"
+                              className="block text-sm font-medium text-muted-foreground mb-1.5"
                             >
                               Select Order{" "}
                               <span className="text-red-400">*</span>
                             </label>
                             {loadingOrders ? (
-                              <div className="flex items-center justify-center py-3 bg-white/5 rounded-lg border border-white/10">
+                              <div className="flex items-center justify-center py-3 bg-background rounded-lg border border-border">
                                 <Loader2 className="h-5 w-5 text-indigo-400 animate-spin" />
-                                <span className="ml-2 text-sm text-slate-400">
+                                <span className="ml-2 text-sm text-muted-foreground">
                                   Loading orders...
                                 </span>
                               </div>
                             ) : orders.length > 0 ? (
                               <div className="relative">
-                                <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                                <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <select
                                   id="order"
                                   {...register("order", {
                                     required: "Please select an order",
                                   })}
-                                  className="w-full pl-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-white/10"
+                                  className="w-full pl-10 rounded-lg border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-muted"
                                 >
                                   {orders.map((order) => (
                                     <option
@@ -586,18 +586,18 @@ export default function NewPaymentPage() {
                           <div>
                             <label
                               htmlFor="customer_name"
-                              className="block text-sm font-medium text-slate-300 mb-1.5"
+                              className="block text-sm font-medium text-muted-foreground mb-1.5"
                             >
                               Customer Name
                             </label>
                             <div className="relative">
-                              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <input
                                 id="customer_name"
                                 type="text"
                                 placeholder="Guest"
                                 {...register("customer_name")}
-                                className="w-full pl-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full pl-10 rounded-lg border border-border bg-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                               />
                             </div>
                           </div>
@@ -606,13 +606,13 @@ export default function NewPaymentPage() {
                           <div>
                             <label
                               htmlFor="amount"
-                              className="block text-sm font-medium text-slate-300 mb-1.5"
+                              className="block text-sm font-medium text-muted-foreground mb-1.5"
                             >
                               Grand Total{" "}
                               <span className="text-red-400">*</span>
                             </label>
                             <div className="relative">
-                              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <input
                                 id="amount"
                                 type="number"
@@ -621,7 +621,7 @@ export default function NewPaymentPage() {
                                   required: "Amount is required",
                                   min: 0.01,
                                 })}
-                                className="w-full pl-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full pl-10 rounded-lg border border-border bg-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                               />
                             </div>
                             {errors.amount && (
@@ -637,7 +637,7 @@ export default function NewPaymentPage() {
                             <div>
                               <label
                                 htmlFor="payment_method"
-                                className="block text-sm font-medium text-slate-300 mb-1.5"
+                                className="block text-sm font-medium text-muted-foreground mb-1.5"
                               >
                                 Payment Method{" "}
                                 <span className="text-red-400">*</span>
@@ -645,9 +645,9 @@ export default function NewPaymentPage() {
                               <div className="relative">
                                 <div className="absolute left-3 top-1/2 -translate-y-1/2">
                                   {paymentMethod === "CASH" ? (
-                                    <Banknote className="h-4 w-4 text-slate-500" />
+                                    <Banknote className="h-4 w-4 text-muted-foreground" />
                                   ) : (
-                                    <QrCode className="h-4 w-4 text-slate-500" />
+                                    <QrCode className="h-4 w-4 text-muted-foreground" />
                                   )}
                                 </div>
                                 <select
@@ -655,7 +655,7 @@ export default function NewPaymentPage() {
                                   {...register("payment_method", {
                                     required: "Method is required",
                                   })}
-                                  className="w-full pl-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-white/10"
+                                  className="w-full pl-10 rounded-lg border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-muted"
                                 >
                                   <option value="CASH" className="bg-slate-800">
                                     💰 Cash
@@ -669,14 +669,14 @@ export default function NewPaymentPage() {
                             <div>
                               <label
                                 htmlFor="status"
-                                className="block text-sm font-medium text-slate-300 mb-1.5"
+                                className="block text-sm font-medium text-muted-foreground mb-1.5"
                               >
                                 Status <span className="text-red-400">*</span>
                               </label>
                               <select
                                 id="status"
                                 {...register("status")}
-                                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-white/10"
+                                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-muted"
                               >
                                 <option
                                   value="COMPLETED"
@@ -701,10 +701,10 @@ export default function NewPaymentPage() {
                           <div>
                             <label
                               htmlFor="transaction_id"
-                              className="block text-sm font-medium text-slate-300 mb-1.5"
+                              className="block text-sm font-medium text-muted-foreground mb-1.5"
                             >
                               Transaction ID{" "}
-                              <span className="text-slate-500 text-xs">
+                              <span className="text-muted-foreground text-xs">
                                 (optional)
                               </span>
                             </label>
@@ -713,7 +713,7 @@ export default function NewPaymentPage() {
                               type="text"
                               placeholder="e.g. QR-12345"
                               {...register("transaction_id")}
-                              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                             />
                           </div>
 
@@ -742,16 +742,16 @@ export default function NewPaymentPage() {
 
                   {/* Order Items */}
                   <div className="space-y-6">
-                    <Card className="bg-white/[0.04] border-white/[0.08] backdrop-blur-sm shadow-xl overflow-hidden">
-                      <CardHeader className="border-b border-white/5 pb-4">
-                        <CardTitle className="text-white flex items-center gap-3">
+                    <Card className="bg-muted/30 border-border backdrop-blur-sm shadow-xl overflow-hidden">
+                      <CardHeader className="border-b border-border pb-4">
+                        <CardTitle className="text-foreground flex items-center gap-3">
                           <div className="p-2 bg-emerald-500/20 rounded-lg">
                             <ShoppingBag className="h-5 w-5 text-emerald-400" />
                           </div>
                           <span className="text-lg font-semibold">
                             Order Items
                           </span>
-                          <span className="ml-auto text-sm text-slate-400">
+                          <span className="ml-auto text-sm text-muted-foreground">
                             {combinedItems.length} items
                           </span>
                         </CardTitle>
@@ -767,17 +767,17 @@ export default function NewPaymentPage() {
                               {combinedItems.map((item: any) => (
                                 <div
                                   key={item.id}
-                                  className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-all"
+                                  className="flex justify-between items-center p-3 bg-background rounded-lg border border-border hover:bg-muted transition-all"
                                 >
                                   <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium text-white bg-indigo-500/20 px-2.5 py-1 rounded">
+                                    <span className="text-sm font-medium text-foreground bg-indigo-500/20 px-2.5 py-1 rounded">
                                       {item.quantity}×
                                     </span>
-                                    <span className="text-white">
+                                    <span className="text-foreground">
                                       {item.product_name}
                                     </span>
                                   </div>
-                                  <span className="text-slate-300 font-medium">
+                                  <span className="text-muted-foreground font-medium">
                                     $
                                     {(
                                       parseFloat(item.price_at_order) *
@@ -789,16 +789,16 @@ export default function NewPaymentPage() {
                             </div>
 
                             {/* Totals */}
-                            <div className="space-y-2 pt-4 border-t border-white/10">
-                              <div className="flex justify-between items-center text-slate-300 text-sm">
+                            <div className="space-y-2 pt-4 border-t border-border">
+                              <div className="flex justify-between items-center text-muted-foreground text-sm">
                                 <span>Subtotal</span>
                                 <span>${subtotal.toFixed(2)}</span>
                               </div>
-                              <div className="flex justify-between items-center text-slate-300 text-sm">
+                              <div className="flex justify-between items-center text-muted-foreground text-sm">
                                 <span>Tax (15%)</span>
                                 <span>${tax.toFixed(2)}</span>
                               </div>
-                              <div className="flex justify-between items-center pt-2 text-white text-lg font-bold border-t border-white/10">
+                              <div className="flex justify-between items-center pt-2 text-foreground text-lg font-bold border-t border-border">
                                 <span>Grand Total</span>
                                 <span className="text-emerald-400">
                                   ${grandTotal.toFixed(2)}
@@ -807,7 +807,7 @@ export default function NewPaymentPage() {
                             </div>
                           </div>
                         ) : (
-                          <div className="text-center py-8 text-slate-400">
+                          <div className="text-center py-8 text-muted-foreground">
                             <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-30" />
                             <p className="text-sm">No items in this order</p>
                           </div>
@@ -817,10 +817,10 @@ export default function NewPaymentPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full min-h-[400px] bg-white/5 rounded-xl border border-white/10">
-                  <div className="text-center text-slate-400">
+                <div className="flex items-center justify-center h-full min-h-[400px] bg-background rounded-xl border border-border">
+                  <div className="text-center text-muted-foreground">
                     <TableIcon className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                    <p className="text-lg font-medium text-white/60">
+                    <p className="text-lg font-medium text-foreground/60">
                       Select a table to start
                     </p>
                     <p className="text-sm mt-1">
@@ -850,10 +850,10 @@ export default function NewPaymentPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="bg-white/20 p-2.5 rounded-full animate-bounce">
-                    <PartyPopper className="h-6 w-6 text-white" />
+                    <PartyPopper className="h-6 w-6 text-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-xl">
+                    <h3 className="text-foreground font-bold text-xl">
                       Payment Successful! 🎉
                     </h3>
                     <p className="text-emerald-100 text-sm">
@@ -863,7 +863,7 @@ export default function NewPaymentPage() {
                 </div>
                 <button
                   onClick={closeBillSplash}
-                  className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
+                  className="text-foreground/80 hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full"
                   title="Close"
                 >
                   <X className="h-6 w-6" />
@@ -901,7 +901,7 @@ export default function NewPaymentPage() {
               <div className="flex flex-wrap gap-3 justify-center">
                 {/* ─── Save as PDF ─── */}
                 <Button
-                  className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg shadow-indigo-500/25 px-6"
+                  className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-foreground shadow-lg shadow-indigo-500/25 px-6"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDownloadPDF();
@@ -934,7 +934,7 @@ export default function NewPaymentPage() {
                 </Button>
               </div>
               <div className="mt-3 text-center">
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Thank you for your payment! Receipt generated successfully.
                 </p>
               </div>
