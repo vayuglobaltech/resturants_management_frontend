@@ -25,6 +25,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedOrder } from "@/components/ProtectedOrder";
+import { useSearchParams } from "next/navigation";
+
 
 interface MenuItem {
   id: number;
@@ -83,6 +85,17 @@ export default function NewOrderPage() {
 
   const selectedTableId = watch("table");
   const specialInstructions = watch("special_instructions");
+
+  // Inside the component
+const searchParams = useSearchParams();
+const preSelectedTable = searchParams.get("table");
+const preSelectedStatus = searchParams.get("status") || "PENDING";
+
+useEffect(() => {
+  if (preSelectedTable) {
+    setValue("table", preSelectedTable);
+  }
+}, [preSelectedTable, setValue]);
 
   // ─── Fetch Tables, Menu, and Discounts ──────────────────────────────────
   useEffect(() => {
@@ -209,6 +222,7 @@ export default function NewOrderPage() {
         })),
         discount_id: selectedDiscountId ? parseInt(selectedDiscountId) : null,
         promo_code: promoCode || null, 
+        status: preSelectedStatus,
       };
       await createOrder(payload);
       toast.success("Order created successfully!");
@@ -246,25 +260,36 @@ export default function NewOrderPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* ─── Left Panel: Menu Browser ─── */}
           <div className="flex-1 space-y-4">
-            {/* Table selector */}
-            <div>
-              <label htmlFor="table" className="block text-sm font-medium text-muted-foreground mb-1">
-                Select Table *
-              </label>
-              <select
-                id="table"
-                {...register("table", { required: "Table is required" })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Select a table</option>
-                {tables.map((table) => (
-                  <option key={table.id} value={table.id}>
-                    Table {table.table_number} {table.status === "OCCUPIED" && "(Occupied)"}
-                  </option>
-                ))}
-              </select>
-              {errors.table && <p className="text-sm text-red-400 mt-1">{errors.table.message}</p>}
-            </div>
+            {/* ─── Table Selection ─── */}
+<div>
+  <label htmlFor="table" className="block text-sm font-medium text-slate-300 mb-1">
+    Select Table *
+  </label>
+
+  {preSelectedTable ? (
+    // ─── Locked: read‑only display ──────────────────────────────────────
+    <div className="text-white bg-white/5 px-3 py-2 rounded-md border border-white/10">
+      Table {tables.find(t => String(t.id) === preSelectedTable)?.table_number || preSelectedTable}
+      <input type="hidden" value={preSelectedTable} {...register("table")} />
+    </div>
+  ) : (
+    // ─── Normal dropdown ────────────────────────────────────────────────
+    <select
+      id="table"
+      {...register("table", { required: "Table is required" })}
+      className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    >
+      <option value="">Select a table</option>
+      {tables.map((table) => (
+        <option key={table.id} value={table.id}>
+          Table {table.table_number} {table.status === "OCCUPIED" && "(Occupied)"}
+        </option>
+      ))}
+    </select>
+  )}
+
+  {errors.table && <p className="text-sm text-red-400 mt-1">{errors.table.message}</p>}
+</div>
 
             {/* Search */}
             <div className="relative">

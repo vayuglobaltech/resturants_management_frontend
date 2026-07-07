@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import {
@@ -23,6 +23,7 @@ import {
   Download,
   ShoppingBag,
   PartyPopper,
+  Plus,
 } from "lucide-react";
 import toast from "react-hot-toast";
 // import html2canvas from "html2canvas";
@@ -78,6 +79,11 @@ export default function NewPaymentPage() {
   const invoiceRef = useRef<HTMLDivElement>(null);
   const splashRef = useRef<HTMLDivElement>(null);
   // const [isPrintReady, setIsPrintReady] = useState(false);
+  const [showCreateOrder, setShowCreateOrder] = useState(false);
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
+  const searchParams = useSearchParams();
+  const preSelectedTable = searchParams.get("table");
+  const preSelectedStatus = searchParams.get("status") || "PENDING";
 
   // ─── Block rendering for unauthorized roles ─────────────────────────
   if (isManager) {
@@ -152,10 +158,11 @@ export default function NewPaymentPage() {
       try {
         const data = await listTables();
         const allTables = Array.isArray(data) ? data : [];
-        const occupiedTables = allTables.filter(
-          (t: any) => t.status === "OCCUPIED" || t.status === "PAYMENT_PENDING",
+        // ✅ Show ALL active tables (is_active = true)
+        const activeTables = allTables.filter(
+          (t: any) => t.status === "OCCUPIED" || t.status === "AVAILABLE",
         );
-        setTables(occupiedTables);
+        setTables(activeTables);
       } catch (error) {
         console.error("Failed to fetch tables:", error);
         toast.error("Failed to load tables.");
@@ -167,50 +174,73 @@ export default function NewPaymentPage() {
   }, []);
 
   // ─── 2. When table selected → fetch its orders ──────────────────────
-  useEffect(() => {
-    if (selectedTableIdForm) {
-      const fetchOrdersForTable = async () => {
-        setLoadingOrders(true);
-        try {
-          const tableId = parseInt(selectedTableIdForm, 10);
-          if (isNaN(tableId)) {
-            toast.error("Invalid table selected.");
-            return;
-          }
-
-          const data = await listOrders(tableId);
-          const tableOrders = Array.isArray(data) ? data : [];
-
-          const eligibleOrders = tableOrders.filter(
-            (o: any) => o.status === "READY" || o.status === "DELIVERED",
-          );
-
-          setOrders(eligibleOrders);
-
-          if (eligibleOrders.length > 0) {
-            const firstOrder = eligibleOrders[0];
-            setValue("order", String(firstOrder.id));
-            setSelectedOrder(firstOrder);
-          } else {
-            setOrders([]);
-            setSelectedOrder(null);
-            setValue("order", "");
-          }
-        } catch (error) {
-          console.error("❌ Failed to fetch orders:", error);
-          toast.error("Failed to load orders.");
-        } finally {
-          setLoadingOrders(false);
+ useEffect(() => {
+  if (selectedTableIdForm) {
+    const fetchOrdersForTable = async () => {
+      setLoadingOrders(true);
+      try {
+        const tableId = parseInt(selectedTableIdForm, 10);
+        if (isNaN(tableId)) {
+          toast.error("Invalid table selected.");
+          return;
         }
-      };
-      fetchOrdersForTable();
-    } else {
-      setOrders([]);
-      setSelectedOrder(null);
-      setValue("order", "");
-    }
-  }, [selectedTableIdForm, setValue]);
 
+        const data = await listOrders(tableId);
+        const tableOrders = Array.isArray(data) ? data : [];
+        console.log("📦 All orders for table:", tableOrders);
+
+        // ─── Active orders = not PAID or CANCELLED ──────────────────
+        const activeOrders = tableOrders.filter(
+          (o: any) => !["PAID", "CANCELLED"].includes(o.status?.toUpperCase())
+        );
+        console.log("📦 Active orders:", activeOrders);
+
+        const hasActiveOrder = activeOrders.length > 0;
+        setHasActiveOrder(hasActiveOrder);
+        console.log("📦 hasActiveOrder:", hasActiveOrder);
+
+        // ─── Eligible for payment = READY or DELIVERED ─────────────
+        const eligibleOrders = activeOrders.filter(
+          (o: any) =>
+            o.status?.toUpperCase() === "READY" ||
+            o.status?.toUpperCase() === "DELIVERED"
+        );
+        console.log("📦 Eligible orders (READY/DELIVERED):", eligibleOrders);
+
+        setOrders(eligibleOrders);
+
+        if (eligibleOrders.length > 0) {
+          const firstOrder = eligibleOrders[0];
+          setValue("order", String(firstOrder.id));
+          setSelectedOrder(firstOrder);
+          setShowCreateOrder(false);
+        } else if (hasActiveOrder) {
+          setOrders([]);
+          setSelectedOrder(null);
+          setValue("order", "");
+          setShowCreateOrder(false);
+        } else {
+          setOrders([]);
+          setSelectedOrder(null);
+          setValue("order", "");
+          setShowCreateOrder(true);
+        }
+      } catch (error) {
+        console.error("❌ Failed to fetch orders:", error);
+        toast.error("Failed to load orders.");
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+    fetchOrdersForTable();
+  } else {
+    setOrders([]);
+    setSelectedOrder(null);
+    setValue("order", "");
+    setShowCreateOrder(false);
+    setHasActiveOrder(false);
+  }
+}, [selectedTableIdForm, setValue]);
   // ─── 3. When order selected → fetch full details ────────────────────
   useEffect(() => {
     if (selectedOrderId) {
@@ -228,20 +258,6 @@ export default function NewPaymentPage() {
   }, [selectedOrderId]);
 
   // ─── 4. Compute table totals ────────────────────────────────────────────
-  // const combinedItems = orders.flatMap((order: any) => order.items || []);
-  // const subtotal = orders.reduce(
-  //   (sum, order) => sum + parseFloat(order.total_amount || 0),
-  //   0,
-  // );
-  // const tax = subtotal * 0.15;
-  // const grandTotal = subtotal + tax;
-  // // ─── Compute total discount from selected order ──────────────────────────
-  // const totalDiscount =
-  //   selectedOrder?.discounts?.reduce(
-  //     (sum: number, d: any) => sum + Number(d.amount),
-  //     0,
-  //   ) || 0;
-
   // ─── Use selectedOrder, not all orders ──────────────────────────────────
   const combinedItems = selectedOrder?.items || [];
   const subtotal = parseFloat(selectedOrder?.total_amount || 0);
@@ -462,8 +478,8 @@ export default function NewPaymentPage() {
                 <h2 className="text-foreground text-lg font-semibold mb-4 flex items-center gap-2">
                   <TableIcon className="h-5 w-5 text-indigo-400" />
                   Active Tables
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({tables.length} occupied)
+                  <span className="text-sm font-normal text-slate-400 ml-2">
+                    ({tables.length} active)
                   </span>
                 </h2>
                 {loadingTables ? (
@@ -477,7 +493,7 @@ export default function NewPaymentPage() {
                   <div className="bg-background rounded-xl border border-border p-8 text-center">
                     <div className="text-muted-foreground">
                       <TableIcon className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">No occupied tables available</p>
+                      <p className="text-sm">No active tables available</p>
                     </div>
                   </div>
                 ) : (
@@ -526,7 +542,7 @@ export default function NewPaymentPage() {
                             </span>
                           </div>
 
-                          {/* Order Selection */}
+                          {/* ─── Order Selection ─── */}
                           <div>
                             <label
                               htmlFor="order"
@@ -566,11 +582,49 @@ export default function NewPaymentPage() {
                                   ))}
                                 </select>
                               </div>
+                            ) : hasActiveOrder ? (
+                              // ─── Order exists but not ready for payment ──────────────────────
+                              <div className="flex items-center gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400">
+                                <Clock className="h-4 w-4" />
+                                <span className="text-sm">
+                                  An order exists for this table, but it is not
+                                  ready for payment yet.
+                                  <br />
+                                  <span className="text-xs text-slate-400">
+                                    Please wait until it is marked as READY or
+                                    DELIVERED.
+                                  </span>
+                                </span>
+                              </div>
+                            ) : showCreateOrder ? (
+                              // ─── No order at all → cashier can create one ────────────────────
+                              <div className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-lg border border-dashed border-white/10">
+                                <p className="text-sm text-slate-400 mb-3">
+                                  No orders found for this table.
+                                </p>
+                                <Button
+                                  variant="outline"
+                                  className="gap-2"
+                                  onClick={() => {
+                                    if (selectedTableIdForm) {
+                                      router.push(
+                                        `/dashboard/orders/new?table=${selectedTableIdForm}&status=READY`,
+                                      );
+                                    } else {
+                                      toast.error("No table selected.");
+                                    }
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4" /> Create Order for
+                                  this Table
+                                </Button>
+                              </div>
                             ) : (
+                              // ─── Fallback (should not happen) ──────────────────────────────────
                               <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400">
                                 <AlertCircle className="h-4 w-4" />
                                 <span className="text-sm">
-                                  No eligible orders found
+                                  Unable to determine order status.
                                 </span>
                               </div>
                             )}
@@ -581,7 +635,6 @@ export default function NewPaymentPage() {
                               </p>
                             )}
                           </div>
-
                           {/* Customer Name */}
                           <div>
                             <label
@@ -824,7 +877,7 @@ export default function NewPaymentPage() {
                       Select a table to start
                     </p>
                     <p className="text-sm mt-1">
-                      Choose an occupied table from the left panel
+                      Choose an active table from the left panel
                     </p>
                   </div>
                 </div>

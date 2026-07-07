@@ -11,7 +11,7 @@ export function ProtectedOrder({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading && user) {
       const role = user.role && typeof user.role === "object" ? user.role.name : null;
-      const allowedRoles = ["admin", "branch_manager", "waiter"];
+      const allowedRoles = ["admin", "branch_manager", "waiter","cashier"];
       if (!role || !allowedRoles.includes(role)) {
         router.push("/dashboard/orders");
       }
