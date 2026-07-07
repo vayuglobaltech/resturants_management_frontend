@@ -162,12 +162,14 @@ export default function AddMenuItemPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
               label="Name *"
+              placeholder="Enter menu item name"
               id="name"
               {...register("name", { required: "Name is required" })}
               error={errors.name?.message}
             />
             <Input
               label="SKU *"
+              placeholder="Enter SKU"
               id="sku"
               {...register("sku", { required: "SKU is required" })}
               error={errors.sku?.message}
@@ -175,11 +177,13 @@ export default function AddMenuItemPage() {
 
             <Input
               label="Description"
+              placeholder="Description of items"
               id="description"
               {...register("description")}
             />
             <Input
               label="Price *"
+              placeholder="Enter selling price"
               id="price"
               type="number"
               step="0.01"
@@ -188,6 +192,7 @@ export default function AddMenuItemPage() {
             />
             <Input
               label="Cost Price"
+              placeholder="Enter cost price"
               id="cost_price"
               type="number"
               step="0.01"
