@@ -44,7 +44,7 @@ interface FormData {
   order: string;
   amount: string;
   customer_name: string;
-  payment_method: string;
+  // payment_method: string;
   status: string;
   transaction_id: string;
 }
@@ -111,7 +111,7 @@ export default function NewPaymentPage() {
       order: "",
       amount: "",
       customer_name: "",
-      payment_method: "CASH",
+      // payment_method: "CASH",
       status: "COMPLETED",
       transaction_id: "",
     },
@@ -120,7 +120,7 @@ export default function NewPaymentPage() {
   const selectedTableIdForm = watch("table");
   const selectedOrderId = watch("order");
   const customerName = watch("customer_name");
-  const paymentMethod = watch("payment_method");
+  // const paymentMethod = watch("payment_method");
 
   const handleDownloadPDF = async () => {
     console.log("📄 PDF button clicked");
@@ -295,7 +295,7 @@ export default function NewPaymentPage() {
       order: parseInt(data.order, 10),
       amount: parseFloat(data.amount),
       subtotal: parseFloat(subtotal.toFixed(2)),
-      payment_method: data.payment_method,
+      // payment_method: data.payment_method,
       status: data.status, // we'll override this in confirm
       transaction_id: data.transaction_id || undefined,
       branch: user?.branch?.id || 1,
@@ -706,7 +706,7 @@ export default function NewPaymentPage() {
 
                           {/* Payment Method & Status Row */}
                           <div className="grid grid-cols-2 gap-3">
-                            <div>
+                            {/* <div>
                               <label
                                 htmlFor="payment_method"
                                 className="block text-sm font-medium text-muted-foreground mb-1.5"
@@ -737,7 +737,7 @@ export default function NewPaymentPage() {
                                   </option>
                                 </select>
                               </div>
-                            </div>
+                            </div> */}
                             {/* <div>
                               <label
                                 htmlFor="status"
@@ -1029,7 +1029,7 @@ export default function NewPaymentPage() {
                   grandTotal={grandTotal}
                   customerName={customerName || "Guest"}
                   cashierName={cashierName}
-                  paymentMethod={paymentMethod}
+                  // paymentMethod={paymentMethod}
                   orderNumber={selectedOrder?.order_number}
                   date={new Date().toISOString()}
                   discounts={selectedOrder.discounts || []}
