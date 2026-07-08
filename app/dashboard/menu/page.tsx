@@ -91,7 +91,7 @@ export default function MenuPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-muted-foreground text-sm">Loading menu items...</p>
         </div>
       </div>
@@ -120,7 +120,7 @@ export default function MenuPage() {
             className={cn(
               "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
               !categoryParam
-                ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25"
+                ? "bg-primary text-primary-foreground shadow-md shadow-[color:rgba(184,142,76,0.24)]"
                 : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
             )}
           >
@@ -128,7 +128,7 @@ export default function MenuPage() {
           </button>
           {loadingCategories ? (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span className="text-sm">Loading categories...</span>
             </div>
           ) : (
@@ -141,7 +141,7 @@ export default function MenuPage() {
                   className={cn(
                     "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
                     isActive
-                      ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25"
+                      ? "bg-primary text-primary-foreground shadow-md shadow-[color:rgba(184,142,76,0.24)]"
                       : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                   )}
                 >
@@ -165,7 +165,7 @@ export default function MenuPage() {
           </p>
           <Link
             href="/dashboard/menu/add"
-            className="text-indigo-400 hover:text-indigo-300 text-sm mt-2 inline-block"
+            className="text-primary hover:opacity-80 text-sm mt-2 inline-block"
           >
             Add your first menu item →
           </Link>
@@ -175,7 +175,7 @@ export default function MenuPage() {
           {filteredItems.map((item) => (
             <Card
               key={item.id}
-              className="relative group py-5 md:py-3 mb-2 bg-muted/30 border-border hover:bg-muted/30 hover:border-indigo-500/30 transition-all duration-200 cursor-pointer overflow-hidden"
+              className="relative group py-5 md:py-3 mb-2 bg-card/80 border-border hover:bg-muted/30 hover:border-primary/30 transition-all duration-200 cursor-pointer overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
             >
               {canManage && (
                 <div

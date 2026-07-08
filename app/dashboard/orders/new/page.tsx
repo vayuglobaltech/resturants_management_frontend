@@ -122,8 +122,13 @@ const [isCartOpen, setIsCartOpen] = useState(false);
 
     // Fetch active discounts (only if user can apply discounts)
     const fetchDiscounts = async () => {
-      const role = user?.role?.name;
-      if (!role || !["admin", "branch_manager", "cashier"].includes(role))
+      const roleName =
+        typeof user?.role === "object" && user?.role !== null && "name" in user.role
+          ? String(user.role.name)
+          : typeof user?.role === "string"
+            ? user.role
+            : "";
+      if (!roleName || !["admin", "branch_manager", "cashier"].includes(roleName))
         return;
       setLoadingDiscounts(true);
       try {
@@ -256,11 +261,15 @@ const [isCartOpen, setIsCartOpen] = useState(false);
     );
   }
 
-  // const roleName = typeof user?.role === 'object' ? user.role.name : user?.role;
-  // const canApplyDiscount = roleName && ["admin", "branch_manager", "cashier"].includes(roleName);
-  const roleName = typeof user?.role === "object" ? user.role.name : user?.role;
-  const canApplyDiscount =
-    roleName && ["admin", "branch_manager", "cashier"].includes(roleName);
+  const roleName =
+    typeof user?.role === "object" && user?.role !== null && "name" in user.role
+      ? String(user.role.name)
+      : typeof user?.role === "string"
+        ? user.role
+        : "";
+  const canApplyDiscount = Boolean(
+    roleName && ["admin", "branch_manager", "cashier"].includes(roleName),
+  );
   const handleDiscountChange = (id: string) => {
     setSelectedDiscountId(id);
     setPromoCode(""); // reset promo code

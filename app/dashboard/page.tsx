@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { ShoppingCart, Users, Package, Clock, DollarSign, Table, CreditCard, AlertCircle, Receipt, TrendingUp, Store } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ShoppingCart, Clock, DollarSign, Table, AlertCircle, Receipt, TrendingUp, Store, Moon, SunMedium, Sparkles, ArrowRight } from "lucide-react";
+import { useState, useEffect, type ElementType, type CSSProperties, type ReactNode } from "react";
 import { getAccountingSummary } from "@/lib/accountingApi";
 import { getBranches } from "@/lib/api";
+import { useTheme } from "@/context/ThemeContext";
 import toast from "react-hot-toast";
 
 type StatItem = {
   title: string;
   value: string;
-  icon: React.ElementType;
+  icon: ElementType;
   href: string;
 };
 
@@ -60,10 +61,15 @@ interface AccountingSummaryResponse {
 export default function DashboardOverview() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [branchName, setBranchName] = useState<string>("");
+  const [branchName, setBranchName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [validBranchId, setValidBranchId] = useState<number | null>(null);
   const [isBranchValidated, setIsBranchValidated] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const isDarkMode = theme === "dark";
+  // ─── Get branch name directly from user object ──────────────────────────
+const userBranchName = (user as any)?.branch?.name || "";
+const userBranchId = (user as any)?.branch?.id || null;
 
   const [stats, setStats] = useState<DashboardStats>({
     todayRevenue: 0,
@@ -79,6 +85,18 @@ export default function DashboardOverview() {
   const roleName = user?.role && typeof user.role === "object" && "name" in user.role
     ? (user.role as any).name
     : user?.role || "waiter";
+
+  const themeStyles = {
+    "--page-bg": isDarkMode ? "#121110" : "#FAF8F5",
+    "--page-surface": isDarkMode ? "#1C1A18" : "#FFFFFF",
+    "--page-accent": isDarkMode ? "#D4A359" : "#B88E4C",
+    "--page-text": isDarkMode ? "#F2EAE1" : "#1A1816",
+    "--page-muted": isDarkMode ? "#A69E95" : "#5C564F",
+    "--page-border": isDarkMode ? "rgba(212, 163, 89, 0.2)" : "rgba(184, 142, 76, 0.22)",
+    "--page-soft": isDarkMode ? "rgba(212, 163, 89, 0.12)" : "rgba(184, 142, 76, 0.12)",
+    "--page-shadow": isDarkMode ? "0 24px 80px rgba(0,0,0,0.35)" : "0 24px 80px rgba(26,24,22,0.08)",
+  } as CSSProperties;
+  
 
   // ─── Fetch branches and validate user's branch ──────────────────────────
   useEffect(() => {
@@ -326,186 +344,213 @@ export default function DashboardOverview() {
     }
   };
 
-  const items = getStatItems();    
+  const items = getStatItems();
   const canViewModules = ["admin", "branch_manager"].includes(roleName);
 
-  // ─── Loading state ────────────────────────────────────────────────────────
+  const shell = (content: ReactNode) => (
+    <div className="min-h-screen transition-all duration-300" style={{ ...themeStyles, backgroundColor: "var(--page-bg)" }}>
+      <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 p-4 sm:p-6 lg:p-8">{content}</div>
+    </div>
+  );
+
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-foreground">Dashboard Overview</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    return shell(
+      <>
+        <div className="flex flex-col gap-4 rounded-[24px] border p-5 sm:flex-row sm:items-center sm:justify-between" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
+          <div>
+            <div className="h-3 w-28 rounded-full" style={{ backgroundColor: "var(--page-soft)" }} />
+            <div className="mt-3 h-8 w-52 rounded-full" style={{ backgroundColor: "var(--page-soft)" }} />
+          </div>
+          <div className="flex items-center gap-2 rounded-full border px-3 py-2" style={{ borderColor: "var(--page-border)", color: "var(--page-muted)" }}>
+            <Sparkles size={16} />
+            <span className="text-sm">Loading premium dashboard</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={i} className="animate-pulse border-0" style={{ backgroundColor: "var(--page-surface)", boxShadow: "var(--page-shadow)" }}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <div className="h-4 w-24 bg-muted rounded" />
-                <div className="h-4 w-4 bg-muted rounded" />
+                <div className="h-4 w-24 rounded-full" style={{ backgroundColor: "var(--page-soft)" }} />
+                <div className="h-4 w-4 rounded-full" style={{ backgroundColor: "var(--page-soft)" }} />
               </CardHeader>
               <CardContent>
-                <div className="h-8 w-16 bg-muted rounded" />
+                <div className="h-8 w-16 rounded-full" style={{ backgroundColor: "var(--page-soft)" }} />
               </CardContent>
             </Card>
           ))}
         </div>
-      </div>
+      </>
     );
   }
 
-  // ─── Error state ──────────────────────────────────────────────────────────
   if (error) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-foreground">Dashboard Overview</h1>
-        <Card className="bg-red-500/10 border-red-500/20">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-6 w-6 text-red-400" />
-              <div>
-                <p className="text-sm font-medium text-red-400">Error loading dashboard</p>
-                <p className="text-sm text-muted-foreground">{error}</p>
-                <button 
-                  onClick={() => {
-                    setIsBranchValidated(false);
-                    const validateAgain = async () => {
-                      try {
-                        const data = await getBranches();
-                        const branchList = data.results || data || [];
-                        if (branchList.length > 0) {
-                          setValidBranchId(branchList[0].id);
-                          setBranchName(branchList[0].name || "Default Branch");
-                          setIsBranchValidated(true);
-                          await fetchDashboardData();
-                        }
-                      } catch (err) {
-                        console.error("Failed to re-validate:", err);
-                      }
-                    };
-                    validateAgain();
-                  }}
-                  className="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
-                >
-                  Try again
-                </button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    return shell(
+      <div className="rounded-[24px] border p-6" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
+        <div className="flex items-start gap-3">
+          <div className="rounded-full p-2" style={{ backgroundColor: "rgba(220, 38, 38, 0.16)" }}>
+            <AlertCircle className="h-6 w-6" style={{ color: "#ef4444" }} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: "#ef4444" }}>Error loading dashboard</p>
+            <p className="mt-1 text-sm" style={{ color: "var(--page-muted)" }}>{error}</p>
+            <button
+              onClick={() => {
+                setIsBranchValidated(false);
+                const validateAgain = async () => {
+                  try {
+                    const data = await getBranches();
+                    const branchList = data.results || data || [];
+                    if (branchList.length > 0) {
+                      setValidBranchId(branchList[0].id);
+                      setBranchName(branchList[0].name || "Default Branch");
+                      setIsBranchValidated(true);
+                      await fetchDashboardData();
+                    }
+                  } catch (err) {
+                    console.error("Failed to re-validate:", err);
+                  }
+                };
+                validateAgain();
+              }}
+              className="mt-3 rounded-full border px-3 py-2 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5"
+              style={{ borderColor: "var(--page-border)", color: "var(--page-accent)" }}
+            >
+              Try again
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground transition-colors duration-200">
-          Dashboard Overview
-        </h1>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">
-          <Store className="h-4 w-4 text-indigo-400" />
-          <span className="text-xs text-muted-foreground">Branch:</span>
-          <span className="text-xs font-medium text-foreground">{branchName || "My Branch"}</span>
+  return shell(
+    <>
+      <div className="flex flex-col gap-4 rounded-[24px] border p-5 sm:flex-row sm:items-center sm:justify-between" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
+        <div>
+          <p className="text-sm font-medium uppercase tracking-[0.3em]" style={{ color: "var(--page-accent)" }}>
+            Vayu Tech • Hospitality Intelligence
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold" style={{ color: "var(--page-text)" }}>
+            Dashboard Overview
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 rounded-full border px-3 py-2" style={{ borderColor: "var(--page-border)", color: "var(--page-muted)" }}>
+            <Store size={16} style={{ color: "var(--page-accent)" }} />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-[24px] border p-6" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
+          <div className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.3em]" style={{ color: "var(--page-accent)" }}>
+            <Sparkles size={16} />
+            Premium operations
+          </div>
+          <h2 className="mt-4 text-2xl font-semibold" style={{ color: "var(--page-text)" }}>
+            Welcome back, {user?.first_name || user?.username} 👋
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: "var(--page-muted)" }}>
+            You are signed in as <span className="font-semibold" style={{ color: "var(--page-accent)" }}>{roleName.replace("_", " ").toUpperCase()}</span> and your hospitality operations are running smoothly.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button className="rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5" style={{ backgroundColor: "var(--page-accent)", color: "#171412" }}>
+              View reports
+            </button>
+            <button className="rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5" style={{ borderColor: "var(--page-border)", color: "var(--page-text)" }}>
+              Manage modules
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-[24px] border p-6" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
+          <p className="text-sm font-medium uppercase tracking-[0.3em]" style={{ color: "var(--page-accent)" }}>
+            Performance snapshot
+          </p>
+          {roleName === "admin" || roleName === "branch_manager" ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Gross profit</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>${stats.grossProfit?.toLocaleString() || "0"}</p>
+              </div>
+              <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Margin</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-accent)" }}>{stats.grossProfitMargin?.toFixed(1) || "0"}%</p>
+              </div>
+              <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Monthly revenue</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>${stats.monthlyRevenue?.toLocaleString() || "0"}</p>
+              </div>
+              <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Today</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>${stats.todayRevenue?.toLocaleString() || "0"}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm leading-6" style={{ color: "var(--page-muted)" }}>
+              Operational insights will appear here as soon as your role-specific modules are active.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {items.map((stat) => (
           <Link key={stat.title} href={stat.href}>
-            <Card className="hover:bg-muted/50 transition-all duration-200 cursor-pointer group hover:-translate-y-0.5 border border-border bg-card">
+            <Card className="group h-full border-0 transition-all duration-200 hover:-translate-y-1" style={{ backgroundColor: "var(--page-surface)", boxShadow: "var(--page-shadow)" }}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                  {stat.title}
-                </CardTitle>
-                <stat.icon className="h-4 w-4 text-indigo-500 dark:text-indigo-400 group-hover:text-indigo-650 dark:group-hover:text-indigo-300 transition-colors" />
+                <CardTitle className="text-sm font-medium" style={{ color: "var(--page-muted)" }}>{stat.title}</CardTitle>
+                <div className="rounded-full p-2" style={{ backgroundColor: "var(--page-soft)" }}>
+                  <stat.icon size={16} style={{ color: "var(--page-accent)" }} />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
-                  {stat.value}
-                </div>
+                <div className="text-2xl font-semibold" style={{ color: "var(--page-text)" }}>{stat.value}</div>
               </CardContent>
             </Card>
           </Link>
         ))}
       </div>
 
-      <div className="mt-8 p-6 rounded-2xl bg-gradient-to-r from-indigo-500/5 to-violet-500/5 dark:from-indigo-500/10 dark:to-violet-500/10 border border-indigo-500/20 transition-all duration-200">
-        <h2 className="text-lg font-semibold text-foreground">
-          Welcome back, {user?.first_name || user?.username} 👋
-        </h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          You are logged in as{" "}
-          <span className="text-indigo-600 dark:text-indigo-450 font-medium">
-            {roleName.replace("_", " ").toUpperCase()}
-          </span>
-          .
-        </p>
-        {(roleName === "admin" || roleName === "branch_manager") && (
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-background/50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Gross Profit</p>
-              <p className="text-lg font-semibold text-emerald-400">
-                ${stats.grossProfit?.toLocaleString() || '0'}
-              </p>
-            </div>
-            <div className="bg-background/50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Margin</p>
-              <p className="text-lg font-semibold text-indigo-400">
-                {stats.grossProfitMargin?.toFixed(1) || '0'}%
-              </p>
-            </div>
-            <div className="bg-background/50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Monthly Revenue</p>
-              <p className="text-lg font-semibold text-blue-400">
-                ${stats.monthlyRevenue?.toLocaleString() || '0'}
-              </p>
-            </div>
-            <div className="bg-background/50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Today's Revenue</p>
-              <p className="text-lg font-semibold text-green-400">
-                ${stats.todayRevenue?.toLocaleString() || '0'}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
       {canViewModules && (
         <div>
-          <h2 className="text-xl font-bold text-foreground mt-10 mb-4 transition-colors duration-200">
-            Applications & Modules
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Link
-              href="/dashboard/inventory"
-              className="group flex flex-col p-6 rounded-2xl border border-indigo-500/15 bg-indigo-500/5 dark:bg-indigo-500/10 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] dark:hover:shadow-[0_8px_30px_rgba(99,102,241,0.15)] hover:-translate-y-1 transition-all duration-300 backdrop-blur-md cursor-pointer"
-            >
-              <div className="flex items-center gap-4 mb-3">
-                <span className="text-4xl group-hover:scale-110 transition-transform duration-300">📦</span>
-                <h3 className="text-xl font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
-                  Inventory System
-                </h3>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold" style={{ color: "var(--page-text)" }}>Applications & modules</h2>
+            <span className="text-sm" style={{ color: "var(--page-muted)" }}>Designed for premium hospitality teams</span>
+          </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <Link href="/dashboard/inventory" className="group flex flex-col rounded-[24px] border p-6 transition-all duration-300 hover:-translate-y-1" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
+              <div className="flex items-center gap-4">
+                <div className="rounded-2xl p-3" style={{ backgroundColor: "var(--page-soft)" }}>
+                  <span className="text-2xl">📦</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold" style={{ color: "var(--page-text)" }}>Inventory system</h3>
+                  <p className="text-sm" style={{ color: "var(--page-muted)" }}>Visibility across stock, ingredients, and availability.</p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Manage product categories, track ingredients, monitor physical stock levels, and control restaurant-wide availability.
-              </p>
+              <div className="mt-5 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--page-accent)" }}>
+                Explore module <ArrowRight size={16} />
+              </div>
             </Link>
 
-            <Link
-              href="/dashboard/kitchen"
-              className="group flex flex-col p-6 rounded-2xl border border-emerald-500/15 bg-emerald-500/5 dark:bg-emerald-500/10 hover:shadow-[0_8px_30px_rgba(16,185,129,0.08)] dark:hover:shadow-[0_8px_30px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300 backdrop-blur-md cursor-pointer"
-            >
-              <div className="flex items-center gap-4 mb-3">
-                <span className="text-4xl group-hover:scale-110 transition-transform duration-300">🍳</span>
-                <h3 className="text-xl font-bold text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">
-                  Kitchen Stations
-                </h3>
+            <Link href="/dashboard/kitchen" className="group flex flex-col rounded-[24px] border p-6 transition-all duration-300 hover:-translate-y-1" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
+              <div className="flex items-center gap-4">
+                <div className="rounded-2xl p-3" style={{ backgroundColor: "var(--page-soft)" }}>
+                  <span className="text-2xl">🍳</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold" style={{ color: "var(--page-text)" }}>Kitchen stations</h3>
+                  <p className="text-sm" style={{ color: "var(--page-muted)" }}>Coordinate prep lines and station flow with ease.</p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Manage kitchen stations, track capacity, and monitor station availability across branches.
-              </p>
+              <div className="mt-5 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--page-accent)" }}>
+                Explore module <ArrowRight size={16} />
+              </div>
             </Link>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

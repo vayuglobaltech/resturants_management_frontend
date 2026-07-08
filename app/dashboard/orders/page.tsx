@@ -419,8 +419,13 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
-  const role = user?.role;
-  const canCreateOrder = role && !["cashier"].includes(role); 
+  const roleName =
+    typeof user?.role === "object" && user?.role !== null && "name" in user.role
+      ? String(user.role.name)
+      : typeof user?.role === "string"
+        ? user.role
+        : "";
+  const canCreateOrder = Boolean(roleName && !["cashier"].includes(roleName));
 
   // ─── Read table filter from URL query ──────────────────────────────────
   const tableId = searchParams.get("table");
@@ -725,7 +730,6 @@ export default function OrdersPage() {
               value={`$${stats.revenue.toFixed(2)}`}
               icon={<DollarSign className="h-5 w-5" />}
               color="text-green-400"
-              subtitle="Total sales"
             />
             <StatCard
               title="Avg Time"

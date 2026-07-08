@@ -58,7 +58,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background">
-        <div className="w-8 h-8 rounded-full border-[3px] border-indigo-500 border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-[3px] border-primary border-t-transparent animate-spin" />
         <span className="text-xs text-muted-foreground animate-pulse">Loading…</span>
       </div>
     );
