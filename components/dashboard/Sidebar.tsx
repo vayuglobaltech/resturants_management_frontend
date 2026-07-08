@@ -135,20 +135,9 @@ export function DashboardSidebar({
     const fetchDynamic = async () => {
       setLoadingDynamic(true);
       try {
-        if (selectedFeature === "menu") {
-          const res = await getCategories();
-          if (isMounted) {
-            const data = Array.isArray(res) ? res : res.results || [];
-            setDynamicItems(
-              data.map((cat: any) => ({
-                id: cat.id,
-                name: cat.name,
-                href: `/dashboard/menu?category=${cat.id}`,
-                icon: Folder,
-              }))
-            );
-          }
-        } else if (selectedFeature === "orders") {
+        // ─── Categories removed for menu ──────────────────────────────
+        // No longer fetch categories for "menu"
+        if (selectedFeature === "orders") {
           const res = await listTables();
           if (isMounted) {
             const data = res.results || res;
@@ -182,7 +171,8 @@ export function DashboardSidebar({
             );
           }
         } else {
-          setDynamicItems([]);
+          // For menu or other features, clear dynamic items
+          if (isMounted) setDynamicItems([]);
         }
       } catch (e) {
         console.error("Failed to fetch dynamic sidebar items", e);
@@ -265,15 +255,13 @@ export function DashboardSidebar({
             })}
           </div>
 
-          {(dynamicItems.length > 0 || loadingDynamic) && (
+          {/* ─── Dynamic items (only for orders/tables) ──────────────── */}
+          {(selectedFeature === "orders" || selectedFeature === "tables") &&
+            (dynamicItems.length > 0 || loadingDynamic) && (
             <div className="flex-1 overflow-y-auto px-4 pb-4">
               <div className="mt-2 pt-4 border-t border-border">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1 mb-2">
-                  {selectedFeature === "menu"
-                    ? "Categories"
-                    : selectedFeature === "orders"
-                    ? "Tables"
-                    : "Tables"}
+                  Tables
                 </div>
                 {loadingDynamic ? (
                   <div className="px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
@@ -318,7 +306,7 @@ export function DashboardSidebar({
           )}
         </>
       ) : (
-        // ─── COLLAPSED ────────────────────────────────────────────────
+        // ─── COLLAPSED ──────────────────────────────────────────────────
         <div className="flex flex-col items-center py-4 space-y-3">
           {filteredItems.map((item) => (
             <SidebarTooltip key={item.href} label={item.label} collapsed={collapsed}>
@@ -331,7 +319,9 @@ export function DashboardSidebar({
             </SidebarTooltip>
           ))}
 
-          {(dynamicItems.length > 0 || loadingDynamic) && (
+          {/* ─── Dynamic items (only for orders/tables) ──────────────── */}
+          {(selectedFeature === "orders" || selectedFeature === "tables") &&
+            (dynamicItems.length > 0 || loadingDynamic) && (
             <div className="w-full px-2 pt-2 border-t border-border">
               {loadingDynamic ? (
                 <div className="flex justify-center py-2">

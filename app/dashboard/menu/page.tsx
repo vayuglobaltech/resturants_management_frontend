@@ -4,14 +4,14 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { listMenuItems, deleteMenuItem } from "@/lib/menuApi";
-import { Plus, Edit2, Trash2, Clock, Tag } from "lucide-react";
+import { getCategories } from "@/lib/api";
+import { Plus, Edit2, Trash2, Clock, Tag, Filter } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useCanManage } from "@/hooks/useCanManage";
-
 
 export default function MenuPage() {
   const canManage = useCanManage();
@@ -20,9 +20,12 @@ export default function MenuPage() {
   const categoryParam = searchParams.get("category");
 
   const [items, setItems] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
+  // ─── Fetch menu items ──────────────────────────────────────────────
   const fetchItems = async () => {
     try {
       const data = await listMenuItems();
@@ -34,15 +37,39 @@ export default function MenuPage() {
     }
   };
 
+  // ─── Fetch categories ──────────────────────────────────────────────
+  const fetchCategories = async () => {
+    try {
+      const data = await getCategories();
+      setCategories(Array.isArray(data) ? data : data.results || []);
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
+    fetchCategories();
   }, []);
 
+  // ─── Filter items by category ──────────────────────────────────────
   const filteredItems = useMemo(() => {
     if (!categoryParam) return items;
     return items.filter((item) => item.category === parseInt(categoryParam));
   }, [items, categoryParam]);
 
+  // ─── Category click handler ──────────────────────────────────────
+  const handleCategoryClick = (categoryId: number | null) => {
+    if (categoryId === null) {
+      router.push("/dashboard/menu");
+    } else {
+      router.push(`/dashboard/menu?category=${categoryId}`);
+    }
+  };
+
+  // ─── Delete handler ─────────────────────────────────────────────────
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
@@ -73,19 +100,62 @@ export default function MenuPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* ─── Header ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold text-foreground">Menu Management</h1>
         {canManage && (
-          
           <Link href="/dashboard/menu/add">
-          <Button className="gap-1.5">
-            <Plus className="h-4 w-4" /> Add Item
-          </Button>
-        </Link>
+            <Button className="gap-1.5">
+              <Plus className="h-4 w-4" /> Add Item
+            </Button>
+          </Link>
         )}
       </div>
 
+      {/* ─── Horizontal Category Filter ─────────────────────────────── */}
+      <div className="relative">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <button
+            onClick={() => handleCategoryClick(null)}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
+              !categoryParam
+                ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25"
+                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+            )}
+          >
+            All
+          </button>
+          {loadingCategories ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Loading categories...</span>
+            </div>
+          ) : (
+            categories.map((cat) => {
+              const isActive = categoryParam === String(cat.id);
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryClick(cat.id)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
+                    isActive
+                      ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                  )}
+                >
+                  {cat.name}
+                </button>
+              );
+            })
+          )}
+        </div>
+        {/* Gradient fade on right (optional) */}
+        <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+      </div>
+
+      {/* ─── Items grid ───────────────────────────────────────────────── */}
       {filteredItems.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-border rounded-2xl">
           <p className="text-muted-foreground">
@@ -107,41 +177,38 @@ export default function MenuPage() {
               key={item.id}
               className="relative group py-5 md:py-3 mb-2 bg-muted/30 border-border hover:bg-muted/30 hover:border-indigo-500/30 transition-all duration-200 cursor-pointer overflow-hidden"
             >
-              {/* Action buttons - top right */}
-              {/* Action buttons - only for managers */}
-            {canManage && (
-              <div
-                className={cn(
-                  "absolute bottom-2 right-3 z-10 flex items-center gap-1",
-                  "opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
-                )}
-              >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEdit(item.id);
-                  }}
-                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted active:bg-white/20 transition-colors"
-                  aria-label="Edit"
+              {canManage && (
+                <div
+                  className={cn(
+                    "absolute bottom-2 right-3 z-10 flex items-center gap-1",
+                    "opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
+                  )}
                 >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteTarget({ id: item.id, name: item.name });
-                  }}
-                  className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
-                  aria-label="Delete"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(item.id);
+                    }}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted active:bg-white/20 transition-colors"
+                    aria-label="Edit"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTarget({ id: item.id, name: item.name });
+                    }}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
+                    aria-label="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
 
               <Link href={`/dashboard/menu/${item.id}`} className="block">
                 <CardContent className="p-4 pr-12">
-                  {/* Name + Availability */}
                   <div className="flex items-start justify-between gap-2 py-3">
                     <h3 className="text-foreground font-semibold text-base truncate pr-2">
                       {item.name}
@@ -158,14 +225,12 @@ export default function MenuPage() {
                     </span>
                   </div>
 
-                  {/* Description */}
                   {item.description && (
                     <p className="text-muted-foreground text-sm line-clamp-2 mt-1.5">
                       {item.description}
                     </p>
                   )}
 
-                  {/* Price + Meta */}
                   <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-border">
                     <span className="text-indigo-400 font-bold text-lg">
                       ${parseFloat(item.price).toFixed(2)}
@@ -192,7 +257,7 @@ export default function MenuPage() {
         </div>
       )}
 
-      {/* Delete Modal */}
+      {/* ─── Delete Modal ────────────────────────────────────────────── */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
