@@ -315,7 +315,7 @@ export default function NewPaymentPage() {
       // Override status to COMPLETED (cashier shouldn't choose)
       const finalPayload = {
         ...pendingPayload,
-        status: "COMPLETED",
+        status: "PENDING",
       };
 
       const res = await apiFetch(

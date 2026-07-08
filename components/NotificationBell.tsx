@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, BellDot, Check, X, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useWebSocket } from "@/context/WebSocketContext";
+// import { useWebSocket } from "@/context/WebSocketContext";
 import { Button } from "@/components/ui/Button";
 
 interface NotificationBellProps {
@@ -12,7 +12,7 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ className }: NotificationBellProps) {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useWebSocket();
+  // const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useWebSocket();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +51,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
         className="relative p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
         aria-label="Notifications"
       >
-        {unreadCount > 0 ? (
+        {/* {unreadCount > 0 ? (
           <>
             <BellDot className="h-5 w-5" />
             <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
@@ -60,7 +60,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
           </>
         ) : (
           <Bell className="h-5 w-5" />
-        )}
+        )} */}
       </button>
 
       <AnimatePresence>
@@ -72,7 +72,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
             transition={{ duration: 0.15 }}
             className="absolute right-0 top-full mt-2 w-80 max-h-[480px] overflow-hidden bg-card border border-border rounded-xl shadow-2xl z-50 transition-colors duration-200"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            {/* <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
               <div className="flex items-center gap-2">
                 {notifications.length > 0 && (
@@ -92,10 +92,10 @@ export function NotificationBell({ className }: NotificationBellProps) {
                   </button>
                 )}
               </div>
-            </div>
+            </div> */}
 
             <div className="overflow-y-auto max-h-[360px]">
-              {notifications.length === 0 ? (
+              {/* {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Bell className="h-8 w-8 mb-2 opacity-30" />
                   <p className="text-sm">No notifications yet</p>
@@ -136,16 +136,16 @@ export function NotificationBell({ className }: NotificationBellProps) {
                     <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
                   </button>
                 ))
-              )}
+              )} */}
             </div>
 
-            {notifications.length > 0 && (
+            {/* {notifications.length > 0 && (
               <div className="px-4 py-2 border-t border-border text-center">
                 <span className="text-xs text-muted-foreground">
                   {notifications.length} notifications
                 </span>
               </div>
-            )}
+            )} */}
           </motion.div>
         )}
       </AnimatePresence>

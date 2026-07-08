@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   if (!user) return null;
 
   return (
-    <WebSocketProvider>
+    // <WebSocketProvider>
       <ToastProvider>
         <div className="min-h-screen bg-background text-foreground flex flex-col print:bg-white print:block transition-colors duration-200">
           {/* Navbar */}
@@ -107,6 +107,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </ToastProvider>
-    </WebSocketProvider>
   );
+    {/* </WebSocketProvider> */}
 }

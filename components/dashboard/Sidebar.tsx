@@ -22,6 +22,7 @@ import {
   CookingPot,
   ChevronLeft,
   ChevronRight,
+  CheckCircle
 } from "lucide-react";
 import { listMenuItems } from "@/lib/menuApi";
 import { listOrders, listTables } from "@/lib/ordersApi";
@@ -52,7 +53,9 @@ const SUB_FEATURES: Record<
   tables: [{ label: "All Tables", icon: Table, href: "/dashboard/tables" }],
   payments: [
     { label: "All Payments", icon: CreditCard, href: "/dashboard/payments" },
-    { label: "Process Payment", icon: Plus, href: "/dashboard/payments/new" },
+    { label: "Generate Bill", icon: Plus, href: "/dashboard/payments/new" },
+      { label: "Process Payment", icon: CheckCircle, href: "/dashboard/payments/process" }, // new
+
   ],
   users: [{ label: "All Users", icon: Users, href: "/dashboard/users" }],
   reports: [
