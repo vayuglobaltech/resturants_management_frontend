@@ -24,6 +24,8 @@ import { updateOrder } from "@/lib/ordersApi";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useCanModifyOrders } from "@/hooks/usePermissions";
+
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -171,10 +173,16 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
   const { user } = useAuth(); // get current user
   const router = useRouter();
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const canModify = useCanModifyOrders();
+
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 },
+      // Disable if can't modify
+      enabled: canModify, }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } ,
+      // Disable if can't modify
+      enabled: canModify,}),
     useSensor(KeyboardSensor)
   );
 
@@ -184,6 +192,9 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
   }, {} as Record<string, any[]>);
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    // ─── 1. Early exit if user is not allowed to drag ────────────────
+    if (!canModify) return;
+
     const { active, over } = event;
     if (!over) return;
 
