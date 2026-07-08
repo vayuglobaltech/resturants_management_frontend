@@ -37,6 +37,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // expanded by default
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const hideSidebarPages = ['/dashboard/menu', '/dashboard/users','/dashboard','/dashboard/discounts'];
+  const shouldHideSidebar = hideSidebarPages.includes(pathname);
 
   // ── Open mobile drawer by default ────────────────────────────────
   useEffect(() => {
@@ -81,15 +83,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
           <div className="flex flex-1 overflow-hidden mt-8 print:overflow-visible print:block">
             {/* Sidebar */}
-            <div className="print:hidden mt-20">
-              <DashboardSidebar
-                selectedFeature={selectedFeature}
-                collapsed={sidebarCollapsed}
-                mobileOpen={mobileOpen}
-                onMobileClose={() => setMobileOpen(false)}
-                onToggleCollapse={toggleSidebar}
-              />
-            </div>
+            {/* Sidebar with conditional rendering */}
+      {!shouldHideSidebar && (
+        <div className="print:hidden mt-20">
+          <DashboardSidebar
+            selectedFeature={selectedFeature}
+            collapsed={sidebarCollapsed}
+            mobileOpen={mobileOpen}
+            onMobileClose={() => setMobileOpen(false)}
+            onToggleCollapse={toggleSidebar}
+          />
+        </div>
+      )}
 
             {/* Main content – responsive margins */}
             <main
@@ -97,9 +102,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 "flex-1 overflow-y-auto p-4 sm:p-6 mt-20",
                 "transition-all duration-300 ease-in-out",
                 "print:ml-0 print:p-0 print:overflow-visible print:block",
-                sidebarCollapsed
-                  ? "ml-14 md:ml-16"
-                  : "ml-52 md:ml-64"
+                !shouldHideSidebar && sidebarCollapsed
+      ? "ml-14 md:ml-16"
+      : !shouldHideSidebar && "ml-52 md:ml-64",
+    // When sidebar is hidden, no left margin
+    shouldHideSidebar && "ml-0"
               )}
             >
               {children}

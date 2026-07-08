@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
+import  OrderSummary  from "@/components/orders/orderSummary";
 import {
   Plus,
   Minus,
@@ -68,6 +69,10 @@ export default function NewOrderPage() {
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [loadingDiscounts, setLoadingDiscounts] = useState(false);
   const [promoCode, setPromoCode] = useState("");
+  // Add this with your other state declarations (around line 35)
+const [cartSplash, setCartSplash] = useState(false);
+// Added this state to track if cart is open or closed
+const [isCartOpen, setIsCartOpen] = useState(false);
 
   const {
     register,
@@ -167,6 +172,8 @@ export default function NewOrderPage() {
 
   // ─── Cart Operations ─────────────────────────────────────────────────────
   const addToCart = (item: MenuItem) => {
+    setCartSplash(true);
+    setTimeout(() => setCartSplash(false), 600);
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
       if (existing) {
@@ -176,6 +183,9 @@ export default function NewOrderPage() {
       }
       return [...prev, { ...item, quantity: 1 }];
     });
+  };
+  const handleSpecialInstructionsChange = (instructions: string) => {
+    setValue("special_instructions", instructions);
   };
 
   const updateQuantity = (id: number, delta: number) => {
@@ -327,203 +337,75 @@ export default function NewOrderPage() {
                   No menu items found.
                 </div>
               ) : (
-                filteredItems.map((item) => (
-                  <motion.button
-                    key={item.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => addToCart(item)}
-                    disabled={!item.is_available}
-                    className={cn(
-                      "text-left p-3 rounded-xl border transition-all",
-                      item.is_available
-                        ? "border-border hover:border-indigo-500/50 bg-muted/30 hover:bg-muted/30"
-                        : "border-border bg-muted/30 opacity-50 cursor-not-allowed",
-                    )}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-foreground font-medium text-sm truncate">
-                          {item.name}
-                        </h4>
-                        <p className="text-muted-foreground text-xs line-clamp-1">
-                          {item.category_name || "Uncategorized"}
-                        </p>
+                filteredItems.map((item) => {
+                  // Find if this item is already in cart
+                  const cartItem = cart.find(i => i.id === item.id);
+                  const quantityInCart = cartItem?.quantity || 0;
+                  
+                  return (
+                    <motion.button
+                      key={item.id}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => addToCart(item)}
+                      disabled={!item.is_available}
+                      className={cn(
+                        "text-left p-3 rounded-xl border transition-all relative",
+                        item.is_available
+                          ? "border-border hover:border-indigo-500/50 bg-muted/30 hover:bg-muted/30"
+                          : "border-border bg-muted/30 opacity-50 cursor-not-allowed",
+                      )}
+                    >
+                      {/* Show quantity badge if item is in cart */}
+                      {quantityInCart > 0 && (
+                        <div className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
+                          {quantityInCart}
+                        </div>
+                      )}
+                      
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-foreground font-medium text-sm truncate">
+                              {item.name}
+                            </h4>
+                            <p className="text-muted-foreground text-xs line-clamp-1">
+                              {item.category_name || "Uncategorized"}
+                            </p>
+                          </div>
+                          <span className="text-indigo-400 font-bold text-sm ml-2">
+                            ${parseFloat(item.price).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-indigo-400 font-bold text-sm ml-2">
-                        ${parseFloat(item.price).toFixed(2)}
-                      </span>
-                    </div>
-                  </motion.button>
-                ))
+                    </motion.button>
+                  );
+                })
               )}
+              </div>
             </div>
-          </div>
 
           {/* ─── Right Panel: Order Summary ─── */}
-          <div className="lg:w-96 flex-shrink-0">
-            <Card className="sticky top-20 bg-muted/30 border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-foreground flex items-center gap-2 text-base">
-                  <ShoppingCart className="h-5 w-5 text-indigo-400" />
-                  Order Summary
-                  {cart.length > 0 && (
-                    <span className="ml-auto text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
-                      {cart.length} items
-                    </span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {cart.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    <p>No items added yet.</p>
-                    <p className="text-xs mt-1">
-                      Select items from the left panel.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="max-h-64 overflow-y-auto space-y-1.5">
-                      {cart.map((item) => (
-                        <motion.div
-                          key={item.id}
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          className="flex items-center gap-2 p-2 rounded-lg bg-background"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-foreground text-sm font-medium truncate">
-                              {item.name}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              ${parseFloat(item.price).toFixed(2)} x{" "}
-                              {item.quantity}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => updateQuantity(item.id, -1)}
-                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                            >
-                              <Minus className="h-3.5 w-3.5" />
-                            </button>
-                            <span className="text-foreground text-sm w-6 text-center">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => updateQuantity(item.id, 1)}
-                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => removeItem(item.id)}
-                              className="p-1 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 ml-1"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    {/* ─── Totals ────────────────────────────────────────── */}
-                    <div className="pt-3 border-t border-border space-y-1">
-                      <div className="flex justify-between text-foreground">
-                        <span>Subtotal</span>
-                        <span>${total.toFixed(2)}</span>
-                      </div>
-                      {discountAmount > 0 && (
-                        <div className="flex justify-between text-emerald-400">
-                          <span>Discount</span>
-                          <span>-${discountAmount.toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-foreground font-bold text-lg pt-1 border-t border-border">
-                        <span>Grand Total</span>
-                        <span className="text-indigo-400">
-                          ${grandTotal.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* ─── Discount Dropdown ────────────────────────────────── */}
-                {canApplyDiscount && (
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">
-                      Apply Discount
-                    </label>
-                    <select
-                      value={selectedDiscountId}
-                      onChange={(e) => handleDiscountChange(e.target.value)}
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      disabled={loadingDiscounts}
-                    >
-                      <option value="">No discount</option>
-                      {discounts.map((d) => (
-                        <option key={d.id} value={String(d.id)}>
-                          {d.name} (
-                          {d.type === "percentage"
-                            ? `${d.value}%`
-                            : `$${d.value}`}
-                          ){d.requires_code ? " 🔑" : ""}
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* ─── Promo Code Input ─── */}
-                    {selectedDiscountId &&
-                      discounts.find((d) => String(d.id) === selectedDiscountId)
-                        ?.requires_code && (
-                        <div className="mt-2">
-                          <label className="block text-xs font-medium text-muted-foreground mb-1">
-                            Promo Code
-                          </label>
-                          <input
-                            type="text"
-                            value={promoCode}
-                            onChange={(e) => setPromoCode(e.target.value)}
-                            placeholder="Enter promo code..."
-                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      )}
-                  </div>
-                )}
-                {/* ─── Special Instructions ────────────────────────────── */}
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Special Instructions
-                  </label>
-                  <textarea
-                    {...register("special_instructions")}
-                    rows={2}
-                    placeholder="e.g. No onions, extra cheese..."
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                  />
-                </div>
-
-                {/* ─── Submit Button ────────────────────────────────────── */}
-                <Button
-                  onClick={handleSubmit(onSubmit)}
-                  disabled={cart.length === 0 || submitting}
-                  className="w-full gap-2"
-                >
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                  {submitting ? "Creating Order..." : "Create Order"}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+ <OrderSummary
+ cart={cart}
+ total={total}
+ discountAmount={discountAmount}
+ grandTotal={grandTotal}
+ cartSplash={cartSplash}
+ canApplyDiscount={canApplyDiscount}
+ discounts={discounts}
+ selectedDiscountId={selectedDiscountId}
+ loadingDiscounts={loadingDiscounts}
+ promoCode={promoCode}
+ submitting={submitting}
+ specialInstructions={specialInstructions}
+ onUpdateQuantity={updateQuantity}
+ onRemoveItem={removeItem}
+ onDiscountChange={handleDiscountChange}
+ onPromoCodeChange={setPromoCode}
+ onSpecialInstructionsChange={handleSpecialInstructionsChange}
+ onSubmit={handleSubmit(onSubmit)}
+/>        </div>
       </div>
     </ProtectedOrder>
   );
