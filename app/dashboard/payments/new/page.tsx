@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { InvoicePreview } from "@/components/InvoicePreview";
+import { Modal } from "@/components/ui/Modal"; // your existing modal
 // import ReactToPrint from "react-to-print";
 
 interface FormData {
@@ -54,9 +55,9 @@ export default function NewPaymentPage() {
 
   // ─── Role-based route guard ─────────────────────────────────────────
   // Managers/admins should NOT access Process Payment — only cashiers can.
-  const rawRole = user?.role ?? user?.name ?? '';
+  const rawRole = user?.role ?? user?.name ?? "";
   const userRole = String(
-    typeof rawRole === 'object' && 'name' in rawRole ? rawRole.name : rawRole
+    typeof rawRole === "object" && "name" in rawRole ? rawRole.name : rawRole,
   ).toUpperCase();
   const isManager = ["MANAGER", "BRANCH_MANAGER", "ADMIN"].includes(userRole);
 
@@ -84,6 +85,9 @@ export default function NewPaymentPage() {
   const searchParams = useSearchParams();
   const preSelectedTable = searchParams.get("table");
   const preSelectedStatus = searchParams.get("status") || "PENDING";
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState<any>(null);
 
   // ─── Block rendering for unauthorized roles ─────────────────────────
   if (isManager) {
@@ -117,7 +121,6 @@ export default function NewPaymentPage() {
   const selectedOrderId = watch("order");
   const customerName = watch("customer_name");
   const paymentMethod = watch("payment_method");
-
 
   const handleDownloadPDF = async () => {
     console.log("📄 PDF button clicked");
@@ -174,73 +177,74 @@ export default function NewPaymentPage() {
   }, []);
 
   // ─── 2. When table selected → fetch its orders ──────────────────────
- useEffect(() => {
-  if (selectedTableIdForm) {
-    const fetchOrdersForTable = async () => {
-      setLoadingOrders(true);
-      try {
-        const tableId = parseInt(selectedTableIdForm, 10);
-        if (isNaN(tableId)) {
-          toast.error("Invalid table selected.");
-          return;
+  useEffect(() => {
+    if (selectedTableIdForm) {
+      const fetchOrdersForTable = async () => {
+        setLoadingOrders(true);
+        try {
+          const tableId = parseInt(selectedTableIdForm, 10);
+          if (isNaN(tableId)) {
+            toast.error("Invalid table selected.");
+            return;
+          }
+
+          const data = await listOrders(tableId);
+          const tableOrders = Array.isArray(data) ? data : [];
+          console.log("📦 All orders for table:", tableOrders);
+
+          // ─── Active orders = not PAID or CANCELLED ──────────────────
+          const activeOrders = tableOrders.filter(
+            (o: any) =>
+              !["PAID", "CANCELLED"].includes(o.status?.toUpperCase()),
+          );
+          console.log("📦 Active orders:", activeOrders);
+
+          const hasActiveOrder = activeOrders.length > 0;
+          setHasActiveOrder(hasActiveOrder);
+          console.log("📦 hasActiveOrder:", hasActiveOrder);
+
+          // ─── Eligible for payment = READY or DELIVERED ─────────────
+          const eligibleOrders = activeOrders.filter(
+            (o: any) =>
+              o.status?.toUpperCase() === "READY" ||
+              o.status?.toUpperCase() === "DELIVERED",
+          );
+          console.log("📦 Eligible orders (READY/DELIVERED):", eligibleOrders);
+
+          setOrders(eligibleOrders);
+
+          if (eligibleOrders.length > 0) {
+            const firstOrder = eligibleOrders[0];
+            setValue("order", String(firstOrder.id));
+            setSelectedOrder(firstOrder);
+            setShowCreateOrder(false);
+          } else if (hasActiveOrder) {
+            setOrders([]);
+            setSelectedOrder(null);
+            setValue("order", "");
+            setShowCreateOrder(false);
+          } else {
+            setOrders([]);
+            setSelectedOrder(null);
+            setValue("order", "");
+            setShowCreateOrder(true);
+          }
+        } catch (error) {
+          console.error("❌ Failed to fetch orders:", error);
+          toast.error("Failed to load orders.");
+        } finally {
+          setLoadingOrders(false);
         }
-
-        const data = await listOrders(tableId);
-        const tableOrders = Array.isArray(data) ? data : [];
-        console.log("📦 All orders for table:", tableOrders);
-
-        // ─── Active orders = not PAID or CANCELLED ──────────────────
-        const activeOrders = tableOrders.filter(
-          (o: any) => !["PAID", "CANCELLED"].includes(o.status?.toUpperCase())
-        );
-        console.log("📦 Active orders:", activeOrders);
-
-        const hasActiveOrder = activeOrders.length > 0;
-        setHasActiveOrder(hasActiveOrder);
-        console.log("📦 hasActiveOrder:", hasActiveOrder);
-
-        // ─── Eligible for payment = READY or DELIVERED ─────────────
-        const eligibleOrders = activeOrders.filter(
-          (o: any) =>
-            o.status?.toUpperCase() === "READY" ||
-            o.status?.toUpperCase() === "DELIVERED"
-        );
-        console.log("📦 Eligible orders (READY/DELIVERED):", eligibleOrders);
-
-        setOrders(eligibleOrders);
-
-        if (eligibleOrders.length > 0) {
-          const firstOrder = eligibleOrders[0];
-          setValue("order", String(firstOrder.id));
-          setSelectedOrder(firstOrder);
-          setShowCreateOrder(false);
-        } else if (hasActiveOrder) {
-          setOrders([]);
-          setSelectedOrder(null);
-          setValue("order", "");
-          setShowCreateOrder(false);
-        } else {
-          setOrders([]);
-          setSelectedOrder(null);
-          setValue("order", "");
-          setShowCreateOrder(true);
-        }
-      } catch (error) {
-        console.error("❌ Failed to fetch orders:", error);
-        toast.error("Failed to load orders.");
-      } finally {
-        setLoadingOrders(false);
-      }
-    };
-    fetchOrdersForTable();
-  } else {
-    setOrders([]);
-    setSelectedOrder(null);
-    setValue("order", "");
-    setShowCreateOrder(false);
-    setHasActiveOrder(false);
-  }
-}, [selectedTableIdForm, setValue]);
+      };
+      fetchOrdersForTable();
+    } else {
+      setOrders([]);
+      setSelectedOrder(null);
+      setValue("order", "");
+      setShowCreateOrder(false);
+      setHasActiveOrder(false);
+    }
+  }, [selectedTableIdForm, setValue]);
   // ─── 3. When order selected → fetch full details ────────────────────
   useEffect(() => {
     if (selectedOrderId) {
@@ -286,23 +290,39 @@ export default function NewPaymentPage() {
       return;
     }
 
-    setSubmitting(true);
+    // Prepare payload but don't send yet
+    const payload = {
+      order: parseInt(data.order, 10),
+      amount: parseFloat(data.amount),
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      payment_method: data.payment_method,
+      status: data.status, // we'll override this in confirm
+      transaction_id: data.transaction_id || undefined,
+      branch: user?.branch?.id || 1,
+      customer_name: data.customer_name || "Guest",
+    };
+
+    // Open confirmation modal
+    setPendingPayload(payload);
+    setShowConfirmModal(true);
+  };
+
+  // ─── Confirm handler ─────────────────────────────────────────────────────
+  const handleConfirmPayment = async () => {
+    if (!pendingPayload) return;
+    setConfirmLoading(true);
     try {
-      const payload = {
-        order: parseInt(data.order, 10),
-        amount: parseFloat(data.amount),
-        subtotal: parseFloat(subtotal.toFixed(2)),
-        payment_method: data.payment_method,
-        status: data.status,
-        transaction_id: data.transaction_id || undefined,
-        branch: user?.branch?.id || 1,
-        customer_name: data.customer_name || "Guest",
+      // Override status to COMPLETED (cashier shouldn't choose)
+      const finalPayload = {
+        ...pendingPayload,
+        status: "COMPLETED",
       };
+
       const res = await apiFetch(
         "/api/orders/payments/",
         {
           method: "POST",
-          body: JSON.stringify(payload),
+          body: JSON.stringify(finalPayload),
         },
         true,
       );
@@ -311,12 +331,13 @@ export default function NewPaymentPage() {
 
       setPaymentSuccess(true);
       setShowBillSplash(true);
+      setShowConfirmModal(false);
       toast.success("Payment processed successfully!");
     } catch (error: any) {
       const messages = Object.values(error).flat().join(" ");
       toast.error(messages || "Failed to process payment.");
     } finally {
-      setSubmitting(false);
+      setConfirmLoading(false);
     }
   };
 
@@ -717,7 +738,7 @@ export default function NewPaymentPage() {
                                 </select>
                               </div>
                             </div>
-                            <div>
+                            {/* <div>
                               <label
                                 htmlFor="status"
                                 className="block text-sm font-medium text-muted-foreground mb-1.5"
@@ -745,7 +766,7 @@ export default function NewPaymentPage() {
                                   ❌ Failed
                                 </option>
                               </select>
-                            </div>
+                            </div> */}
                           </div>
 
                           {/* Transaction ID */}
@@ -790,6 +811,77 @@ export default function NewPaymentPage() {
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* ─── Confirmation Modal ─────────────────────────────────────────── */}
+                  <Modal
+                    isOpen={showConfirmModal}
+                    onClose={() => {
+                      if (!confirmLoading) {
+                        setShowConfirmModal(false);
+                        setPendingPayload(null);
+                      }
+                    }}
+                    title="Confirm Payment"
+                    icon={<Receipt className="h-8 w-8 text-indigo-500" />}
+                    description={
+                      <div className="space-y-2 text-left">
+                        <p>
+                          You are about to process a payment for this order.
+                        </p>
+                        <div className="bg-muted/30 p-3 rounded-lg text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Order:
+                            </span>
+                            <span className="font-medium">
+                              #{pendingPayload?.order}
+                            </span>
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span className="text-muted-foreground">
+                              Customer:
+                            </span>
+                            <span className="font-medium">
+                              {pendingPayload?.customer_name}
+                            </span>
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span className="text-muted-foreground">
+                              Payment Method:
+                            </span>
+                            <span className="font-medium">
+                              {pendingPayload?.payment_method}
+                            </span>
+                          </div>
+                          <div className="flex justify-between mt-1 border-t border-border pt-1">
+                            <span className="text-muted-foreground">
+                              Total Amount:
+                            </span>
+                            <span className="font-bold text-indigo-600">
+                              ${pendingPayload?.amount?.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          This will mark the payment as{" "}
+                          <strong>Completed</strong>.
+                        </p>
+                      </div>
+                    }
+                    confirmText={
+                      confirmLoading ? "Processing..." : "Confirm Payment"
+                    }
+                    cancelText="Cancel"
+                    onConfirm={handleConfirmPayment}
+                    onCancel={() => {
+                      if (!confirmLoading) {
+                        setShowConfirmModal(false);
+                        setPendingPayload(null);
+                      }
+                    }}
+                    variant="default"
+                    confirmDisabled={confirmLoading}
+                  />
 
                   {/* Order Items */}
                   <div className="space-y-6">
@@ -846,7 +938,9 @@ export default function NewPaymentPage() {
                                 <span>${subtotal.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between items-center text-muted-foreground text-sm">
-                                <span className="text-[12px]">(Including Tax)</span>
+                                <span className="text-[12px]">
+                                  (Including Tax)
+                                </span>
                               </div>
                               <div className="flex justify-between items-center pt-2 text-foreground text-lg font-bold border-t border-border">
                                 <span>Grand Total</span>
@@ -993,45 +1087,45 @@ export default function NewPaymentPage() {
       )}
 
       {/* Custom Scrollbar Styles */}
-<style jsx>{`
-  /* 1. SCROLLBAR: attach this to the parent wrapper */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(99, 102, 241, 0.5);
-    border-radius: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(99, 102, 241, 0.8);
-  }
+      <style jsx>{`
+        /* 1. SCROLLBAR: attach this to the parent wrapper */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(99, 102, 241, 0.5);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(99, 102, 241, 0.8);
+        }
 
-  /* 3. ANIMATIONS */
-  @keyframes slide-up {
-    from {
-      opacity: 0;
-      transform: translateY(30px) scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
+        /* 3. ANIMATIONS */
+        @keyframes slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
 
-  .animate-in {
-    animation-fill-mode: both;
-  }
+        .animate-in {
+          animation-fill-mode: both;
+        }
 
-  .slide-up {
-    animation-name: slide-up;
-    animation-duration: 0.4s;
-    animation-timing-function: ease-out;
-  }
-`}</style>
+        .slide-up {
+          animation-name: slide-up;
+          animation-duration: 0.4s;
+          animation-timing-function: ease-out;
+        }
+      `}</style>
     </div>
   );
 }

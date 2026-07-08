@@ -10,7 +10,7 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  description?: string;
+  description?: React.ReactNode;
   icon?: ReactNode;
   confirmText?: string;
   cancelText?: string;
@@ -105,9 +105,9 @@ export function Modal({
                   </h2>
                 )}
                 {description && (
-                  <p className="text-muted-foreground text-sm mt-1 text-center">
+                  <div className="text-muted-foreground text-sm mt-1 text-center">
                     {description}
-                  </p>
+                  </div>
                 )}
                 {children && <div className="mt-4">{children}</div>}
               </div>
