@@ -360,9 +360,13 @@ export default function NewPaymentPage() {
       return;
     }
 
+    const allOrderIds = eligibleOrders.map((o) => o.id); // all order IDs
+
+
     // Prepare payload with master order
     const payload = {
       order: masterOrderId, // use master order for the API
+      order_ids: allOrderIds, // ✅ send all order IDs
       amount: parseFloat(data.amount) || combinedTotal,
       subtotal: parseFloat(combinedTotal.toFixed(2)),
       // payment_method: "CASH",
