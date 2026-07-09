@@ -396,12 +396,16 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon, color = "text-indigo-400", subtitle }: StatCardProps) {
   return (
-    <div className="bg-muted/30 border border-border rounded-xl p-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
-      <div className={cn("p-2.5 rounded-xl bg-background", color)}>{icon}</div>
-      <div>
-        <p className="text-sm text-muted-foreground font-medium">{title}</p>
-        <p className="text-2xl font-bold text-foreground">{value}</p>
-        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+    <div className="group relative overflow-hidden rounded-[1.5rem] border border-border bg-muted/30 p-5 transition hover:shadow-xl hover:bg-muted/40">
+      <div className="flex items-start gap-4">
+        <div className={cn("flex h-12 w-12 items-center justify-center rounded-3xl bg-background shadow-sm", color)}>
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground font-semibold">{title}</p>
+          <p className="mt-3 text-3xl font-semibold leading-tight text-foreground">{value}</p>
+          {subtitle && <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{subtitle}</p>}
+        </div>
       </div>
     </div>
   );
@@ -669,16 +673,22 @@ export default function OrdersPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* ─── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Orders</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage restaurant orders efficiently
-          </p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+            Orders dashboard
+          </div>
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Orders</h1>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              Track orders through the kitchen, monitor service status, and keep revenue in view.
+            </p>
+          </div>
         </div>
+
         {canCreateOrder && (
           <Link href="/dashboard/orders/new">
-            <Button className="gap-2">
+            <Button className="gap-2 rounded-full px-4 py-2.5">
               <Plus className="h-4 w-4" /> New Order
             </Button>
           </Link>
@@ -687,15 +697,21 @@ export default function OrdersPage() {
 
       {/* ─── Active Table Filter Banner ────────────────────────────────────── */}
       {tableId && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-          <TableIcon className="h-5 w-5 text-indigo-400 flex-shrink-0" />
-          <span className="text-sm text-indigo-300 font-medium">
-            Filtering orders for{" "}
-            <span className="text-foreground font-semibold">{activeTableName || `Table #${tableId}`}</span>
-          </span>
+        <div className="flex flex-col gap-3 rounded-[1.5rem] border border-indigo-500/20 bg-indigo-500/10 p-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-400">
+              <TableIcon className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-indigo-300">Filtering orders for</p>
+              <p className="text-base font-semibold text-foreground">
+                {activeTableName || `Table #${tableId}`}
+              </p>
+            </div>
+          </div>
           <button
             onClick={clearTableFilter}
-            className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg bg-background hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
           >
             <X className="h-3.5 w-3.5" />
             Clear filter
@@ -704,7 +720,7 @@ export default function OrdersPage() {
       )}
 
       {/* ─── KPI Cards ────────────────────────────────────────────────────── */}
-      <div className={cn("grid grid-cols-2 gap-4", isManager ? "md:grid-cols-5" : "md:grid-cols-3")}>
+      <div className={cn("grid gap-4", isManager ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-5" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3")}>
         <StatCard
           title="Pending"
           value={stats.pending}
@@ -743,58 +759,77 @@ export default function OrdersPage() {
       </div>
 
       {/* ─── Controls ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search orders..."
-            value={searchTerm}
-            onChange={handleSearch}
-            className="pl-9"
-          />
-        </div>
+      <div className="rounded-[1.5rem] border border-border bg-muted/30 p-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search orders..."
+                value={searchTerm}
+                onChange={handleSearch}
+                className="w-full rounded-2xl border border-border bg-background/90 pl-11 pr-4 py-3 text-sm text-foreground focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <select
-            value={statusFilter}
-            onChange={(e) => handleStatusFilter(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="all">All Status</option>
-            <option value="PENDING">Pending</option>
-            <option value="CONFIRMED">Confirmed</option>
-            <option value="QUEUED">Queued</option>
-            <option value="PREPARING">Preparing</option>
-            <option value="READY">Ready</option>
-            <option value="DELIVERED">Delivered</option>
-            <option value="PAID">Paid</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex gap-3 flex-wrap">
+              <select
+                value={statusFilter}
+                onChange={(e) => handleStatusFilter(e.target.value)}
+                className="rounded-2xl border border-border bg-background px-3 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="all">All Status</option>
+                <option value="PENDING">Pending</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="QUEUED">Queued</option>
+                <option value="PREPARING">Preparing</option>
+                <option value="READY">Ready</option>
+                <option value="DELIVERED">Delivered</option>
+                <option value="PAID">Paid</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
 
-          <select
-            value={sortBy}
-            onChange={(e) => handleSort(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
-            <option value="highest">Highest Amount</option>
-            <option value="lowest">Lowest Amount</option>
-          </select>
+              <select
+                value={sortBy}
+                onChange={(e) => handleSort(e.target.value)}
+                className="rounded-2xl border border-border bg-background px-3 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="highest">Highest Amount</option>
+                <option value="lowest">Lowest Amount</option>
+              </select>
+            </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRefresh}
-            className="gap-1"
-          >
-            <RefreshCw className="h-4 w-4" /> Refresh
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              className="gap-2 rounded-full px-4 py-3"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* ─── Kanban Board ────────────────────────────────────────────────── */}
-      <div className="mt-4">
+      <div className="rounded-[1.5rem] border border-border bg-muted/30 p-5 shadow-sm">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">Order workflow</h2>
+            <p className="text-sm text-muted-foreground">
+              Monitor every order from placement to completion in one view.
+            </p>
+          </div>
+          <span className="inline-flex rounded-full border border-border bg-background px-4 py-2 text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
+            Showing {filteredOrders.length} order{filteredOrders.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
         <KanbanBoard orders={filteredOrders} onOrderUpdate={fetchOrders} />
       </div>
     </div>
