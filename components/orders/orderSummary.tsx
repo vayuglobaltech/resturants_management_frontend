@@ -50,7 +50,7 @@ interface OrderSummaryProps {
   onSubmit: () => void;
 }
 
-export default function  OrderSummary({
+export default function OrderSummary({
   cart,
   total,
   discountAmount,
@@ -71,36 +71,38 @@ export default function  OrderSummary({
   onSubmit,
 }: OrderSummaryProps) {
   return (
-    <div className="lg:w-96 flex-shrink-0">
+    <div className="w-full flex-shrink-0 lg:w-96">
       <Card
         className={cn(
-          "sticky top-20 bg-muted/30 border-border transition-all duration-300",
+          "sticky top-4 rounded-[24px] border border-border/70 bg-card/90 shadow-[0_20px_60px_-28px_rgba(15,23,42,0.45)] backdrop-blur transition-all duration-300 lg:top-20",
           cartSplash &&
-            "ring-2 ring-indigo-500 ring-offset-2 ring-offset-background shadow-lg shadow-indigo-500/20"
+            "ring-2 ring-indigo-500/70 ring-offset-2 ring-offset-background shadow-lg shadow-indigo-500/20"
         )}
       >
         <CardHeader className="pb-2">
-          <CardTitle className="text-foreground flex items-center gap-2 text-base">
-            <motion.div
-              animate={
-                cartSplash
-                  ? {
-                      scale: [1, 1.2, 1],
-                      rotate: [0, -10, 10, -10, 0],
-                    }
-                  : {}
-              }
-              transition={{ duration: 0.5 }}
-            >
-              <ShoppingCart className="h-5 w-5 text-indigo-400" />
-            </motion.div>
-            Order Summary
+          <CardTitle className="flex items-center justify-between gap-2 text-base text-foreground">
+            <div className="flex items-center gap-2">
+              <motion.div
+                animate={
+                  cartSplash
+                    ? {
+                        scale: [1, 1.2, 1],
+                        rotate: [0, -10, 10, -10, 0],
+                      }
+                    : {}
+                }
+                transition={{ duration: 0.5 }}
+              >
+                <ShoppingCart className="h-5 w-5 text-indigo-400" />
+              </motion.div>
+              Order Summary
+            </div>
             {cart.length > 0 && (
               <motion.span
                 key={cart.length}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="ml-auto text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full"
+                className="rounded-full bg-indigo-500/15 px-2.5 py-1 text-xs font-semibold text-indigo-400"
               >
                 {cart.length} items
               </motion.span>
@@ -114,11 +116,11 @@ export default function  OrderSummary({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="text-center py-8 text-muted-foreground text-sm"
+                className="rounded-2xl border border-dashed border-border/70 bg-background/70 py-8 text-center text-sm text-muted-foreground"
               >
                 <p>No items added yet.</p>
-                <p className="text-xs mt-1">
-                  Select items from the left panel.
+                <p className="mt-1 text-xs">
+                  Select items from the menu to start your order.
                 </p>
               </motion.div>
             ) : (
@@ -128,7 +130,7 @@ export default function  OrderSummary({
                 exit={{ opacity: 0 }}
                 className="space-y-3"
               >
-                <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+                <div className="max-h-[240px] space-y-2 overflow-y-auto pr-1 sm:max-h-[280px]">
                   <AnimatePresence initial={false}>
                     {cart.map((item, index) => (
                       <motion.div
@@ -137,21 +139,20 @@ export default function  OrderSummary({
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20, height: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="flex items-center gap-2 p-2 rounded-lg bg-background"
+                        className="flex items-center gap-2 rounded-2xl border border-border/60 bg-gradient-to-br from-background to-muted/20 p-2.5"
                       >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-foreground text-sm font-medium truncate">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-foreground">
                             {item.name}
                           </p>
-                          <p className="text-muted-foreground text-xs">
-                            ${parseFloat(item.price).toFixed(2)} x{" "}
-                            {item.quantity}
+                          <p className="text-xs text-muted-foreground">
+                            ${parseFloat(item.price).toFixed(2)} × {item.quantity}
                           </p>
                         </div>
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => onUpdateQuantity(item.id, -1)}
-                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                           >
                             <Minus className="h-3.5 w-3.5" />
                           </button>
@@ -159,19 +160,19 @@ export default function  OrderSummary({
                             key={item.quantity}
                             initial={{ scale: 0.5 }}
                             animate={{ scale: 1 }}
-                            className="text-foreground text-sm w-6 text-center font-medium"
+                            className="w-6 text-center text-sm font-semibold text-foreground"
                           >
                             {item.quantity}
                           </motion.span>
                           <button
                             onClick={() => onUpdateQuantity(item.id, 1)}
-                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                           >
                             <Plus className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={() => onRemoveItem(item.id)}
-                            className="p-1 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 ml-1 transition-colors"
+                            className="ml-1 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -181,9 +182,8 @@ export default function  OrderSummary({
                   </AnimatePresence>
                 </div>
 
-                {/* ─── Totals with splash animation ────────────────────────── */}
                 <motion.div
-                  className="pt-3 border-t border-border space-y-1"
+                  className="space-y-1.5 rounded-[20px] border border-border/60 bg-background/70 p-3"
                   animate={
                     cartSplash
                       ? {
@@ -193,7 +193,7 @@ export default function  OrderSummary({
                   }
                   transition={{ duration: 0.3 }}
                 >
-                  <div className="flex justify-between text-foreground">
+                  <div className="flex justify-between text-sm text-foreground">
                     <span>Subtotal</span>
                     <motion.span
                       key={total}
@@ -205,7 +205,7 @@ export default function  OrderSummary({
                     </motion.span>
                   </div>
                   {discountAmount > 0 && (
-                    <div className="flex justify-between text-emerald-400">
+                    <div className="flex justify-between text-sm text-emerald-500">
                       <span>Discount</span>
                       <motion.span
                         key={discountAmount}
@@ -217,7 +217,7 @@ export default function  OrderSummary({
                       </motion.span>
                     </div>
                   )}
-                  <div className="flex justify-between text-foreground font-bold text-lg pt-1 border-t border-border">
+                  <div className="flex justify-between border-t border-border/70 pt-2 text-base font-semibold text-foreground">
                     <span>Grand Total</span>
                     <motion.span
                       className="text-indigo-400"
@@ -234,16 +234,15 @@ export default function  OrderSummary({
             )}
           </AnimatePresence>
 
-          {/* ─── Discount Dropdown ────────────────────────────────── */}
           {canApplyDiscount && (
-            <div className="pt-2 border-t border-border">
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <div className="rounded-[20px] border border-border/60 bg-background/70 p-3">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Apply Discount
               </label>
               <select
                 value={selectedDiscountId}
                 onChange={(e) => onDiscountChange(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-2xl border border-border/70 bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 disabled={loadingDiscounts}
               >
                 <option value="">No discount</option>
@@ -259,7 +258,6 @@ export default function  OrderSummary({
                 ))}
               </select>
 
-              {/* ─── Promo Code Input ─── */}
               {selectedDiscountId &&
                 discounts.find((d) => String(d.id) === selectedDiscountId)
                   ?.requires_code && (
@@ -269,7 +267,7 @@ export default function  OrderSummary({
                     exit={{ opacity: 0, height: 0 }}
                     className="mt-2 overflow-hidden"
                   >
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
                       Promo Code
                     </label>
                     <input
@@ -277,16 +275,15 @@ export default function  OrderSummary({
                       value={promoCode}
                       onChange={(e) => onPromoCodeChange(e.target.value)}
                       placeholder="Enter promo code..."
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-2xl border border-border/70 bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </motion.div>
                 )}
             </div>
           )}
 
-          {/* ─── Special Instructions ────────────────────────────── */}
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <div className="rounded-[20px] border border-border/60 bg-background/70 p-3">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Special Instructions
             </label>
             <textarea
@@ -294,19 +291,15 @@ export default function  OrderSummary({
               onChange={(e) => onSpecialInstructionsChange(e.target.value)}
               rows={2}
               placeholder="e.g. No onions, extra cheese..."
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full resize-none rounded-2xl border border-border/70 bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
-          {/* ─── Submit Button ────────────────────────────────────── */}
-          <motion.div
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
+          <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
             <Button
               onClick={onSubmit}
               disabled={cart.length === 0 || submitting}
-              className="w-full gap-2"
+              className="h-12 w-full gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-500 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20"
             >
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

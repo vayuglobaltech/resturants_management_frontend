@@ -304,23 +304,50 @@ const clearFilters = () => {
 
   return (
     <ProtectedOrder>
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">New Order</h1>
+      <div className="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-5 lg:px-6">
+        <div className="overflow-hidden rounded-[30px] border border-border/70 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.16),_transparent_36%),linear-gradient(135deg,_rgba(255,255,255,0.95),_rgba(248,250,252,0.82))] p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,0.5)] sm:p-6 dark:bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.16),_transparent_36%),linear-gradient(135deg,_rgba(27,27,31,0.95),_rgba(15,23,42,0.86))]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-3 inline-flex items-center rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-indigo-400">
+                <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+                Premium order builder
+              </div>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                Create a new order
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+                Build your order with speed and clarity using a more refined, high-end interface designed for busy service staff.
+              </p>
+            </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
+            <div className="rounded-[22px] border border-border/70 bg-background/85 px-3.5 py-3 shadow-sm backdrop-blur">
+              <div className="flex items-center gap-3 text-foreground">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-400">
+                  <ShoppingCart className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">{cart.length} item{cart.length === 1 ? "" : "s"}</p>
+                  <p className="text-xs text-muted-foreground">Total ${grandTotal.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
           {/* ─── Left Panel: Menu Browser ─── */}
           <div className="flex-1 space-y-4">
             {/* ─── Table Selection ─── */}
-            <div>
+            <div className="rounded-[24px] border border-border/70 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
               <label
                 htmlFor="table"
-                className="block text-sm font-medium text-slate-300 mb-1"
+                className="mb-2 block text-sm font-medium text-foreground"
               >
                 Select Table *
               </label>
 
               {preSelectedTable ? (
-                <div className="text-white bg-white/5 px-3 py-2 rounded-md border border-white/10">
+                <div className="rounded-2xl border border-border/70 bg-background/70 px-3 py-3 text-sm text-foreground shadow-sm">
                   Table{" "}
                   {tables.find((t) => String(t.id) === preSelectedTable)
                     ?.table_number || preSelectedTable}
@@ -334,7 +361,7 @@ const clearFilters = () => {
                 <select
                   id="table"
                   {...register("table", { required: "Table is required" })}
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-2xl border border-border/70 bg-background/80 px-3 py-2.5 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Select a table</option>
                   {tables.map((table) => (
@@ -347,51 +374,53 @@ const clearFilters = () => {
               )}
 
               {errors.table && (
-                <p className="text-sm text-red-400 mt-1">
+                <p className="mt-1 text-sm text-red-400">
                   {errors.table.message}
                 </p>
               )}
             </div>
 
             {/* ─── Search and Filter Section ─── */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
+            <div className="rounded-[24px] border border-border/70 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Search by name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
+                    className="h-11 rounded-2xl border-border/70 bg-background/70 pl-9 text-sm shadow-sm"
                   />
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSkuFilter(!showSkuFilter)}
-                  className={cn(
-                    "gap-1.5",
-                    showSkuFilter && "border-indigo-500 bg-indigo-500/10 text-indigo-400"
-                  )}
-                >
-                  <Barcode className="h-4 w-4" />
-                  SKU
-                  {selectedSku && (
-                    <span className="ml-1 h-2 w-2 rounded-full bg-indigo-400" />
-                  )}
-                </Button>
-                {(searchTerm || selectedSku) && (
+                <div className="flex items-center gap-2">
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    onClick={clearFilters}
-                    className="text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowSkuFilter(!showSkuFilter)}
+                    className={cn(
+                      "h-11 gap-1.5 rounded-2xl px-3",
+                      showSkuFilter && "border-indigo-500 bg-indigo-500/10 text-indigo-400"
+                    )}
                   >
-                    <X className="h-4 w-4" />
+                    <Barcode className="h-4 w-4" />
+                    SKU
+                    {selectedSku && (
+                      <span className="ml-1 h-2 w-2 rounded-full bg-indigo-400" />
+                    )}
                   </Button>
-                )}
+                  {(searchTerm || selectedSku) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-11 rounded-2xl text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* ─── SKU Filter - Horizontal Chips ─── */}
@@ -402,17 +431,17 @@ const clearFilters = () => {
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
+                    className="mt-3 overflow-hidden"
                   >
-                    <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border">
+                    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-muted/25 p-2.5">
                       <span className="text-xs font-medium text-muted-foreground">
-                        <Barcode className="h-3 w-3 inline mr-1" />
+                        <Barcode className="mr-1 inline h-3 w-3" />
                         SKUs:
                       </span>
                       <button
                         onClick={() => setSelectedSku("")}
                         className={cn(
-                          "text-xs px-3 py-1 rounded-full transition-all",
+                          "rounded-full px-3 py-1 text-xs transition-all",
                           !selectedSku
                             ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25"
                             : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -425,7 +454,7 @@ const clearFilters = () => {
                           key={sku}
                           onClick={() => setSelectedSku(sku)}
                           className={cn(
-                            "text-xs px-3 py-1 rounded-full transition-all font-mono",
+                            "rounded-full px-3 py-1 text-xs font-mono transition-all",
                             selectedSku === sku
                               ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25"
                               : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -435,7 +464,7 @@ const clearFilters = () => {
                         </button>
                       ))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1 ml-1">
+                    <p className="ml-1 mt-2 text-xs text-muted-foreground">
                       {filteredItems.length} item(s) found
                     </p>
                   </motion.div>
@@ -444,14 +473,14 @@ const clearFilters = () => {
             </div>
 
             {/* Menu grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-h-[70vh] lg:overflow-y-auto lg:pr-1">
               {filteredItems.length === 0 ? (
-                <div className="col-span-2 text-center py-8 text-muted-foreground">
+                <div className="col-span-2 rounded-[24px] border border-dashed border-border/70 bg-card/70 py-8 text-center text-muted-foreground shadow-sm">
                   <p>No menu items found.</p>
                   {(searchTerm || selectedSku) && (
                     <button
                       onClick={clearFilters}
-                      className="text-indigo-400 hover:text-indigo-300 text-sm mt-2"
+                      className="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
                     >
                       Clear all filters
                     </button>
@@ -459,51 +488,61 @@ const clearFilters = () => {
                 </div>
               ) : (
                 filteredItems.map((item) => {
-                  const cartItem = cart.find(i => i.id === item.id);
+                  const cartItem = cart.find((i) => i.id === item.id);
                   const quantityInCart = cartItem?.quantity || 0;
-                  
+
                   return (
                     <motion.button
                       key={item.id}
-                      whileHover={{ scale: 1.02 }}
+                      whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => addToCart(item)}
                       disabled={!item.is_available}
                       className={cn(
-                        "text-left p-3 rounded-xl border transition-all relative",
+                        "group relative overflow-hidden rounded-[22px] border p-3.5 text-left shadow-sm transition-all duration-300",
                         item.is_available
-                          ? "border-border hover:border-indigo-500/50 bg-muted/30 hover:bg-muted/30"
-                          : "border-border bg-muted/30 opacity-50 cursor-not-allowed",
+                          ? "border-border/70 bg-gradient-to-br from-background via-background to-muted/30 hover:-translate-y-0.5 hover:border-indigo-500/50 hover:shadow-[0_16px_40px_-22px_rgba(99,102,241,0.7)]"
+                          : "cursor-not-allowed border-border/70 bg-muted/30 opacity-60"
                       )}
                     >
                       {quantityInCart > 0 && (
-                        <div className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
+                        <div className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-white shadow-lg">
                           {quantityInCart}
                         </div>
                       )}
-                      
-                      <div>
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-foreground font-medium text-sm truncate">
+
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="truncate text-sm font-semibold text-foreground">
                               {item.name}
                             </h4>
-                            <p className="text-muted-foreground text-xs line-clamp-1">
-                              {item.category_name || "Uncategorized"}
-                            </p>
-                            {item.sku && (
-                              <div className="flex items-center gap-1 mt-0.5">
-                                <Barcode className="h-3 w-3 text-muted-foreground/60" />
-                                <span className="text-[10px] text-muted-foreground/60 font-mono">
-                                  {item.sku}
-                                </span>
-                              </div>
+                            {!item.is_available && (
+                              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-amber-500">
+                                Unavailable
+                              </span>
                             )}
                           </div>
-                          <span className="text-indigo-400 font-bold text-sm ml-2">
-                            ${parseFloat(item.price).toFixed(2)}
-                          </span>
+                          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                            {item.category_name || "Uncategorized"}
+                          </p>
+                          {item.sku && (
+                            <div className="mt-1 flex items-center gap-1">
+                              <Barcode className="h-3 w-3 text-muted-foreground/60" />
+                              <span className="text-[10px] font-mono text-muted-foreground/70">
+                                {item.sku}
+                              </span>
+                            </div>
+                          )}
                         </div>
+                        <span className="ml-2 text-sm font-semibold text-indigo-400">
+                          ${parseFloat(item.price).toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="rounded-full bg-muted/70 px-2 py-1">Tap to add</span>
+                        <span className="font-medium text-foreground/80">Quick pick</span>
                       </div>
                     </motion.button>
                   );

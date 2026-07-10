@@ -103,10 +103,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 "transition-all duration-300 ease-in-out",
                 "print:ml-0 print:p-0 print:overflow-visible print:block",
                 !shouldHideSidebar && sidebarCollapsed
-      ? "ml-14 md:ml-16"
-      : !shouldHideSidebar && "ml-52 md:ml-64",
-    // When sidebar is hidden, no left margin
-    shouldHideSidebar && "ml-0"
+                  ? "ml-10 md:ml-11"
+                  : !shouldHideSidebar && "ml-36 md:ml-40",
+                // When sidebar is hidden, no left margin
+                shouldHideSidebar && "ml-0"
               )}
             >
               {children}
