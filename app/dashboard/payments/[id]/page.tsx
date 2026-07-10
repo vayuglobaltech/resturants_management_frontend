@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { use } from "react"; // 👈 import React.use
+import { use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -25,19 +25,48 @@ interface PaymentDetail {
   customer_name?: string;
   table_number?: number;
   order_ids?: number[];
+  order_numbers?: string[];
 }
 
-export default function PaymentReceiptPage({ 
-  params 
-}: { 
-  params: Promise<{ id: string }>  // 👈 params is a Promise
-}) {
-  // 👇 Unwrap the params Promise using React.use()
+// ─── Helper: combine items from multiple orders ──────────────────────
+function combineOrderItems(orders: any[]) {
+  const itemMap = new Map();
+
+  orders.forEach((order) => {
+    (order.items || []).forEach((item: any) => {
+      const productId = item.product;
+      if (!productId) return;
+      const qty = item.quantity || 1;
+      const price = item.price_at_order || 0;
+      const name = item.product_name || "Unknown";
+
+      if (itemMap.has(productId)) {
+        const existing = itemMap.get(productId)!;
+        existing.quantity += qty;
+        existing.total_price = existing.quantity * existing.price_at_order;
+      } else {
+        itemMap.set(productId, {
+          product_id: productId,
+          product_name: name,
+          quantity: qty,
+          price_at_order: price,
+          total_price: qty * price,
+        });
+      }
+    });
+  });
+
+  return Array.from(itemMap.values());
+}
+
+export default function PaymentReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { user } = useAuth();
   const [payment, setPayment] = useState<PaymentDetail | null>(null);
-  const [order, setOrder] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [combinedItems, setCombinedItems] = useState<any[]>([]);
+  const [combinedTotal, setCombinedTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [isPrintReady, setIsPrintReady] = useState(false);
@@ -51,11 +80,24 @@ export default function PaymentReceiptPage({
         if (!paymentRes.ok) throw paymentData;
         setPayment(paymentData);
 
-        // 2. Fetch order details to get items
-        if (paymentData.order) {
-          const orderData = await getOrder(paymentData.order);
-          setOrder(orderData);
+        // 2. Determine which orders to fetch
+        let orderIds: number[] = [];
+        if (paymentData.order_ids && paymentData.order_ids.length > 0) {
+          orderIds = paymentData.order_ids;
+        } else if (paymentData.order) {
+          orderIds = [paymentData.order];
         }
+
+        // 3. Fetch all orders in parallel
+        const orderPromises = orderIds.map((orderId: number) => getOrder(orderId));
+        const fetchedOrders = await Promise.all(orderPromises);
+        setOrders(fetchedOrders);
+
+        // 4. Combine items from all orders
+        const combined = combineOrderItems(fetchedOrders);
+        setCombinedItems(combined);
+        const total = combined.reduce((sum, item) => sum + item.total_price, 0);
+        setCombinedTotal(total);
       } catch (error) {
         console.error("Failed to load receipt:", error);
         toast.error("Could not load payment details.");
@@ -105,7 +147,7 @@ export default function PaymentReceiptPage({
     );
   }
 
-  if (!payment || !order) {
+  if (!payment || orders.length === 0) {
     return (
       <div className="text-center py-16">
         <p className="text-muted-foreground">Payment not found.</p>
@@ -118,12 +160,13 @@ export default function PaymentReceiptPage({
     );
   }
 
-  const items = order.items || [];
-  const subtotal = Number(order.total_amount) || 0;
-  const totalDiscount = 0;
-  const cashierName = user?.first_name && user?.last_name
-    ? `${user.first_name} ${user.last_name}`
-    : user?.username || "Cashier";
+  // ─── Build combined order number string ──────────────────────────────
+  const combinedOrderNumbers = orders.map((o) => o.order_number).join(", ");
+
+  const cashierName =
+    user?.first_name && user?.last_name
+      ? `${user.first_name} ${user.last_name}`
+      : user?.username || "Cashier";
 
   return (
     <div className="max-w-4xl mx-auto py-6 space-y-6 print:py-0 print:space-y-0">
@@ -161,16 +204,16 @@ export default function PaymentReceiptPage({
         <div ref={invoiceRef} id="invoice-content" className="print:bg-white">
           <InvoicePreview
             tableNumber={payment.table_number || null}
-            items={items}
-            subtotal={subtotal}
-            grandTotal={subtotal}
+            items={combinedItems}
+            subtotal={combinedTotal}
+            grandTotal={combinedTotal}
             customerName={payment.customer_name || "Guest"}
             cashierName={cashierName}
-            paymentMethod={payment.payment_method}  
-            orderNumber={payment.order_number}
+            paymentMethod={payment.payment_method}
+            orderNumber={combinedOrderNumbers || payment.order_number}
             date={payment.created_at}
             discounts={[]}
-            totalDiscount={totalDiscount}
+            totalDiscount={0}
           />
         </div>
       </div>
