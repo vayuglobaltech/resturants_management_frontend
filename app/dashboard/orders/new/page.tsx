@@ -14,6 +14,7 @@ import {
   Table as TableIcon,
   Send,
   Loader2,
+  Barcode,X,
   AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -35,6 +36,7 @@ interface MenuItem {
   description: string;
   category_name: string;
   is_available: boolean;
+  sku?: string;
 }
 
 interface CartItem extends MenuItem {
@@ -59,6 +61,8 @@ export default function NewOrderPage() {
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedSku, setSelectedSku] = useState<string>("");
+const [showSkuFilter, setShowSkuFilter] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -209,14 +213,30 @@ const [isCartOpen, setIsCartOpen] = useState(false);
     setCart((prev) => prev.filter((i) => i.id !== id));
   };
 
+  const uniqueSkus = useMemo(() => { // ← ADD THIS
+    const skus = menuItems
+      .map(item => item.sku)
+      .filter((sku): sku is string => !!sku);
+    return [...new Set(skus)];
+  }, [menuItems]);
+
   // ─── Filter Menu Items ──────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
-    if (!searchTerm.trim()) return menuItems;
-    return menuItems.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-  }, [menuItems, searchTerm]);
-
+    let filtered = menuItems;
+    
+    if (searchTerm.trim()) {
+      filtered = filtered.filter((item) =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+    }
+        if (selectedSku) {
+      filtered = filtered.filter((item) =>
+        item.sku?.toLowerCase() === selectedSku.toLowerCase(),
+      );
+    }
+    
+    return filtered;
+  }, [menuItems, searchTerm, selectedSku]); 
   // ─── Submit Order ────────────────────────────────────────────────────────
   const onSubmit = async (data: FormData) => {
     if (!selectedTableId) {
@@ -261,6 +281,13 @@ const [isCartOpen, setIsCartOpen] = useState(false);
     );
   }
 
+  // ─── Clear all filters ───────────────────────────────────────────────────
+const clearFilters = () => { 
+  setSearchTerm("");
+  setSelectedSku("");
+  setShowSkuFilter(false);
+};
+
   const roleName =
     typeof user?.role === "object" && user?.role !== null && "name" in user.role
       ? String(user.role.name)
@@ -293,7 +320,6 @@ const [isCartOpen, setIsCartOpen] = useState(false);
               </label>
 
               {preSelectedTable ? (
-                // ─── Locked: read‑only display ──────────────────────────────────────
                 <div className="text-white bg-white/5 px-3 py-2 rounded-md border border-white/10">
                   Table{" "}
                   {tables.find((t) => String(t.id) === preSelectedTable)
@@ -305,7 +331,6 @@ const [isCartOpen, setIsCartOpen] = useState(false);
                   />
                 </div>
               ) : (
-                // ─── Normal dropdown ────────────────────────────────────────────────
                 <select
                   id="table"
                   {...register("table", { required: "Table is required" })}
@@ -328,26 +353,112 @@ const [isCartOpen, setIsCartOpen] = useState(false);
               )}
             </div>
 
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search menu items..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
+            {/* ─── Search and Filter Section ─── */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSkuFilter(!showSkuFilter)}
+                  className={cn(
+                    "gap-1.5",
+                    showSkuFilter && "border-indigo-500 bg-indigo-500/10 text-indigo-400"
+                  )}
+                >
+                  <Barcode className="h-4 w-4" />
+                  SKU
+                  {selectedSku && (
+                    <span className="ml-1 h-2 w-2 rounded-full bg-indigo-400" />
+                  )}
+                </Button>
+                {(searchTerm || selectedSku) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              {/* ─── SKU Filter - Horizontal Chips ─── */}
+              <AnimatePresence>
+                {showSkuFilter && uniqueSkus.length > 0 && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        <Barcode className="h-3 w-3 inline mr-1" />
+                        SKUs:
+                      </span>
+                      <button
+                        onClick={() => setSelectedSku("")}
+                        className={cn(
+                          "text-xs px-3 py-1 rounded-full transition-all",
+                          !selectedSku
+                            ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25"
+                            : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                      >
+                        All
+                      </button>
+                      {uniqueSkus.map((sku) => (
+                        <button
+                          key={sku}
+                          onClick={() => setSelectedSku(sku)}
+                          className={cn(
+                            "text-xs px-3 py-1 rounded-full transition-all font-mono",
+                            selectedSku === sku
+                              ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25"
+                              : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+                          )}
+                        >
+                          {sku}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 ml-1">
+                      {filteredItems.length} item(s) found
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Menu grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto pr-1">
               {filteredItems.length === 0 ? (
                 <div className="col-span-2 text-center py-8 text-muted-foreground">
-                  No menu items found.
+                  <p>No menu items found.</p>
+                  {(searchTerm || selectedSku) && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-indigo-400 hover:text-indigo-300 text-sm mt-2"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
                 </div>
               ) : (
                 filteredItems.map((item) => {
-                  // Find if this item is already in cart
                   const cartItem = cart.find(i => i.id === item.id);
                   const quantityInCart = cartItem?.quantity || 0;
                   
@@ -365,7 +476,6 @@ const [isCartOpen, setIsCartOpen] = useState(false);
                           : "border-border bg-muted/30 opacity-50 cursor-not-allowed",
                       )}
                     >
-                      {/* Show quantity badge if item is in cart */}
                       {quantityInCart > 0 && (
                         <div className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
                           {quantityInCart}
@@ -381,6 +491,14 @@ const [isCartOpen, setIsCartOpen] = useState(false);
                             <p className="text-muted-foreground text-xs line-clamp-1">
                               {item.category_name || "Uncategorized"}
                             </p>
+                            {item.sku && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <Barcode className="h-3 w-3 text-muted-foreground/60" />
+                                <span className="text-[10px] text-muted-foreground/60 font-mono">
+                                  {item.sku}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <span className="text-indigo-400 font-bold text-sm ml-2">
                             ${parseFloat(item.price).toFixed(2)}
@@ -391,30 +509,31 @@ const [isCartOpen, setIsCartOpen] = useState(false);
                   );
                 })
               )}
-              </div>
             </div>
+          </div>
 
           {/* ─── Right Panel: Order Summary ─── */}
- <OrderSummary
- cart={cart}
- total={total}
- discountAmount={discountAmount}
- grandTotal={grandTotal}
- cartSplash={cartSplash}
- canApplyDiscount={canApplyDiscount}
- discounts={discounts}
- selectedDiscountId={selectedDiscountId}
- loadingDiscounts={loadingDiscounts}
- promoCode={promoCode}
- submitting={submitting}
- specialInstructions={specialInstructions}
- onUpdateQuantity={updateQuantity}
- onRemoveItem={removeItem}
- onDiscountChange={handleDiscountChange}
- onPromoCodeChange={setPromoCode}
- onSpecialInstructionsChange={handleSpecialInstructionsChange}
- onSubmit={handleSubmit(onSubmit)}
-/>        </div>
+          <OrderSummary
+            cart={cart}
+            total={total}
+            discountAmount={discountAmount}
+            grandTotal={grandTotal}
+            cartSplash={cartSplash}
+            canApplyDiscount={canApplyDiscount}
+            discounts={discounts}
+            selectedDiscountId={selectedDiscountId}
+            loadingDiscounts={loadingDiscounts}
+            promoCode={promoCode}
+            submitting={submitting}
+            specialInstructions={specialInstructions}
+            onUpdateQuantity={updateQuantity}
+            onRemoveItem={removeItem}
+            onDiscountChange={handleDiscountChange}
+            onPromoCodeChange={setPromoCode}
+            onSpecialInstructionsChange={handleSpecialInstructionsChange}
+            onSubmit={handleSubmit(onSubmit)}
+          />
+        </div>
       </div>
     </ProtectedOrder>
   );
