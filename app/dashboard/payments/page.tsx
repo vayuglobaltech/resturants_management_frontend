@@ -67,9 +67,9 @@ const STATUS_OPTIONS = [
 const METHOD_OPTIONS = [
   { value: "", label: "All Methods" },
   { value: "CASH", label: "Cash" },
-  { value: "CARD", label: "Card" },
-  { value: "BANK_TRANSFER", label: "Bank Transfer" },
-  { value: "MOBILE_MONEY", label: "Mobile Money" },
+  { value: "QR", label: "QR" },
+  // { value: "BANK_TRANSFER", label: "Bank Transfer" },
+  // { value: "MOBILE_MONEY", label: "Mobile Money" },
 ];
 
 function useIsMobile() {
