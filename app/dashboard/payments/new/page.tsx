@@ -219,8 +219,7 @@ export default function NewPaymentPage() {
           const eligibleOrders = activeOrders.filter(
             (o: any) =>
               // o.status?.toUpperCase() === "READY" ||
-              o.status?.toUpperCase() === "DELIVERED"&&
-    !o.has_payment   // ✅ exclude already paid orders
+              o.status?.toUpperCase() === "DELIVERED" && !o.has_payment, // ✅ exclude already paid orders
           );
           console.log("📦 Eligible orders (READY/DELIVERED):", eligibleOrders);
 
@@ -235,8 +234,8 @@ export default function NewPaymentPage() {
             // Combine items
             const combined = combineOrderItems(eligibleOrders);
             setCombinedItems(combined);
-            const total = combined.reduce(
-              (sum, item) => sum + item.total_price,
+            const total = eligibleOrders.reduce(
+              (sum, order) => sum + parseFloat(order.total_amount || 0),
               0,
             );
             setCombinedTotal(total);
@@ -342,7 +341,12 @@ export default function NewPaymentPage() {
   // ─── Total discount from selected order ──────────────────────────────────
   // We no longer have a single selectedOrder; discounts are handled elsewhere
   // For combined bills, we can sum discounts from all orders (optional)
-  const totalDiscount = 0; // or calculate from all orders if your backend supports it
+  // ─── Compute discounts from all eligible orders ──────────────────────────
+  const totalDiscountFromOrders = eligibleOrders.reduce(
+    (sum, order) =>
+      sum + (order.discounts || []).reduce((s, d) => s + Number(d.amount), 0),
+    0,
+  );
 
   // ─── 5. Auto‑fill amount when table changes ──────────────────────────
   useEffect(() => {
@@ -361,7 +365,6 @@ export default function NewPaymentPage() {
     }
 
     const allOrderIds = eligibleOrders.map((o) => o.id); // all order IDs
-
 
     // Prepare payload with master order
     const payload = {
@@ -540,6 +543,13 @@ export default function NewPaymentPage() {
     );
   };
 
+  // Compute total discount from all eligible orders
+  const totalDiscountValue = eligibleOrders.reduce(
+    (sum, order) =>
+      sum + (order.discounts || []).reduce((s, d) => s + Number(d.amount), 0),
+    0,
+  );
+  const subtotalBeforeDiscount = combinedTotal + totalDiscountValue;
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 print:bg-white print:p-0 print:block">
       <div className="max-w-7xl mx-auto space-y-6 print:hidden">
@@ -679,6 +689,26 @@ export default function NewPaymentPage() {
                                     </div>
                                   ))}
                                 </div>
+
+                                {/* Subtotal before discount */}
+                                <div className="flex justify-between text-sm text-muted-foreground pt-1">
+                                  <span>Subtotal</span>
+                                  <span>
+                                    ${subtotalBeforeDiscount.toFixed(2)}
+                                  </span>
+                                </div>
+
+                                {/* Discount if any */}
+                                {totalDiscountFromOrders > 0 && (
+                                  <div className="flex justify-between text-sm text-emerald-400">
+                                    <span>Discount</span>
+                                    <span>
+                                      -${totalDiscountFromOrders.toFixed(2)}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Grand total (discounted) */}
                                 <div className="flex justify-between pt-2 border-t border-border font-bold text-foreground">
                                   <span>Total</span>
                                   <span className="text-indigo-400">
@@ -1100,7 +1130,7 @@ export default function NewPaymentPage() {
                 <InvoicePreview
                   tableNumber={selectedTable?.table_number || null}
                   items={combinedItems}
-                  subtotal={combinedTotal}
+                  subtotal={subtotalBeforeDiscount}
                   grandTotal={combinedTotal}
                   customerName={customerName || "Guest"}
                   cashierName={cashierName}
@@ -1111,7 +1141,7 @@ export default function NewPaymentPage() {
                   }
                   date={new Date().toISOString()}
                   discounts={eligibleOrders.flatMap((o) => o.discounts || [])}
-                  totalDiscount={0} // or calculate combined discounts if needed
+                  totalDiscount={totalDiscountValue} // or calculate combined discounts if needed
                 />
               </div>
             </div>
