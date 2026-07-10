@@ -10,6 +10,7 @@ import {
   updateDiscount,
   deleteDiscount,
 } from "@/lib/ordersApi";
+import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,11 @@ type Discount = {
   created_at: string;
 };
 
+type Branch = {
+  id: number;
+  name: string;
+};
+
 export default function DiscountsPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -53,6 +59,7 @@ export default function DiscountsPage() {
   const [filtered, setFiltered] = useState<Discount[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
 
   // ─── Modal state ──────────────────────────────────────────────────
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,6 +81,27 @@ export default function DiscountsPage() {
   // ─── Delete modal ─────────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<Discount | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // ─── User role & branch ──────────────────────────────────────────
+  const userRole = user?.role?.name?.toUpperCase();
+  const isAdmin = userRole === "ADMIN";
+  const userBranch = user?.branch || user?.primary_branch;
+
+  // ─── Fetch branches (only for admin) ────────────────────────────
+  useEffect(() => {
+    if (isAdmin) {
+      const fetchBranches = async () => {
+        try {
+          const res = await apiFetch("/api/branches/", {}, true);
+          const data = await res.json();
+          setBranches(data.results || data || []);
+        } catch (error) {
+          console.error("Failed to fetch branches:", error);
+        }
+      };
+      fetchBranches();
+    }
+  }, [isAdmin]);
 
   const fetchDiscounts = async () => {
     try {
@@ -126,12 +154,14 @@ export default function DiscountsPage() {
       });
     } else {
       setEditingDiscount(null);
+      // For non‑admin, auto‑set branch
+      const defaultBranch = isAdmin ? "" : (userBranch?.id ? String(userBranch.id) : "");
       setFormData({
         name: "",
         description: "",
         type: "percentage",
         value: "",
-        branch: "",
+        branch: defaultBranch,
         is_active: true,
         start_date: "",
         end_date: "",
@@ -396,24 +426,37 @@ export default function DiscountsPage() {
                 </div>
               </div>
 
-              {/* Branch */}
+              {/* ─── Branch ────────────────────────────────────────────── */}
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  Branch (optional)
+                  Branch {isAdmin ? "(optional)" : ""}
                 </label>
-                <select
-                  value={formData.branch}
-                  onChange={(e) =>
-                    setFormData({ ...formData, branch: e.target.value })
-                  }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">All Branches (Global)</option>
-                  <option value="1">Downtown Branch</option>
-                  <option value="2">Lalitpur Branch</option>
-                  <option value="3">Bhaktapur Branch</option>
-                  <option value="6">Ramro Branch</option>
-                </select>
+                {isAdmin ? (
+                  <select
+                    value={formData.branch}
+                    onChange={(e) =>
+                      setFormData({ ...formData, branch: e.target.value })
+                    }
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">All Branches (Global)</option>
+                    {branches.map((branch) => (
+                      <option key={branch.id} value={String(branch.id)}>
+                        {branch.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full rounded-md border border-border bg-background/50 px-3 py-2 text-foreground/80">
+                    {userBranch?.name || "Your branch"} (auto‑assigned)
+                    <input type="hidden" name="branch" value={formData.branch} />
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isAdmin
+                    ? "Leave empty to apply globally, or select a specific branch."
+                    : "Discounts are automatically assigned to your branch."}
+                </p>
               </div>
 
               {/* Start & End Date */}
@@ -477,6 +520,7 @@ export default function DiscountsPage() {
                   <input
                     type="text"
                     value={formData.code}
+                    required
                     onChange={(e) =>
                       setFormData({ ...formData, code: e.target.value })
                     }
