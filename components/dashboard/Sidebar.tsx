@@ -25,7 +25,10 @@ import {
   CheckCircle,
   PieChart,
   Lightbulb,
-  Cloud
+  Cloud,
+  DollarSign,
+  TrendingUp,
+  Receipt
 } from "lucide-react";
 import { listMenuItems } from "@/lib/menuApi";
 import { listOrders, listTables } from "@/lib/ordersApi";
@@ -62,11 +65,13 @@ const SUB_FEATURES: Record<
   ],
   users: [{ label: "All Users", icon: Users, href: "/dashboard/users" }],
   reports: [
-    { label: "Sales Report", icon: BarChart3, href: "/dashboard/reports" },
-    { label: "Gross Profit", icon: PieChart, href: "/dashboard/reports/gross-profit" },
-    { label: "Sales Analytics", icon: Lightbulb, href: "/dashboard/reports/daily-sales" },
-    { label: "Transaction reports", icon: BarChart3, href: "/dashboard/reports/transactions" },
-    { label: "Insights", icon: Cloud, href: "/dashboard/reports/insights" },
+    { label: "Overview", icon: LayoutDashboard, href: "/dashboard/reports" },
+  { label: "Sales Report", icon: BarChart3, href: "/dashboard/reports/sales" },
+  { label: "Product Performance", icon: Package, href: "/dashboard/reports/products" },
+  { label: "Gross Profit", icon: DollarSign, href: "/dashboard/reports/gross-profit" },
+  { label: "Profit & Loss", icon: TrendingUp, href: "/dashboard/reports/profit-loss" },
+  { label: "Order Report", icon: Receipt, href: "/dashboard/reports/orders" },
+  { label: "Employee Performance", icon: Users, href: "/dashboard/reports/employees" },
   ],
 };
 
