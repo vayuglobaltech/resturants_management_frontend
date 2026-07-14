@@ -6,6 +6,7 @@ import {
   DndContext,
   closestCorners,
   DragEndEvent,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
@@ -42,7 +43,7 @@ const STATUS_LABELS: Record<string, string> = {
   OUT_OF_SERVICE: "Out of Service",
 };
 
-// ─── Sortable Table Card ────────────────────────────────────────────────
+// ─── Table Card ─────────────────────────────────────────────────────────
 
 interface TableCardProps {
   table: any;
@@ -56,13 +57,13 @@ function TableCard({ table, onClick }: TableCardProps) {
     setNodeRef,
     transform,
     transition,
-    isDragging,
+    isDragging: isSortableDragging,
   } = useSortable({ id: table.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isSortableDragging ? 0.3 : 1,
   };
 
   const statusColor = STATUS_COLORS[table.status] || "bg-slate-500/20 text-muted-foreground";
@@ -75,9 +76,46 @@ function TableCard({ table, onClick }: TableCardProps) {
       {...listeners}
       onClick={() => onClick?.(table.id)}
       className={cn(
-        "p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors cursor-grab active:cursor-grabbing touch-none"
+        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none select-none"
       )}
     >
+      <div className="flex items-center justify-between">
+        <h4 className="text-foreground font-medium text-sm">
+          Table {table.table_number}
+        </h4>
+        <Badge className={cn("text-xs", statusColor)}>
+          {STATUS_LABELS[table.status] || table.status}
+        </Badge>
+      </div>
+      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+        <Users className="h-3 w-3" />
+        <span>Capacity: {table.capacity}</span>
+        {table.area && (
+          <>
+            <span className="text-muted-foreground">•</span>
+            <span>{table.area}</span>
+          </>
+        )}
+      </div>
+      {table.server && (
+        <div className="mt-1 text-xs text-muted-foreground">
+          Server: {table.server.username}
+        </div>
+      )}
+      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-xs text-muted-foreground">↕</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Overlay Card (floating during drag) ──────────────────────────────
+
+function OverlayTableCard({ table }: { table: any }) {
+  const statusColor = STATUS_COLORS[table.status] || "bg-slate-500/20 text-muted-foreground";
+
+  return (
+    <div className="p-4 rounded-xl border-2 border-indigo-500/50 bg-card shadow-2xl shadow-indigo-500/30 rotate-1 scale-105 w-[280px] pointer-events-none">
       <div className="flex items-center justify-between">
         <h4 className="text-foreground font-medium text-sm">
           Table {table.table_number}
@@ -105,7 +143,7 @@ function TableCard({ table, onClick }: TableCardProps) {
   );
 }
 
-// ─── Kanban Column ──────────────────────────────────────────────────────
+// ─── Kanban Column ─────────────────────────────────────────────────────
 
 interface KanbanColumnProps {
   status: string;
@@ -152,7 +190,7 @@ function KanbanColumn({ status, tables, onCardClick }: KanbanColumnProps) {
   );
 }
 
-// ─── Main Board ──────────────────────────────────────────────────────────
+// ─── Main Board ─────────────────────────────────────────────────────────
 
 interface TablesKanbanProps {
   onTableUpdate?: () => void;
@@ -163,10 +201,16 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
   const [tables, setTables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingTableId, setUpdatingTableId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeTable, setActiveTable] = useState<any>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } }),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
+    }),
     useSensor(KeyboardSensor)
   );
 
@@ -192,7 +236,23 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
     return acc;
   }, {} as Record<string, any[]>);
 
+  const handleDragStart = (event: any) => {
+    const table = tables.find((t) => t.id === event.active.id);
+    if (table) {
+      setActiveTable(table);
+    }
+    setActiveId(event.active.id);
+  };
+
+  const handleDragCancel = () => {
+    setActiveTable(null);
+    setActiveId(null);
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveTable(null);
+    setActiveId(null);
+
     const { active, over } = event;
     if (!over) return;
 
@@ -253,7 +313,9 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 snap-x">
         {TABLE_STATUSES.map((status) => (
@@ -266,6 +328,13 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
           </div>
         ))}
       </div>
+
+      {/* ─── Drag Overlay ────────────────────────────────────────────── */}
+      <DragOverlay>
+        {activeId && activeTable ? (
+          <OverlayTableCard table={activeTable} />
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

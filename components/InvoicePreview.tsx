@@ -22,7 +22,7 @@ interface InvoicePreviewProps {
   grandTotal: number;
   customerName: string;
   cashierName: string;
-  paymentMethod: string;
+  // paymentMethod: string;
   orderNumber?: string;
   date?: string;
   discounts?: InvoiceDiscount[];
@@ -36,7 +36,7 @@ export function InvoicePreview({
   grandTotal,
   customerName,
   cashierName,
-  paymentMethod,
+  // paymentMethod,
   orderNumber,
   date,
   discounts = [],
@@ -150,9 +150,9 @@ export function InvoicePreview({
 
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600">
-        <p>
+        {/* <p>
           <strong>Payment Method:</strong> {paymentMethod}
-        </p>
+        </p> */}
         <p className="text-center text-xs mt-4">Thank you for your visit!</p>
       </div>
     </div>
