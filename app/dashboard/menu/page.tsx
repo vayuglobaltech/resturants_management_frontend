@@ -5,38 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { listMenuItems, deleteMenuItem } from "@/lib/menuApi";
 import { getCategories } from "@/lib/api";
-import { 
-  Plus, Edit2, Trash2, Clock, Utensils, 
-  Beef, Fish, Salad, Soup, Cake, Coffee, 
-  Pizza, Flame, ChefHat, Sparkles, Heart 
-} from "lucide-react";
+import { Plus, Edit2, Trash2, Clock, Tag, Filter } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useCanManage } from "@/hooks/useCanManage";
-
-// Category icons
-const categoryIcons: Record<string, any> = {
-  "Appetizers": Utensils, "Starters": Utensils,
-  "Main Course": Beef, "Entrees": Beef,
-  "Pasta": Pizza, "Pizza": Pizza,
-  "Salads": Salad, "Soups": Soup,
-  "Seafood": Fish, "Grill": Flame,
-  "Desserts": Cake, "Dessert": Cake,
-  "Beverages": Coffee, "Drinks": Coffee,
-  "Special": Sparkles, "Popular": Heart,
-};
-const DefaultIcon = Utensils;
-
-const getCategoryIcon = (name: string) => {
-  if (!name) return DefaultIcon;
-  return categoryIcons[name] || 
-    Object.entries(categoryIcons).find(([key]) => 
-      name.toLowerCase().includes(key.toLowerCase())
-    )?.[1] || DefaultIcon;
-};
 
 export default function MenuPage() {
   const canManage = useCanManage();
@@ -47,8 +22,10 @@ export default function MenuPage() {
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
+  // ─── Fetch menu items ──────────────────────────────────────────────
   const fetchItems = async () => {
     try {
       const data = await listMenuItems();
@@ -60,12 +37,15 @@ export default function MenuPage() {
     }
   };
 
+  // ─── Fetch categories ──────────────────────────────────────────────
   const fetchCategories = async () => {
     try {
       const data = await getCategories();
       setCategories(Array.isArray(data) ? data : data.results || []);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
+    } finally {
+      setLoadingCategories(false);
     }
   };
 
@@ -74,45 +54,45 @@ export default function MenuPage() {
     fetchCategories();
   }, []);
 
+  // ─── Filter items by category ──────────────────────────────────────
   const filteredItems = useMemo(() => {
     if (!categoryParam) return items;
     return items.filter((item) => item.category === parseInt(categoryParam));
   }, [items, categoryParam]);
 
-  const groupedItems = useMemo(() => {
-    if (categoryParam) return { [categoryParam]: filteredItems };
-    const grouped: Record<number, any[]> = {};
-    items.forEach(item => {
-      const catId = item.category || 0;
-      if (!grouped[catId]) grouped[catId] = [];
-      grouped[catId].push(item);
-    });
-    return grouped;
-  }, [items, categoryParam, filteredItems]);
-
-  const handleCategoryClick = (id: number | null) => {
-    router.push(id ? `/dashboard/menu?category=${id}` : "/dashboard/menu");
+  // ─── Category click handler ──────────────────────────────────────
+  const handleCategoryClick = (categoryId: number | null) => {
+    if (categoryId === null) {
+      router.push("/dashboard/menu");
+    } else {
+      router.push(`/dashboard/menu?category=${categoryId}`);
+    }
   };
 
+  // ─── Delete handler ─────────────────────────────────────────────────
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
       await deleteMenuItem(deleteTarget.id);
-      toast.success("Menu item deleted.");
+      toast.success("Menu item deleted successfully.");
       fetchItems();
     } catch (err: any) {
-      toast.error(err?.detail || "Failed to delete.");
+      toast.error(err?.detail || "Failed to delete menu item.");
     } finally {
       setDeleteTarget(null);
     }
+  };
+
+  const handleEdit = (id: number) => {
+    router.push(`/dashboard/menu/${id}/edit`);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground">Loading menu...</p>
+          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground text-sm">Loading menu items...</p>
         </div>
       </div>
     );
@@ -120,221 +100,175 @@ export default function MenuPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <span className="text-yellow-500">✦</span>
-            Our Menu
-            <span className="text-sm font-normal text-muted-foreground">
-              ({items.length})
-            </span>
-          </h1>
-        </div>
+      {/* ─── Header ──────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="text-2xl font-bold text-foreground">Menu Management</h1>
         {canManage && (
           <Link href="/dashboard/menu/add">
-            <Button className="gap-2 bg-yellow-500 hover:bg-yellow-600 text-black font-medium">
+            <Button className="gap-1.5">
               <Plus className="h-4 w-4" /> Add Item
             </Button>
           </Link>
         )}
       </div>
 
-      {/* Category Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        <button
-          onClick={() => handleCategoryClick(null)}
-          className={cn(
-            "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
-            !categoryParam
-              ? "bg-yellow-500 text-black shadow-lg shadow-yellow-500/30"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
-          )}
-        >
-          All
-        </button>
-        {categories.map((cat) => {
-          const Icon = getCategoryIcon(cat.name);
-          const isActive = categoryParam === String(cat.id);
-          return (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryClick(cat.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
-                isActive
-                  ? "bg-yellow-500 text-black shadow-lg shadow-yellow-500/30"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {cat.name}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Menu Grid */}
-      {filteredItems.length === 0 ? (
-        <div className="text-center py-16 border-2 border-dashed border-yellow-500/20 rounded-2xl">
-          <Utensils className="h-12 w-12 text-yellow-500/40 mx-auto mb-3" />
-          <p className="text-muted-foreground">
-            {categoryParam ? "No items in this category" : "No menu items yet"}
-          </p>
-          {canManage && !categoryParam && (
-            <Link href="/dashboard/menu/add" className="text-yellow-500 hover:underline text-sm mt-2 inline-block">
-              Add your first item →
-            </Link>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {!categoryParam ? (
-            Object.entries(groupedItems).map(([catId, catItems]) => {
-              const category = categories.find(c => c.id === parseInt(catId));
-              const name = category?.name || "Other";
-              const Icon = getCategoryIcon(name);
-              if (!catItems.length) return null;
-              
+      {/* ─── Horizontal Category Filter ─────────────────────────────── */}
+      <div className="relative">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <button
+            onClick={() => handleCategoryClick(null)}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
+              !categoryParam
+                ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25"
+                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+            )}
+          >
+            All
+          </button>
+          {loadingCategories ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Loading categories...</span>
+            </div>
+          ) : (
+            categories.map((cat) => {
+              const isActive = categoryParam === String(cat.id);
               return (
-                <div key={catId} className="space-y-3">
-                  <div className="flex items-center gap-2 border-b border-yellow-500/20 pb-2">
-                    <Icon className="h-5 w-5 text-yellow-500" />
-                    <h2 className="text-xl font-bold text-foreground">{name}</h2>
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      {catItems.length} items
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {catItems.map((item) => (
-                      <MenuItemCard 
-                        key={item.id}
-                        item={item}
-                        canManage={canManage}
-                        onEdit={(id) => router.push(`/dashboard/menu/${id}/edit`)}
-                        onDelete={setDeleteTarget}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryClick(cat.id)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
+                    isActive
+                      ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                  )}
+                >
+                  {cat.name}
+                </button>
               );
             })
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {filteredItems.map((item) => (
-                <MenuItemCard 
-                  key={item.id}
-                  item={item}
-                  canManage={canManage}
-                  onEdit={(id) => router.push(`/dashboard/menu/${id}/edit`)}
-                  onDelete={setDeleteTarget}
-                />
-              ))}
-            </div>
           )}
+        </div>
+        {/* Gradient fade on right (optional) */}
+        <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+      </div>
+
+      {/* ─── Items grid ───────────────────────────────────────────────── */}
+      {filteredItems.length === 0 ? (
+        <div className="text-center py-16 border border-dashed border-border rounded-2xl">
+          <p className="text-muted-foreground">
+            {categoryParam
+              ? `No items found for this category.`
+              : "No menu items found."}
+          </p>
+          <Link
+            href="/dashboard/menu/add"
+            className="text-indigo-400 hover:text-indigo-300 text-sm mt-2 inline-block"
+          >
+            Add your first menu item →
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredItems.map((item) => (
+            <Card
+              key={item.id}
+              className="relative group py-5 md:py-3 mb-2 bg-muted/30 border-border hover:bg-muted/30 hover:border-indigo-500/30 transition-all duration-200 cursor-pointer overflow-hidden"
+            >
+              {canManage && (
+                <div
+                  className={cn(
+                    "absolute bottom-2 right-3 z-10 flex items-center gap-1",
+                    "opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
+                  )}
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(item.id);
+                    }}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted active:bg-white/20 transition-colors"
+                    aria-label="Edit"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTarget({ id: item.id, name: item.name });
+                    }}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
+                    aria-label="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              <Link href={`/dashboard/menu/${item.id}`} className="block">
+                <CardContent className="p-4 pr-12">
+                  <div className="flex items-start justify-between gap-2 py-3">
+                    <h3 className="text-foreground font-semibold text-base truncate pr-2">
+                      {item.name}
+                    </h3>
+                    <span
+                      className={cn(
+                        "text-xs px-2.5 -py-5 rounded-full border font-medium whitespace-nowrap flex-shrink-0 mt-0.5",
+                        item.is_available
+                          ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                          : "bg-red-500/15 text-red-400 border-red-500/30"
+                      )}
+                    >
+                      {item.is_available ? "Available" : "Unavailable"}
+                    </span>
+                  </div>
+
+                  {item.description && (
+                    <p className="text-muted-foreground text-sm line-clamp-2 mt-1.5">
+                      {item.description}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-border">
+                    <span className="text-indigo-400 font-bold text-lg">
+                      ${parseFloat(item.price).toFixed(2)}
+                    </span>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      {item.category_name && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-background">
+                          <Tag className="h-3 w-3" />
+                          {item.category_name}
+                        </span>
+                      )}
+                      {item.prep_time_minutes && (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {item.prep_time_minutes}m
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Link>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Delete Modal */}
+      {/* ─── Delete Modal ────────────────────────────────────────────── */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        title="Remove Item"
+        title="Delete Menu Item"
         icon={<Trash2 className="h-8 w-8 text-red-400" />}
-        description={`Remove "${deleteTarget?.name}" from menu?`}
-        confirmText="Remove"
+        description={`Are you sure you want to delete "${deleteTarget?.name || 'this item'}"? This action cannot be undone.`}
+        confirmText="Delete"
         cancelText="Cancel"
         onConfirm={handleDelete}
         variant="danger"
       />
     </div>
-  );
-}
-
-// ─── Menu Item Card ──────────────────────────────────────────────────
-function MenuItemCard({ 
-  item, 
-  canManage, 
-  onEdit, 
-  onDelete 
-}: { 
-  item: any; 
-  canManage: boolean; 
-  onEdit: (id: number) => void; 
-  onDelete: (target: { id: number; name: string }) => void;
-}) {
-  const Icon = getCategoryIcon(item.category_name || "");
-
-  return (
-    <Card className={cn(
-      "group relative overflow-hidden transition-all duration-300",
-      "bg-card/80 border-yellow-500/10 hover:border-yellow-500/40",
-      "hover:shadow-lg hover:shadow-yellow-500/5 hover:-translate-y-0.5"
-    )}>
-      <CardContent className="p-4">
-        {/* Header with Icon & Status */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="p-1.5 rounded-lg bg-yellow-500/10 text-yellow-500 flex-shrink-0">
-              <Icon className="h-4 w-4" />
-            </div>
-            <h3 className="font-semibold text-foreground truncate">
-              {item.name}
-            </h3>
-          </div>
-          <span className={cn(
-            "text-xs px-2 py-0.5 rounded-full flex-shrink-0",
-            item.is_available
-              ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-              : "bg-muted text-muted-foreground"
-          )}>
-            {item.is_available ? "✓" : "✗"}
-          </span>
-        </div>
-
-        {/* Description */}
-        {item.description && (
-          <p className="text-muted-foreground text-sm line-clamp-2 mt-1.5">
-            {item.description}
-          </p>
-        )}
-
-        {/* Footer */}
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-yellow-500/10">
-          <span className="text-yellow-500 font-bold text-lg">
-            ${parseFloat(item.price).toFixed(2)}
-          </span>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            {item.prep_time_minutes && (
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {item.prep_time_minutes}m
-              </span>
-            )}
-            {item.category_name && (
-              <span className="text-yellow-500/70">{item.category_name}</span>
-            )}
-          </div>
-        </div>
-
-        {/* Actions */}
-        {canManage && (
-          <div className="flex gap-1 mt-2 pt-2 border-t border-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => onEdit(item.id)}
-              className="flex-1 py-1 text-xs rounded bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 transition-colors"
-            >
-              Edit
-            </button>
-            <button
-              onClick={() => onDelete({ id: item.id, name: item.name })}
-              className="flex-1 py-1 text-xs rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-            >
-              Delete
-            </button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }

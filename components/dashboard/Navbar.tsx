@@ -149,7 +149,7 @@ export function DashboardNavbar({
           {/* Logo */}
           <span className="text-lg sm:text-xl font-bold text-foreground whitespace-nowrap select-none">
             🍽️ Vayu
-            <span className="text-[var(--primary)]">Tech</span>
+            <span className="text-indigo-600 dark:text-indigo-400">Tech</span>
           </span>
 
           {/* Right-side actions */}
@@ -162,7 +162,7 @@ export function DashboardNavbar({
                   ? "Switch to light mode"
                   : "Switch to dark mode"
               }
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <AnimatePresence mode="wait" initial={false}>
                 <motion.span
@@ -174,9 +174,9 @@ export function DashboardNavbar({
                   className="flex"
                 >
                   {theme === "dark" ? (
-                    <Sun className="h-5 w-5 text-[var(--primary)]" />
+                    <Sun className="h-5 w-5 text-amber-400" />
                   ) : (
-                    <Moon className="h-5 w-5 text-[var(--primary)]" />
+                    <Moon className="h-5 w-5 text-indigo-500" />
                   )}
                 </motion.span>
               </AnimatePresence>
@@ -186,7 +186,7 @@ export function DashboardNavbar({
             <NotificationBell />
 
             {/* Role badge – hidden on very small screens */}
-            <span className="hidden sm:inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-[color:var(--primary)]/10 text-[var(--primary)] border border-[color:var(--primary)]/20 whitespace-nowrap font-semibold tracking-wide">
+            <span className="hidden sm:inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:bg-indigo-400/20 dark:text-indigo-300 border border-indigo-500/20 whitespace-nowrap font-semibold tracking-wide">
               {roleName.replace(/_/g, " ").toUpperCase()}
             </span>
 
@@ -197,7 +197,7 @@ export function DashboardNavbar({
                 aria-label="Open profile menu"
                 aria-expanded={isProfileOpen}
                 aria-haspopup="true"
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-[var(--primary)] to-[color:var(--primary)]/70 flex items-center justify-center text-[var(--primary-foreground)] text-[11px] font-bold shadow-md hover:shadow-[0_0_18px_rgba(184,142,76,0.25)] hover:scale-105 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-bold shadow-md hover:shadow-[0_0_18px_rgba(99,102,241,0.5)] hover:scale-105 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {initials}
               </button>
@@ -217,7 +217,7 @@ export function DashboardNavbar({
 
                     {/* User info */}
                     <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--primary)] to-[color:var(--primary)]/70 flex items-center justify-center text-[var(--primary-foreground)] text-xs font-bold flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                         {initials}
                       </div>
                       <div className="min-w-0">
@@ -295,9 +295,9 @@ export function DashboardNavbar({
                 className={cn(
                   "relative h-full px-3 sm:px-3.5 text-xs sm:text-[13px] font-medium whitespace-nowrap",
                   "transition-colors duration-150 flex-shrink-0",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500",
                   isActive
-                    ? "text-[var(--primary)]"
+                    ? "text-indigo-600 dark:text-indigo-400"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md",
                 )}
               >
@@ -306,7 +306,7 @@ export function DashboardNavbar({
                 {isActive && (
                   <motion.span
                     layoutId="nav-tab-indicator"
-                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-[var(--primary)]"
+                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-500 dark:bg-indigo-400"
                     transition={{ type: "spring", stiffness: 450, damping: 38 }}
                   />
                 )}

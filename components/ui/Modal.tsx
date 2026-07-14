@@ -54,7 +54,7 @@ export function Modal({
   const confirmVariant =
     variant === "danger"
       ? "bg-red-600 hover:bg-red-700 shadow-[0_4px_16px_rgba(239,68,68,0.3)]"
-      : "bg-primary hover:bg-primary/90 shadow-[0_8px_24px_rgba(184,142,76,0.25)]";
+      : "bg-indigo-600 hover:bg-indigo-700 shadow-[0_4px_16px_rgba(99,102,241,0.3)]";
 
   return (
     <AnimatePresence>

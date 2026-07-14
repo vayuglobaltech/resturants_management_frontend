@@ -78,7 +78,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 {notifications.length > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-xs text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors font-medium"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-750 dark:hover:text-indigo-305 transition-colors font-medium"
                   >
                     Mark all read
                   </button>
@@ -112,7 +112,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                   >
                     <div className="mt-1 flex-shrink-0">
                       {!notif.read ? (
-                        <Circle className="h-2 w-2 fill-[var(--primary)] text-[var(--primary)]" />
+                        <Circle className="h-2 w-2 fill-indigo-500 text-indigo-500 dark:fill-indigo-400 dark:text-indigo-400" />
                       ) : (
                         <Check className="h-4 w-4 text-muted-foreground" />
                       )}

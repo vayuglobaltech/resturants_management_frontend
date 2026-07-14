@@ -14,18 +14,12 @@ import {
   RefreshCw,
   Search,
   Users,
+  LayoutGrid,
+  List,
   Plus,
   X,
   Check,
   Pencil,
-  Mail,
-  Phone,
-  Briefcase,
-  Building2,
-  Shield,
-  Calendar,
-  BadgeCheck,
-  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -45,7 +39,6 @@ type User = {
   phone_number?: string;
   first_name?: string;
   last_name?: string;
-  date_joined?: string;
 };
 
 export default function UsersPage() {
@@ -57,6 +50,7 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterApproved, setFilterApproved] = useState<"all" | "approved" | "pending">("all");
   const [updating, setUpdating] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "cards">("list");
 
   // ─── Add User Modal ──────────────────────────────────────────────────
   const [showAddModal, setShowAddModal] = useState(false);
@@ -290,39 +284,17 @@ export default function UsersPage() {
   }
 
   const getUserBranch = (u: User) => u.branch_name || u.primary_branch_name || u.branch?.name || u.primary_branch?.name || "—";
-  const getInitials = (u: User) => {
-    const first = u.first_name?.charAt(0) || "";
-    const last = u.last_name?.charAt(0) || "";
-    return (first + last).toUpperCase() || u.username?.charAt(0).toUpperCase() || "U";
-  };
-
-  const getStatusBadge = (u: User) => {
-    if (u.is_approved && u.is_active && u.is_email_verified) {
-      return { label: "Active", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", icon: BadgeCheck };
-    } else if (!u.is_approved) {
-      return { label: "Pending", color: "bg-amber-500/20 text-amber-400 border-amber-500/30", icon: Clock };
-    } else if (!u.is_active) {
-      return { label: "Inactive", color: "bg-red-500/20 text-red-400 border-red-500/30", icon: UserX };
-    } else {
-      return { label: "Unverified", color: "bg-slate-500/20 text-muted-foreground border-slate-500/30", icon: Mail };
-    }
-  };
 
   return (
     <div className="space-y-6">
       {/* ─── Header ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Users className="h-6 w-6 text-indigo-400" /> Employee Management
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {filteredUsers.length} {filteredUsers.length === 1 ? "employee" : "employees"} in {managerBranchName || "your branch"}
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <Users className="h-6 w-6 text-indigo-400" /> Employee Management
+        </h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button size="sm" onClick={() => setShowAddModal(true)} className="gap-1">
-            <Plus className="h-4 w-4" /> Add Employee
+          <Button size="sm" variant="outline" onClick={() => setShowAddModal(true)} className="gap-1">
+            <Plus className="h-4 w-4" /> Add User
           </Button>
           <Button variant="ghost" size="sm" onClick={fetchUsers} className="gap-1">
             <RefreshCw className="h-4 w-4" /> Refresh
@@ -335,7 +307,7 @@ export default function UsersPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search employees by name, email, or username..."
+            placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
@@ -350,138 +322,216 @@ export default function UsersPage() {
           <option value="approved">Approved</option>
           <option value="pending">Pending Approval</option>
         </select>
+        <div className="flex gap-1 border border-border rounded-md p-1 bg-background">
+          <Button
+            size="sm"
+            variant={viewMode === "list" ? "default" : "ghost"}
+            onClick={() => setViewMode("list")}
+            className="gap-1"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant={viewMode === "cards" ? "default" : "ghost"}
+            onClick={() => setViewMode("cards")}
+            className="gap-1"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* ─── Employee Cards ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {!Array.isArray(filteredUsers) || filteredUsers.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Users className="h-12 w-12 text-muted-foreground/30 mb-3" />
-            <p className="text-lg font-medium">No employees found</p>
-            <p className="text-sm">Try adjusting your search or filter</p>
-          </div>
-        ) : (
-          filteredUsers.map((u) => {
-            const status = getStatusBadge(u);
-            const StatusIcon = status.icon;
-            return (
-              <Card key={u.id} className="bg-muted/30 border-border hover:border-indigo-500/30 transition-all duration-200 group">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      {/* Avatar */}
-                      <div className="relative">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-lg shadow-lg">
-                          {getInitials(u)}
+      {/* ─── View: List ─── */}
+      {viewMode === "list" && (
+        <Card className="border-border bg-muted/30 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-muted-foreground">
+              <thead className="bg-muted/30 text-xs uppercase text-muted-foreground font-semibold border-b border-border">
+                <tr>
+                  <th className="px-6 py-4 text-left">Username</th>
+                  <th className="px-6 py-4 text-left">Email</th>
+                  <th className="px-6 py-4 text-left">Role</th>
+                  <th className="px-6 py-4 text-left">Branch</th>
+                  <th className="px-6 py-4 text-center">Approved</th>
+                  <th className="px-6 py-4 text-center">Active</th>
+                  <th className="px-6 py-4 text-center">Verified</th>
+                  <th className="px-6 py-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {!Array.isArray(filteredUsers) || filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
+                      No users found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((u) => (
+                    <tr key={u.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4 font-medium text-foreground">
+                        {u.username}
+                        {u.first_name && <span className="text-xs text-muted-foreground ml-2">({u.first_name})</span>}
+                      </td>
+                      <td className="px-6 py-4">{u.email}</td>
+                      <td className="px-6 py-4 capitalize">{u.role?.name?.replace("_", " ") || "—"}</td>
+                      <td className="px-6 py-4">{getUserBranch(u)}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={cn(
+                            "inline-block text-xs px-2 py-1 rounded-full border",
+                            u.is_approved
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                              : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                          )}
+                        >
+                          {u.is_approved ? "✅ Approved" : "⏳ Pending"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={cn(
+                            "inline-block text-xs px-2 py-1 rounded-full border",
+                            u.is_active
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                              : "bg-red-500/20 text-red-400 border-red-500/30"
+                          )}
+                        >
+                          {u.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={cn(
+                            "inline-block text-xs px-2 py-1 rounded-full border",
+                            u.is_email_verified
+                              ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                              : "bg-slate-500/20 text-muted-foreground border-slate-500/30"
+                          )}
+                        >
+                          {u.is_email_verified ? "Verified" : "Unverified"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => openEditModal(u)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                            title="Edit user"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <Button
+                            size="sm"
+                            variant={u.is_approved ? "destructive" : "default"}
+                            onClick={() => handleToggleApproval(u.id, u.is_approved)}
+                            disabled={updating === u.id}
+                            className="gap-1 text-xs"
+                          >
+                            {updating === u.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : u.is_approved ? (
+                              <UserX className="h-3 w-3" />
+                            ) : (
+                              <UserCheck className="h-3 w-3" />
+                            )}
+                            {u.is_approved ? "Revoke" : "Approve"}
+                          </Button>
                         </div>
-                        <div className={cn(
-                          "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background",
-                          u.is_active && u.is_approved ? "bg-emerald-500" : "bg-red-500"
-                        )} />
-                      </div>
-                      
-                      <div>
-                        <CardTitle className="text-foreground text-base">
-                          {u.first_name && u.last_name 
-                            ? `${u.first_name} ${u.last_name}`
-                            : u.username}
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">@{u.username}</p>
-                      </div>
-                    </div>
-                    
-                    <div className={cn(
-                      "inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border",
-                      status.color
-                    )}>
-                      <StatusIcon className="h-3 w-3" />
-                      {status.label}
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-3">
-                  {/* Contact Info */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Mail className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">{u.email}</span>
-                    </div>
-                    {u.phone_number && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="h-4 w-4 flex-shrink-0" />
-                        <span>{u.phone_number}</span>
-                      </div>
-                    )}
-                  </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
-                  {/* Role & Branch */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Shield className="h-3.5 w-3.5" />
-                        <span>Role</span>
-                      </div>
-                      <p className="text-sm font-medium capitalize">
-                        {u.role?.name?.replace("_", " ") || "—"}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Building2 className="h-3.5 w-3.5" />
-                        <span>Branch</span>
-                      </div>
-                      <p className="text-sm font-medium truncate">
-                        {getUserBranch(u)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openEditModal(u)}
-                      className="flex-1 gap-1 text-xs"
+      {/* ─── View: Cards ─── */}
+      {viewMode === "cards" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {!Array.isArray(filteredUsers) || filteredUsers.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-muted-foreground">No users found.</div>
+          ) : (
+            filteredUsers.map((u) => (
+              <Card key={u.id} className="bg-muted/30 border-border hover:bg-muted/30 transition-colors">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-foreground flex justify-between">
+                    <span>{u.username}</span>
+                    <span
+                      className={cn(
+                        "text-xs px-2 py-0.5 rounded-full",
+                        u.is_approved
+                          ? "bg-emerald-500/20 text-emerald-400"
+                          : "bg-amber-500/20 text-amber-400"
+                      )}
                     >
-                      <Pencil className="h-3.5 w-3.5" /> Edit
-                    </Button>
+                      {u.is_approved ? "Approved" : "Pending"}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 text-sm text-muted-foreground">
+                  <p><span className="text-muted-foreground">Email:</span> {u.email}</p>
+                  <p><span className="text-muted-foreground">Role:</span> {u.role?.name?.replace("_", " ") || "—"}</p>
+                  <p><span className="text-muted-foreground">Branch:</span> {getUserBranch(u)}</p>
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full border",
+                      u.is_active ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"
+                    )}>
+                      {u.is_active ? "Active" : "Inactive"}
+                    </span>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full border",
+                      u.is_email_verified ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-slate-500/20 text-muted-foreground border-slate-500/30"
+                    )}>
+                      {u.is_email_verified ? "Verified" : "Unverified"}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <button
+                      onClick={() => openEditModal(u)}
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs bg-background hover:bg-indigo-500/20 text-muted-foreground hover:text-indigo-400 transition-colors"
+                    >
+                      Edit
+                    </button>
                     <Button
                       size="sm"
                       variant={u.is_approved ? "destructive" : "default"}
                       onClick={() => handleToggleApproval(u.id, u.is_approved)}
                       disabled={updating === u.id}
-                      className="flex-1 gap-1 text-xs"
+                      className="flex-1 text-xs gap-1"
                     >
                       {updating === u.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <Loader2 className="h-3 w-3 animate-spin" />
                       ) : u.is_approved ? (
-                        <UserX className="h-3.5 w-3.5" />
+                        <UserX className="h-3 w-3" />
                       ) : (
-                        <UserCheck className="h-3.5 w-3.5" />
+                        <UserCheck className="h-3 w-3" />
                       )}
                       {u.is_approved ? "Revoke" : "Approve"}
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            );
-          })
-        )}
-      </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* ─── Add User Modal ─── */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#121826] border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-foreground">Add New Employee</h2>
+              <h2 className="text-xl font-bold text-foreground">Add New User</h2>
               <button onClick={() => setShowAddModal(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <form onSubmit={handleAddUser} className="space-y-4">
+              {/* ... same as before ... (unchanged) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-1">Username <span className="text-red-400">*</span></label>
@@ -556,7 +606,7 @@ export default function UsersPage() {
                 <Button type="button" variant="ghost" onClick={() => setShowAddModal(false)} className="flex-1">Cancel</Button>
                 <Button type="submit" disabled={submitting} className="flex-1 gap-2">
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  {submitting ? "Creating..." : "Create Employee"}
+                  {submitting ? "Creating..." : "Create User"}
                 </Button>
               </div>
             </form>
@@ -569,12 +619,13 @@ export default function UsersPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#121826] border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-foreground">Edit Employee</h2>
+              <h2 className="text-xl font-bold text-foreground">Edit User</h2>
               <button onClick={() => setIsEditModalOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <form onSubmit={handleEditSubmit} className="space-y-4">
+              {/* Read‑only fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-1">Username</label>

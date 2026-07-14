@@ -6,7 +6,7 @@ import { createKitchenStation, updateKitchenStation, KitchenStation } from "@/li
 import { getBranches } from "@/lib/api";
 
 const INP =
-  "w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none transition-all focus:border-primary/70 focus:bg-muted/30 focus:ring-2 focus:ring-primary/20";
+  "w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none transition-all focus:border-indigo-500/70 focus:bg-muted/30 focus:ring-2 focus:ring-indigo-500/15";
 const LBL = "text-xs font-medium text-muted-foreground tracking-wide";
 
 interface KitchenStationFormProps {
@@ -152,11 +152,11 @@ export function KitchenStationForm({
             className={`${INP} appearance-none`}
             disabled={loadingBranches}
           >
-            <option value="" className="bg-background">
+            <option value="" className="bg-[#0a0e1a]">
               {loadingBranches ? "Loading branches..." : "Select a branch"}
             </option>
             {branches.map((branch) => (
-              <option key={branch.id} value={branch.id} className="bg-background">
+              <option key={branch.id} value={branch.id} className="bg-[#0a0e1a]">
                 {branch.name} {branch.city ? `- ${branch.city}` : ""}
               </option>
             ))}
@@ -194,7 +194,7 @@ export function KitchenStationForm({
             checked={form.is_active}
             onChange={(e) => setForm(f => ({ ...f, is_active: e.target.checked }))}
           />
-          <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+          <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
           <span className="ml-3 text-sm font-medium text-muted-foreground">
             {form.is_active ? "🟢 Active" : "🔴 Inactive"}
             <span className="text-muted-foreground text-xs ml-2">
@@ -209,7 +209,7 @@ export function KitchenStationForm({
         <button
           type="submit"
           disabled={saving || loadingBranches || branches.length === 0}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm text-primary-foreground bg-primary shadow-[0_4px_16px_rgba(184,142,76,0.24)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all duration-200"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-gradient-to-r from-indigo-500 to-violet-600 shadow-[0_4px_16px_rgba(99,102,241,0.35)] hover:shadow-[0_6px_24px_rgba(99,102,241,0.5)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all duration-200"
         >
           {saving ? (
             <>

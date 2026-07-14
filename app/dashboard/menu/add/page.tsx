@@ -137,131 +137,115 @@ export default function AddMenuItemPage() {
 
 
   return (
+
     <ProtectedWrite>
-      <div className="mx-auto flex max-w-3xl flex-col gap-6">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard/menu">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Back
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">Add Menu Item</h1>
-            <p className="text-sm text-muted-foreground">
-              Capture the essentials for a new menu offering.
-            </p>
-          </div>
-        </div>
-
-        <Card className="border-border/80 bg-card/80 shadow-[0_20px_60px_rgba(0,0,0,0.08)] backdrop-blur">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-xl">New Menu Item</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Keep pricing, category, and prep details consistent.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Input
-                  label="Name *"
-                  placeholder="Enter menu item name"
-                  id="name"
-                  {...register("name", { required: "Name is required" })}
-                  error={errors.name?.message}
-                />
-                <Input
-                  label="SKU *"
-                  placeholder="Enter SKU"
-                  id="sku"
-                  {...register("sku", { required: "SKU is required" })}
-                  error={errors.sku?.message}
-                />
-              </div>
-
-              <Input
-                label="Description"
-                placeholder="Describe the dish or beverage"
-                id="description"
-                {...register("description")}
-              />
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <Input
-                  label="Price *"
-                  placeholder="Enter selling price"
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  {...register("price", { required: "Price is required" })}
-                  error={errors.price?.message}
-                />
-                <Input
-                  label="Cost Price"
-                  placeholder="Enter cost price"
-                  id="cost_price"
-                  type="number"
-                  step="0.01"
-                  {...register("cost_price")}
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="category"
-                    className="text-sm font-medium text-muted-foreground"
-                  >
-                    Category *
-                  </label>
-                  <select
-                    id="category"
-                    {...register("category", { required: "Category is required" })}
-                    className="h-10 w-full rounded-xl border border-border/70 bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-sm outline-none transition-all focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/15"
-                  >
-                    <option value="">Select a category</option>
-                    {fetchingCategories ? (
-                      <option disabled>Loading categories...</option>
-                    ) : categories.length === 0 ? (
-                      <option disabled>No categories available</option>
-                    ) : (
-                      categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  {errors.category && (
-                    <p className="text-sm text-red-500">{errors.category.message}</p>
-                  )}
-                </div>
-                <Input
-                  label="Prep Time (minutes)"
-                  id="prep_time_minutes"
-                  type="number"
-                  {...register("prep_time_minutes")}
-                />
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <Button
-                  type="submit"
-                  className="min-w-[200px]"
-                  disabled={loading || fetchingCategories}
-                >
-                  {loading ? "Creating..." : "Create Menu Item"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Link href="/dashboard/menu">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+        </Link>
+        <h1 className="text-2xl font-bold text-foreground">Add Menu Item</h1>
       </div>
+
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>New Menu Item</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <Input
+              label="Name *"
+              placeholder="Enter menu item name"
+              id="name"
+              {...register("name", { required: "Name is required" })}
+              error={errors.name?.message}
+            />
+            <Input
+              label="SKU *"
+              placeholder="Enter SKU"
+              id="sku"
+              {...register("sku", { required: "SKU is required" })}
+              error={errors.sku?.message}
+            />
+
+            <Input
+              label="Description"
+              placeholder="Description of items"
+              id="description"
+              {...register("description")}
+            />
+            <Input
+              label="Price *"
+              placeholder="Enter selling price"
+              id="price"
+              type="number"
+              step="0.01"
+              {...register("price", { required: "Price is required" })}
+              error={errors.price?.message}
+            />
+            <Input
+              label="Cost Price"
+              placeholder="Enter cost price"
+              id="cost_price"
+              type="number"
+              step="0.01"
+              {...register("cost_price")}
+            />
+            <div>
+              <label
+                htmlFor="category"
+                className="block text-sm font-medium text-muted-foreground mb-1"
+              >
+                Category *
+              </label>
+              <select
+                id="category"
+                {...register("category", { required: "Category is required" })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Select a category</option>
+                {fetchingCategories ? (
+                  <option disabled>Loading categories...</option>
+                ) : categories.length === 0 ? (
+                  <option disabled>No categories available</option>
+                ) : (
+                  categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {errors.category && (
+                <p className="text-sm text-red-400 mt-1">
+                  {errors.category.message}
+                </p>
+              )}
+            </div>
+            <Input
+              label="Prep Time (minutes)"
+              id="prep_time_minutes"
+              type="number"
+              {...register("prep_time_minutes")}
+            />
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || fetchingCategories}
+            >
+              {loading ? "Creating..." : "Create Menu Item"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
     </ProtectedWrite>
   );
 }

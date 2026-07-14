@@ -27,8 +27,8 @@ const EMPTY: MenuItemPayload = {
 
 // ─── Input class ─────────────────────────────────────────────────────────────
 const INP =
-  "w-full px-4 py-2.5 rounded-xl bg-background/70 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none transition-all focus:border-primary/70 focus:bg-muted/30 focus:ring-2 focus:ring-primary/20";
-const LBL = "text-xs font-medium text-muted-foreground tracking-wide";
+  "w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-600 text-sm outline-none transition-all focus:border-indigo-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-indigo-500/15";
+const LBL = "text-xs font-medium text-slate-400 tracking-wide";
 
 export default function MenuPage() {
   const router = useRouter();
@@ -143,8 +143,8 @@ export default function MenuPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <span className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
+        <span className="w-12 h-12 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin" />
       </div>
     );
   }
@@ -154,35 +154,35 @@ export default function MenuPage() {
     .split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
 
   return (
-    <div className="min-h-screen bg-background relative">
+    <div className="min-h-screen bg-[#0a0e1a] relative">
       {/* bg orbs */}
-      <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-      <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full blur-[100px] pointer-events-none" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+      <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-violet-600/10 blur-[100px] pointer-events-none" />
 
       {/* ── Navbar ── */}
-      <nav className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-xl">
+      <nav className="sticky top-0 z-20 border-b border-white/[0.07] bg-[#0a0e1a]/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <Link href="/dashboard" className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-sm">
               ← Dashboard
             </Link>
             <span className="text-white/20">|</span>
-            <span className="font-bold text-foreground flex items-center gap-2">
+            <span className="font-bold text-slate-100 flex items-center gap-2">
               🍽️ Menu Management
             </span>
           </div>
           <div className="flex items-center gap-3">
             {!canManage && (
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-muted/50 text-muted-foreground border border-border uppercase tracking-wide">
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-400 border border-slate-500/25 uppercase tracking-wide">
                 View Only
               </span>
             )}
             {canManage && (
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-500/15 text-sky-400 border border-sky-500/25 uppercase tracking-wide">
                 Manager
               </span>
             )}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-primary-foreground text-xs font-bold">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold">
               {initials}
             </div>
             <button onClick={handleLogout}
@@ -198,11 +198,11 @@ export default function MenuPage() {
         {/* ── Header row ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Menu Items</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+            <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Menu Items</h1>
+            <p className="text-slate-500 text-sm mt-0.5">
               {count} item{count !== 1 ? "s" : ""} total
               {!canManage && (
-                <span className="ml-2 text-primary/80">• You have read-only access</span>
+                <span className="ml-2 text-amber-400/80">• You have read-only access</span>
               )}
             </p>
           </div>
@@ -216,7 +216,7 @@ export default function MenuPage() {
                 placeholder="Search menu…"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9 pr-4 py-2.5 rounded-xl bg-background/70 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none transition-all focus:border-primary/50 focus:ring-2 focus:ring-primary/20 w-56"
+                className="pl-9 pr-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-slate-100 placeholder-slate-600 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/10 w-56"
               />
             </div>
 
@@ -224,7 +224,7 @@ export default function MenuPage() {
             {canManage && (
               <button
                 onClick={openCreate}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm text-primary-foreground bg-primary shadow-[0_4px_16px_rgba(184,142,76,0.24)] hover:-translate-y-0.5 transition-all duration-200"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-500 to-violet-600 shadow-[0_4px_16px_rgba(99,102,241,0.35)] hover:shadow-[0_6px_24px_rgba(99,102,241,0.5)] hover:-translate-y-0.5 transition-all duration-200"
               >
                 + Add Item
               </button>
@@ -247,15 +247,15 @@ export default function MenuPage() {
         )}
 
         {/* ── Table ── */}
-        <div className="rounded-2xl border border-border bg-card/70 overflow-hidden">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-24">
-              <span className="w-10 h-10 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+              <span className="w-10 h-10 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin" />
             </div>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-24 text-slate-500">
               <div className="text-5xl mb-4">🍽️</div>
-              <p className="text-lg font-semibold text-muted-foreground">No menu items found</p>
+              <p className="text-lg font-semibold text-slate-400">No menu items found</p>
               <p className="text-sm mt-1">
                 {search ? "Try a different search term." : canManage ? "Click \"+ Add Item\" to get started." : "No items have been added yet."}
               </p>
@@ -264,9 +264,9 @@ export default function MenuPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border">
+                  <tr className="border-b border-white/[0.07]">
                     {["ID", "Name", "Category", "Price", "Cost Price", "Prep Time", "Available", ...(canManage ? ["Actions"] : [])].map((h) => (
-                      <th key={h} className="text-left px-5 py-3.5 text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">
+                      <th key={h} className="text-left px-5 py-3.5 text-xs font-medium text-slate-500 uppercase tracking-wide whitespace-nowrap">
                         {h}
                       </th>
                     ))}
@@ -276,21 +276,21 @@ export default function MenuPage() {
                   {items.map((item, i) => (
                     <tr
                       key={item.id}
-                      className={`border-b border-border/70 hover:bg-muted/20 transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"}`}
+                      className={`border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors ${i % 2 === 0 ? "" : "bg-white/[0.01]"}`}
                     >
-                      <td className="px-5 py-3.5 text-muted-foreground font-mono text-xs">#{item.id}</td>
+                      <td className="px-5 py-3.5 text-slate-500 font-mono text-xs">#{item.id}</td>
                       <td className="px-5 py-3.5">
-                        <p className="text-foreground font-medium">{item.name}</p>
+                        <p className="text-slate-200 font-medium">{item.name}</p>
                         {item.description && (
-                          <p className="text-muted-foreground text-xs mt-0.5 truncate max-w-[200px]">{item.description}</p>
+                          <p className="text-slate-600 text-xs mt-0.5 truncate max-w-[200px]">{item.description}</p>
                         )}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                           {item.category_name || `#${item.category}`}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <td className="px-5 py-3.5 text-emerald-400 font-semibold">
                         Rs. {item.price}
                       </td>
                       <td className="px-5 py-3.5 text-slate-400">
@@ -438,20 +438,20 @@ export default function MenuPage() {
                     checked={form.is_available}
                     onChange={(e) => setForm(f => ({ ...f, is_available: e.target.checked }))}
                   />
-                  <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  <span className="ml-3 text-sm font-medium text-muted-foreground">Available for Order</span>
+                  <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  <span className="ml-3 text-sm font-medium text-slate-300">Available for Order</span>
                 </label>
               </div>
 
               <div className="flex items-center gap-3 pt-2">
                 <button type="submit" disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm text-primary-foreground bg-primary shadow-[0_4px_16px_rgba(184,142,76,0.24)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all">
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-500 to-violet-600 shadow-[0_4px_16px_rgba(99,102,241,0.35)] hover:shadow-[0_6px_24px_rgba(99,102,241,0.5)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all">
                   {saving
                     ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                     : editing ? "💾 Save Changes" : "✅ Create Item"}
                 </button>
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="px-5 py-2.5 rounded-xl text-sm text-muted-foreground bg-muted/30 border border-border hover:bg-muted/40 transition-all">
+                  className="px-5 py-2.5 rounded-xl text-sm text-slate-400 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-all">
                   Cancel
                 </button>
               </div>

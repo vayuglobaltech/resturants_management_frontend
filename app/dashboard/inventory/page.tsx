@@ -9,7 +9,7 @@ export default function InventoryOverviewPage() {
     { label: "Total Categories", value: "-", icon: "📁", color: "text-blue-400" },
     { label: "Active Products", value: "-", icon: "🍔", color: "text-orange-400" },
     { label: "Low Stock Alerts", value: "0", icon: "⚠️", color: "text-red-400" },
-    { label: "Total Branches", value: "-", icon: "🏢", color: "text-primary" },
+    { label: "Total Branches", value: "-", icon: "🏢", color: "text-indigo-400" },
   ]);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function InventoryOverviewPage() {
           { label: "Total Categories", value: cats.length?.toString() || "0", icon: "📁", color: "text-blue-400" },
           { label: "Active Products", value: prods.length?.toString() || "0", icon: "🍔", color: "text-orange-400" },
           { label: "Low Stock Alerts", value: lowStockCount.toString(), icon: "⚠️", color: "text-red-400" },
-          { label: "Total Branches", value: "1", icon: "🏢", color: "text-primary" }, // Mocked or derived from unique branches
+          { label: "Total Branches", value: "1", icon: "🏢", color: "text-indigo-400" }, // Mocked or derived from unique branches
         ]);
       } catch (err) {
         console.error("Failed to load inventory stats", err);
@@ -42,7 +42,7 @@ export default function InventoryOverviewPage() {
     <div className="animate-fadeUp">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground tracking-tight">
-          Inventory <span className="text-primary">Overview</span>
+          Inventory <span className="text-indigo-400">Overview</span>
         </h1>
         <p className="text-muted-foreground mt-2 text-sm">
           Get a high-level view of your restaurant's stock, products, and ingredients.
@@ -71,17 +71,17 @@ export default function InventoryOverviewPage() {
       <h2 className="text-xl font-bold text-foreground mb-4">Quick Actions</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {[
-          { title: "Manage Stock", desc: "Update inventory levels across branches", link: "/dashboard/inventory/stock", icon: "🏢", bg: "bg-primary/10", border: "border-primary/20" },
+          { title: "Manage Stock", desc: "Update inventory levels across branches", link: "/dashboard/inventory/stock", icon: "🏢", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
           { title: "Add Product", desc: "Create new end-products to sell", link: "/dashboard/inventory/products", icon: "🍔", bg: "bg-orange-500/10", border: "border-orange-500/20" },
           { title: "Review Ingredients", desc: "Check raw materials and supplies", link: "/dashboard/inventory/ingredients", icon: "🥬", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
         ].map((action, idx) => (
           <a
             key={idx}
             href={action.link}
-            className={`group flex flex-col items-start p-6 rounded-2xl border ${action.border} ${action.bg} hover:shadow-[0_8px_30px_rgba(184,142,76,0.15)] transition-all duration-300 backdrop-blur-md cursor-pointer`}
+            className={`group flex flex-col items-start p-6 rounded-2xl border ${action.border} ${action.bg} hover:shadow-[0_8px_30px_rgba(99,102,241,0.15)] transition-all duration-300 backdrop-blur-md cursor-pointer`}
           >
             <span className="text-3xl mb-4 group-hover:scale-110 transition-transform duration-300">{action.icon}</span>
-            <h3 className="text-lg font-semibold text-foreground group-hover:text-primary/80 transition-colors">{action.title}</h3>
+            <h3 className="text-lg font-semibold text-foreground group-hover:text-indigo-300 transition-colors">{action.title}</h3>
             <p className="text-sm text-muted-foreground mt-1">{action.desc}</p>
           </a>
         ))}
