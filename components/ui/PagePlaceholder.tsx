@@ -30,9 +30,9 @@ export function PagePlaceholder({
       <h1 className="text-3xl font-bold text-foreground">{title}</h1>
       <p className="text-muted-foreground max-w-md mt-3">{description}</p>
       <div className="mt-8 flex gap-2">
-        <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
-        <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse delay-150" />
-        <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse delay-300" />
+        <span className="h-2 w-2 rounded-full bg-[var(--primary)] animate-pulse" />
+        <span className="h-2 w-2 rounded-full bg-[var(--primary)] animate-pulse delay-150" />
+        <span className="h-2 w-2 rounded-full bg-[var(--primary)] animate-pulse delay-300" />
       </div>
     </motion.div>
   );

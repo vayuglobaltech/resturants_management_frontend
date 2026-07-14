@@ -52,21 +52,27 @@ export default function AddUserPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="mx-auto max-w-3xl space-y-6">
       <Link href="/dashboard/users">
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1 text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4" /> Back to Users
         </Button>
       </Link>
 
-      <Card className="bg-muted/30 border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground text-2xl">Add New User</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Create a new employee account</p>
+      <Card className="border-border/80 bg-card/80 shadow-[0_20px_60px_rgba(0,0,0,0.08)] backdrop-blur">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl text-foreground">Add New User</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Create a new employee account with the right access and branch assignment.
+          </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label="Username *"
                 value={formData.username}
@@ -111,16 +117,15 @@ export default function AddUserPage() {
               />
             </div>
 
-            {/* Role selection */}
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-muted-foreground">
                 Role *
               </label>
               <select
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                 required
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="h-10 w-full rounded-xl border border-border/70 bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-sm outline-none transition-all focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/15"
               >
                 <option value="">Select role</option>
                 <option value="1">Admin</option>
@@ -131,24 +136,22 @@ export default function AddUserPage() {
               </select>
             </div>
 
-            {/* Branch info (read-only, auto-assigned) */}
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-muted-foreground">
                 Branch (auto-assigned)
               </label>
-              <div className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground/60">
+              <div className="w-full rounded-xl border border-border/70 bg-background/60 px-3.5 py-3 text-sm text-muted-foreground">
                 {branchId ? user?.branch?.name || user?.primary_branch?.name || "Your branch" : "No branch assigned"}
               </div>
             </div>
 
-            {/* Approval & Active toggles */}
-            <div className="flex flex-wrap gap-6">
+            <div className="flex flex-wrap gap-6 rounded-xl border border-border/70 bg-background/50 px-3.5 py-3">
               <label className="flex items-center gap-2 text-sm text-muted-foreground">
                 <input
                   type="checkbox"
                   checked={formData.is_approved}
                   onChange={(e) => setFormData({ ...formData, is_approved: e.target.checked })}
-                  className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-border text-[var(--primary)] focus:ring-[var(--primary)]"
                 />
                 Approve immediately
               </label>
@@ -157,14 +160,14 @@ export default function AddUserPage() {
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-border text-[var(--primary)] focus:ring-[var(--primary)]"
                 />
                 Active
               </label>
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <Link href="/dashboard/users" className="flex-1">
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+              <Link href="/dashboard/users" className="sm:flex-1">
                 <Button type="button" variant="ghost" className="w-full">
                   Cancel
                 </Button>

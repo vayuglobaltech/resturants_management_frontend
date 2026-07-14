@@ -120,7 +120,7 @@ export default function CategoriesPage() {
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-indigo-600 hover:bg-indigo-700 shadow-[0_4px_16px_rgba(99,102,241,0.35)] transition-all"
+          className="px-5 py-2.5 rounded-xl font-semibold text-sm text-primary-foreground bg-primary hover:bg-primary/90 shadow-[0_4px_16px_rgba(184,142,76,0.24)] transition-all"
         >
           {showAdd ? "Cancel" : "+ Add Category"}
         </button>
@@ -149,39 +149,37 @@ export default function CategoriesPage() {
       {showAdd && (
         <form
           onSubmit={handleCreate}
-          className="mb-8 p-6 rounded-2xl bg-muted/30 border border-border backdrop-blur-md"
+          className="mb-8 rounded-2xl border border-border/80 bg-card/80 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.08)] backdrop-blur"
         >
-          <h2 className="text-lg font-semibold text-foreground mb-4">
-            New Category
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+          <h2 className="mb-4 text-lg font-semibold text-foreground">New Category</h2>
+          <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-muted-foreground">
                 Name <span className="text-red-400">*</span>
               </label>
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
+                className="h-10 w-full rounded-xl border border-border/70 bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-sm outline-none transition-all placeholder:text-muted-foreground focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/15"
                 placeholder="e.g. Beverages"
               />
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-muted-foreground">
                 Description
               </label>
               <input
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
+                className="h-10 w-full rounded-xl border border-border/70 bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-sm outline-none transition-all placeholder:text-muted-foreground focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/15"
                 placeholder="Optional description"
               />
             </div>
           </div>
           <button
             type="submit"
-            className="px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-emerald-600 hover:bg-emerald-700 transition-all"
+            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_4px_16px_rgba(184,142,76,0.24)] transition-all hover:bg-primary/90"
           >
             Save Category
           </button>
@@ -194,10 +192,10 @@ export default function CategoriesPage() {
         </div>
       ) : loading ? (
         <div className="flex py-10 justify-center">
-          <span className="w-8 h-8 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin" />
+          <span className="w-8 h-8 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
         </div>
       ) : (
-        <div className="rounded-2xl border border-border bg-[#0a0e1a]/80 backdrop-blur-xl overflow-hidden shadow-2xl">
+        <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-muted-foreground">
               <thead className="bg-muted/30 text-xs uppercase text-muted-foreground font-semibold border-b border-border">
@@ -266,18 +264,16 @@ export default function CategoriesPage() {
 
       {/* ─── Edit Category Modal ─── */}
       {isEditModalOpen && editingCategory && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-          <div className="bg-[#121826] border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl animate-scaleUp">
-            <h2 className="text-xl font-bold text-foreground mb-1">
-              Edit Category
-            </h2>
-            <p className="text-sm text-muted-foreground mb-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.2)] animate-scaleUp">
+            <h2 className="mb-1 text-xl font-bold text-foreground">Edit Category</h2>
+            <p className="mb-5 text-sm text-muted-foreground">
               Update the name or description of this category.
             </p>
 
             <form onSubmit={handleUpdate}>
-              <div className="mb-4">
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              <div className="mb-4 flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-muted-foreground">
                   Name <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -290,12 +286,12 @@ export default function CategoriesPage() {
                     })
                   }
                   required
-                  className="w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
+                  className="h-10 w-full rounded-xl border border-border/70 bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-sm outline-none transition-all placeholder:text-muted-foreground focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/15"
                 />
               </div>
 
-              <div className="mb-6">
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              <div className="mb-6 flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-muted-foreground">
                   Description
                 </label>
                 <textarea
@@ -307,25 +303,25 @@ export default function CategoriesPage() {
                     })
                   }
                   rows={3}
-                  className="w-full px-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all resize-none"
+                  className="w-full resize-none rounded-xl border border-border/70 bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-sm outline-none transition-all placeholder:text-muted-foreground focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/15"
                   placeholder="Optional description"
                 />
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={() => {
                     setIsEditModalOpen(false);
                     setEditingCategory(null);
                   }}
-                  className="px-5 py-2.5 rounded-xl border border-border text-muted-foreground hover:bg-background transition-all text-sm font-medium"
+                  className="rounded-xl border border-border px-5 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-background"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-indigo-600 hover:bg-indigo-700 shadow-[0_4px_16px_rgba(99,102,241,0.3)] transition-all"
+                  className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_4px_16px_rgba(184,142,76,0.24)] transition-all hover:bg-primary/90"
                 >
                   Save Changes
                 </button>
