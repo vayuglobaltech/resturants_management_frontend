@@ -102,82 +102,81 @@ export default function SalesReportPage() {
       const startStr = format(start, "yyyy-MM-dd");
       const endStr = format(end, "yyyy-MM-dd");
 
-      // ─── 1. Fetch completed payments for the period ──────────────
-      const res = await apiFetch(
+      // ─── 1. Completed payments (gross sales) ──────────────────────────
+      const grossRes = await apiFetch(
         `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
         {},
-        true
+        true,
       );
-      const data = await res.json();
-      const payments = data.results || data || [];
+      const grossData = await grossRes.json();
+      const completedPayments = grossData.results || grossData || [];
 
-      // ─── 2. For each payment, fetch associated orders to get discounts ──
-      // For efficiency, we'll aggregate on the client side.
-      // We'll also fetch all orders that have payments.
-      // Alternatively, we can fetch all orders with discounts in one go.
-      // Since we don't have a direct endpoint for discounts per payment,
-      // we'll get all orders that have payments in the period.
-      // But for simplicity, we'll compute discounts from the payment data if we have discount info,
-      // or we can call a separate endpoint for orders.
-      // For now, we'll assume payments have a `discount` field or we can compute from orders.
+      // ─── 2. Refunded payments (real refunds) ──────────────────────────
+      const refundRes = await apiFetch(
+        `/api/orders/payments/?status=REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+        {},
+        true,
+      );
+      const refundData = await refundRes.json();
+      const refundedPayments = refundData.results || refundData || [];
 
-      // We'll need to fetch orders for these payments to get discounts.
-      // Let's fetch all orders with their discounts.
+      // ─── 3. Discounts (from orders) ──────────────────────────────────
       const ordersRes = await apiFetch(
         `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
         {},
-        true
+        true,
       );
       const ordersData = await ordersRes.json();
       const orders = ordersData.results || ordersData || [];
+      const discountMap: Record<string, number> = {};
+      orders.forEach((o: any) => {
+        const date = format(new Date(o.created_at), "yyyy-MM-dd");
+        const discSum = (o.discounts || []).reduce(
+          (s: number, d: any) => s + Number(d.amount),
+          0,
+        );
+        discountMap[date] = (discountMap[date] || 0) + discSum;
+      });
 
-      // ─── 3. Group by date ────────────────────────────────────────
-      const grouped: Record<string, any> = {};
-      payments.forEach((p: any) => {
+      // ─── 4. Group by date ──────────────────────────────────────────────
+      const grouped: Record<
+        string,
+        { grossSales: number; refunds: number; orders: number }
+      > = {};
+
+      completedPayments.forEach((p: any) => {
         const date = format(new Date(p.created_at), "yyyy-MM-dd");
-        if (!grouped[date]) {
-          grouped[date] = {
-            grossSales: 0,
-            discounts: 0,
-            refunds: 0,
-            netSales: 0,
-            orders: 0,
-          };
-        }
+        if (!grouped[date])
+          grouped[date] = { grossSales: 0, refunds: 0, orders: 0 };
         grouped[date].grossSales += Number(p.amount || 0);
         grouped[date].orders += 1;
       });
 
-      // ─── 4. Apply discounts from orders (if any) ────────────────
-      // We'll match orders to payments via `payment` field.
-      // Since we don't have direct relation, we'll assume we can sum discounts per order.
-      // For each order, sum its discounts.
-      const discountMap: Record<string, number> = {};
-      orders.forEach((o: any) => {
-        const date = format(new Date(o.created_at), "yyyy-MM-dd");
-        if (!discountMap[date]) discountMap[date] = 0;
-        const totalDiscount = (o.discounts || []).reduce(
-          (sum: number, d: any) => sum + Number(d.amount),
-          0
-        );
-        discountMap[date] += totalDiscount;
+      refundedPayments.forEach((p: any) => {
+        const date = format(new Date(p.created_at), "yyyy-MM-dd");
+        if (!grouped[date])
+          grouped[date] = { grossSales: 0, refunds: 0, orders: 0 };
+        const refundAmt = Number(p.refunded_amount || 0);
+        grouped[date].refunds += refundAmt;
       });
 
-      // ─── 5. Compute net sales and refunds (dummy) ──────────────────
-      const result: SalesData[] = [];
+      // ─── 5. Build result ──────────────────────────────────────────────
       let totalGross = 0;
       let totalDiscounts = 0;
+      let totalRefunds = 0;
       let totalOrders = 0;
+      const result: SalesData[] = [];
 
       Object.keys(grouped).forEach((date) => {
         const gross = grouped[date].grossSales;
         const discounts = discountMap[date] || 0;
-        const refunds = gross * 0.02; // dummy: 2% refunds
+        const refunds = grouped[date].refunds;
         const net = gross - discounts - refunds;
         const ordersCount = grouped[date].orders;
 
         totalGross += gross;
         totalDiscounts += discounts;
+        totalRefunds += refunds;
         totalOrders += ordersCount;
 
         result.push({
@@ -191,13 +190,9 @@ export default function SalesReportPage() {
         });
       });
 
-      // Sort by date ascending
-      result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
       setSalesData(result);
 
-      // ─── 6. Summary ──────────────────────────────────────────────────
-      const totalRefunds = totalGross * 0.02;
+      // ─── 6. Summary ────────────────────────────────────────────────────
       const netSales = totalGross - totalDiscounts - totalRefunds;
       const avgOrderValue = totalOrders > 0 ? totalGross / totalOrders : 0;
       setSummary({
@@ -205,7 +200,7 @@ export default function SalesReportPage() {
         discounts: totalDiscounts,
         refunds: totalRefunds,
         netSales: netSales,
-        serviceCharges: 0, // not implemented
+        serviceCharges: 0,
         totalOrders,
         averageOrderValue: avgOrderValue,
       });
@@ -284,7 +279,9 @@ export default function SalesReportPage() {
             disabled={refreshing}
             className="gap-1"
           >
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            <RefreshCw
+              className={cn("h-4 w-4", refreshing && "animate-spin")}
+            />
             {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
@@ -299,7 +296,9 @@ export default function SalesReportPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Gross Sales</p>
-              <p className="text-2xl font-bold">{formatCurrency(summary.grossSales)}</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.grossSales)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -311,7 +310,9 @@ export default function SalesReportPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Discounts</p>
-              <p className="text-2xl font-bold">{formatCurrency(summary.discounts)}</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.discounts)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -323,7 +324,9 @@ export default function SalesReportPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Refunds</p>
-              <p className="text-2xl font-bold">{formatCurrency(summary.refunds)}</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.refunds)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -335,7 +338,9 @@ export default function SalesReportPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Net Sales</p>
-              <p className="text-2xl font-bold">{formatCurrency(summary.netSales)}</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.netSales)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -361,7 +366,9 @@ export default function SalesReportPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Avg. Order Value</p>
-              <p className="text-2xl font-bold">{formatCurrency(summary.averageOrderValue)}</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.averageOrderValue)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -373,7 +380,9 @@ export default function SalesReportPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Service Charges</p>
-              <p className="text-2xl font-bold">{formatCurrency(summary.serviceCharges)}</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.serviceCharges)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -382,29 +391,49 @@ export default function SalesReportPage() {
       {/* ─── Chart ────────────────────────────────────────────────────── */}
       <Card className="border-border">
         <CardContent className="p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Sales Trend</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">
+            Sales Trend
+          </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={salesData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="date" className="text-xs text-muted-foreground" />
+                <XAxis
+                  dataKey="date"
+                  className="text-xs text-muted-foreground"
+                />
                 <YAxis
                   tickFormatter={(value) => `$${value}`}
                   className="text-xs text-muted-foreground"
                 />
                 <Tooltip
                   formatter={(value: number) => `$${value.toFixed(2)}`}
-                  labelStyle={{ color: '#fff' }}
+                  labelStyle={{ color: "#fff" }}
                   contentStyle={{
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
-                    borderRadius: '8px',
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #334155",
+                    borderRadius: "8px",
                   }}
                 />
                 <Legend />
-                <Bar dataKey="grossSales" fill="#818cf8" name="Gross Sales" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="discounts" fill="#fb7185" name="Discounts" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="refunds" fill="#f59e0b" name="Refunds" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="grossSales"
+                  fill="#818cf8"
+                  name="Gross Sales"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="discounts"
+                  fill="#fb7185"
+                  name="Discounts"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="refunds"
+                  fill="#f59e0b"
+                  name="Refunds"
+                  radius={[4, 4, 0, 0]}
+                />
                 <Line
                   type="monotone"
                   dataKey="netSales"
@@ -444,20 +473,38 @@ export default function SalesReportPage() {
               <tbody className="divide-y divide-border">
                 {salesData.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
                       No sales data for this period.
                     </td>
                   </tr>
                 ) : (
                   salesData.map((day) => (
-                    <tr key={day.date} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium text-foreground">{day.date}</td>
+                    <tr
+                      key={day.date}
+                      className="hover:bg-muted/30 transition-colors"
+                    >
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        {day.date}
+                      </td>
                       <td className="px-4 py-3">{day.orders}</td>
-                      <td className="px-4 py-3 font-medium">{formatCurrency(day.grossSales)}</td>
-                      <td className="px-4 py-3 text-rose-400">{formatCurrency(day.discounts)}</td>
-                      <td className="px-4 py-3 text-amber-400">{formatCurrency(day.refunds)}</td>
-                      <td className="px-4 py-3 font-bold text-emerald-400">{formatCurrency(day.netSales)}</td>
-                      <td className="px-4 py-3">{formatCurrency(day.avgOrderValue)}</td>
+                      <td className="px-4 py-3 font-medium">
+                        {formatCurrency(day.grossSales)}
+                      </td>
+                      <td className="px-4 py-3 text-rose-400">
+                        {formatCurrency(day.discounts)}
+                      </td>
+                      <td className="px-4 py-3 text-amber-400">
+                        {formatCurrency(day.refunds)}
+                      </td>
+                      <td className="px-4 py-3 font-bold text-emerald-400">
+                        {formatCurrency(day.netSales)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {formatCurrency(day.avgOrderValue)}
+                      </td>
                     </tr>
                   ))
                 )}

@@ -21,7 +21,14 @@ import {
   Percent,
   Activity,
 } from "lucide-react";
-import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
+import {
+  format,
+  subDays,
+  startOfDay,
+  endOfDay,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   LineChart,
@@ -64,7 +71,9 @@ type PnLSummary = {
 
 // ─── Helper to format currency ──────────────────────────────────────────
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+    value,
+  );
 
 // ─── Helper to format percent ───────────────────────────────────────────
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
@@ -93,23 +102,26 @@ export default function ProfitLossPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   // ─── Date range helpers ──────────────────────────────────────────────
-  const getDateRange = useCallback((period: Period) => {
-    const now = new Date();
-    const today = startOfDay(now);
-    switch (period) {
-      case "today":
-        return { start: today, end: endOfDay(now) };
-      case "week":
-        return { start: subDays(today, 7), end: endOfDay(now) };
-      case "month":
-        return { start: startOfMonth(now), end: endOfMonth(now) };
-      case "custom":
-        return {
-          start: customStart ? new Date(customStart) : today,
-          end: customEnd ? new Date(customEnd) : endOfDay(now),
-        };
-    }
-  }, [customStart, customEnd]);
+  const getDateRange = useCallback(
+    (period: Period) => {
+      const now = new Date();
+      const today = startOfDay(now);
+      switch (period) {
+        case "today":
+          return { start: today, end: endOfDay(now) };
+        case "week":
+          return { start: subDays(today, 7), end: endOfDay(now) };
+        case "month":
+          return { start: startOfMonth(now), end: endOfMonth(now) };
+        case "custom":
+          return {
+            start: customStart ? new Date(customStart) : today,
+            end: customEnd ? new Date(customEnd) : endOfDay(now),
+          };
+      }
+    },
+    [customStart, customEnd],
+  );
 
   // ─── Fetch P&L data ──────────────────────────────────────────────────
   const fetchPnL = useCallback(async () => {
@@ -123,16 +135,25 @@ export default function ProfitLossPage() {
       const salesRes = await apiFetch(
         `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
         {},
-        true
+        true,
       );
       const salesData = await salesRes.json();
       const payments = salesData.results || salesData || [];
 
-      // ─── 2. Discounts (from orders) ──────────────────────────────
+      // ─── 2. Refunded payments (real refunds) ──────────────────────
+      const refundRes = await apiFetch(
+        `/api/orders/payments/?status=REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+        {},
+        true,
+      );
+      const refundData = await refundRes.json();
+      const refundedPayments = refundData.results || refundData || [];
+
+      // ─── 3. Discounts (from orders) ──────────────────────────────
       const ordersRes = await apiFetch(
         `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
         {},
-        true
+        true,
       );
       const ordersData = await ordersRes.json();
       const orders = ordersData.results || ordersData || [];
@@ -140,19 +161,22 @@ export default function ProfitLossPage() {
       let totalDiscounts = 0;
       orders.forEach((o: any) => {
         const date = format(new Date(o.created_at), "yyyy-MM-dd");
-        const discSum = (o.discounts || []).reduce((s: number, d: any) => s + Number(d.amount), 0);
+        const discSum = (o.discounts || []).reduce(
+          (s: number, d: any) => s + Number(d.amount),
+          0,
+        );
         discountMap[date] = (discountMap[date] || 0) + discSum;
         totalDiscounts += discSum;
       });
 
-      // ─── 3. COGS (from COGSTransaction endpoint) ──────────────────
+      // ─── 4. COGS (from COGSTransaction endpoint) ──────────────────
       let cogsTotal = 0;
       const cogsMap: Record<string, number> = {};
       try {
         const cogsRes = await apiFetch(
           `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
           {},
-          true
+          true,
         );
         const cogsData = await cogsRes.json();
         const cogsItems = cogsData.results || cogsData || [];
@@ -165,7 +189,6 @@ export default function ProfitLossPage() {
       } catch (error) {
         // If endpoint not available, compute from order items using product cost
         console.warn("COGS endpoint not available, computing from orders...");
-        // Use product price * 0.6 as placeholder cost
         orders.forEach((o: any) => {
           const date = format(new Date(o.created_at), "yyyy-MM-dd");
           let orderCogs = 0;
@@ -180,29 +203,35 @@ export default function ProfitLossPage() {
         });
       }
 
-      // ─── 4. Operating Expenses (from ExpenseEntry) ──────────────
+      // ─── 5. Operating Expenses (from ExpenseEntry) ──────────────
       let expenseTotal = 0;
       const expenseMap: Record<string, number> = {};
       try {
         const expRes = await apiFetch(
           `/api/accounting/expenses/?expense_date__gte=${startStr}&expense_date__lte=${endStr}&page_size=1000`,
           {},
-          true
+          true,
         );
         const expData = await expRes.json();
         const expenses = expData.results || expData || [];
         expenses.forEach((e: any) => {
-          const date = format(new Date(e.expense_date || e.created_at), "yyyy-MM-dd");
+          const date = format(
+            new Date(e.expense_date || e.created_at),
+            "yyyy-MM-dd",
+          );
           const amount = Number(e.amount || 0);
           expenseMap[date] = (expenseMap[date] || 0) + amount;
           expenseTotal += amount;
         });
       } catch (error) {
-        console.warn("Expense endpoint not available, using placeholder (5% of gross sales)");
-        // Placeholder: 5% of gross sales
-        const totalGross = payments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+        console.warn(
+          "Expense endpoint not available, using placeholder (5% of gross sales)",
+        );
+        const totalGross = payments.reduce(
+          (s: number, p: any) => s + Number(p.amount || 0),
+          0,
+        );
         expenseTotal = totalGross * 0.05;
-        // Distribute across days evenly (simplified)
         const days = Math.max(1, Object.keys(salesGrouped).length || 1);
         const perDay = expenseTotal / days;
         Object.keys(salesGrouped).forEach((date) => {
@@ -210,27 +239,37 @@ export default function ProfitLossPage() {
         });
       }
 
-      // ─── 5. Group by date ──────────────────────────────────────────
+      // ─── 6. Group by date ──────────────────────────────────────────
       const salesGrouped: Record<string, number> = {};
       payments.forEach((p: any) => {
         const date = format(new Date(p.created_at), "yyyy-MM-dd");
         salesGrouped[date] = (salesGrouped[date] || 0) + Number(p.amount || 0);
       });
 
-      // ─── 6. Build daily data ──────────────────────────────────────
+      const refundGrouped: Record<string, number> = {};
+      refundedPayments.forEach((p: any) => {
+        const date = format(new Date(p.created_at), "yyyy-MM-dd");
+        const refundAmt = Number(p.refunded_amount || 0);
+        refundGrouped[date] = (refundGrouped[date] || 0) + refundAmt;
+      });
+
+      // ─── 7. Build daily data ──────────────────────────────────────
       const allDates = new Set([
         ...Object.keys(salesGrouped),
         ...Object.keys(discountMap),
         ...Object.keys(cogsMap),
         ...Object.keys(expenseMap),
+        ...Object.keys(refundGrouped),
       ]);
 
+      let totalRefunds = 0;
       const result: PnLData[] = Array.from(allDates)
         .sort()
         .map((date) => {
           const gross = salesGrouped[date] || 0;
           const discounts = discountMap[date] || 0;
-          const refunds = gross * 0.02; // dummy: 2% refunds
+          const refunds = refundGrouped[date] || 0;
+          totalRefunds += refunds;
           const netSales = gross - discounts - refunds;
           const cogs = cogsMap[date] || 0;
           const grossProfit = netSales - cogs;
@@ -251,19 +290,23 @@ export default function ProfitLossPage() {
 
       setPnlData(result);
 
-      // ─── 7. Summary ──────────────────────────────────────────────────
-      const totalGross = payments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-      const totalNetSales = totalGross - totalDiscounts - totalGross * 0.02;
+      // ─── 8. Summary ──────────────────────────────────────────────────
+      const totalGross = payments.reduce(
+        (s: number, p: any) => s + Number(p.amount || 0),
+        0,
+      );
+      const totalNetSales = totalGross - totalDiscounts - totalRefunds;
       const totalCogs = cogsTotal;
       const totalGrossProfit = totalNetSales - totalCogs;
       const totalExpenses = expenseTotal;
       const totalNetProfit = totalGrossProfit - totalExpenses;
-      const netProfitMargin = totalNetSales > 0 ? (totalNetProfit / totalNetSales) * 100 : 0;
+      const netProfitMargin =
+        totalNetSales > 0 ? (totalNetProfit / totalNetSales) * 100 : 0;
 
       setSummary({
         grossSales: totalGross,
         discounts: totalDiscounts,
-        refunds: totalGross * 0.02,
+        refunds: totalRefunds,
         netSales: totalNetSales,
         cogs: totalCogs,
         grossProfit: totalGrossProfit,
@@ -313,9 +356,17 @@ export default function ProfitLossPage() {
     { label: "Discounts", value: summary.discounts, type: "deduction" },
     { label: "Refunds", value: summary.refunds, type: "deduction" },
     { label: "Net Sales", value: summary.netSales, type: "subtotal" },
-    { label: "Cost of Goods Sold (COGS)", value: summary.cogs, type: "deduction" },
+    {
+      label: "Cost of Goods Sold (COGS)",
+      value: summary.cogs,
+      type: "deduction",
+    },
     { label: "Gross Profit", value: summary.grossProfit, type: "subtotal" },
-    { label: "Operating Expenses", value: summary.operatingExpenses, type: "deduction" },
+    {
+      label: "Operating Expenses",
+      value: summary.operatingExpenses,
+      type: "deduction",
+    },
     { label: "Net Profit", value: summary.netProfit, type: "total" },
   ];
 
@@ -358,7 +409,9 @@ export default function ProfitLossPage() {
             disabled={refreshing}
             className="gap-1"
           >
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            <RefreshCw
+              className={cn("h-4 w-4", refreshing && "animate-spin")}
+            />
             {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
@@ -373,7 +426,9 @@ export default function ProfitLossPage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Gross Sales</p>
-              <p className="text-lg font-bold">{formatCurrency(summary.grossSales)}</p>
+              <p className="text-lg font-bold">
+                {formatCurrency(summary.grossSales)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -384,7 +439,9 @@ export default function ProfitLossPage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Net Sales</p>
-              <p className="text-lg font-bold">{formatCurrency(summary.netSales)}</p>
+              <p className="text-lg font-bold">
+                {formatCurrency(summary.netSales)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -395,7 +452,9 @@ export default function ProfitLossPage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Gross Profit</p>
-              <p className="text-lg font-bold">{formatCurrency(summary.grossProfit)}</p>
+              <p className="text-lg font-bold">
+                {formatCurrency(summary.grossProfit)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -406,7 +465,9 @@ export default function ProfitLossPage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Net Profit Margin</p>
-              <p className="text-lg font-bold">{formatPercent(summary.netProfitMargin)}</p>
+              <p className="text-lg font-bold">
+                {formatPercent(summary.netProfitMargin)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -421,7 +482,9 @@ export default function ProfitLossPage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">COGS</p>
-              <p className="text-lg font-bold">{formatCurrency(summary.cogs)}</p>
+              <p className="text-lg font-bold">
+                {formatCurrency(summary.cogs)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -431,8 +494,12 @@ export default function ProfitLossPage() {
               <DollarSign className="h-5 w-5 text-orange-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Operating Expenses</p>
-              <p className="text-lg font-bold">{formatCurrency(summary.operatingExpenses)}</p>
+              <p className="text-xs text-muted-foreground">
+                Operating Expenses
+              </p>
+              <p className="text-lg font-bold">
+                {formatCurrency(summary.operatingExpenses)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -443,7 +510,9 @@ export default function ProfitLossPage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Discounts</p>
-              <p className="text-lg font-bold">{formatCurrency(summary.discounts)}</p>
+              <p className="text-lg font-bold">
+                {formatCurrency(summary.discounts)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -454,7 +523,9 @@ export default function ProfitLossPage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Refunds</p>
-              <p className="text-lg font-bold">{formatCurrency(summary.refunds)}</p>
+              <p className="text-lg font-bold">
+                {formatCurrency(summary.refunds)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -463,12 +534,17 @@ export default function ProfitLossPage() {
       {/* ─── Chart ────────────────────────────────────────────────────── */}
       <Card className="border-border">
         <CardContent className="p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Profit & Loss Trend</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">
+            Profit & Loss Trend
+          </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={pnlData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="date" className="text-xs text-muted-foreground" />
+                <XAxis
+                  dataKey="date"
+                  className="text-xs text-muted-foreground"
+                />
                 <YAxis
                   tickFormatter={(value) => `$${value}`}
                   className="text-xs text-muted-foreground"
@@ -483,9 +559,24 @@ export default function ProfitLossPage() {
                   }}
                 />
                 <Legend />
-                <Bar dataKey="grossSales" fill="#818cf8" name="Gross Sales" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="cogs" fill="#fb7185" name="COGS" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="operatingExpenses" fill="#f59e0b" name="Operating Expenses" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="grossSales"
+                  fill="#818cf8"
+                  name="Gross Sales"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="cogs"
+                  fill="#fb7185"
+                  name="COGS"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="operatingExpenses"
+                  fill="#f59e0b"
+                  name="Operating Expenses"
+                  radius={[4, 4, 0, 0]}
+                />
                 <Line
                   type="monotone"
                   dataKey="netProfit"
@@ -504,7 +595,9 @@ export default function ProfitLossPage() {
       <Card className="border-border">
         <CardContent className="p-0">
           <div className="flex items-center justify-between p-4 border-b border-border">
-            <h3 className="font-semibold text-foreground">Financial Statement</h3>
+            <h3 className="font-semibold text-foreground">
+              Financial Statement
+            </h3>
             <span className="text-xs text-muted-foreground">
               {format(new Date(), "MMMM d, yyyy")}
             </span>
@@ -517,9 +610,11 @@ export default function ProfitLossPage() {
                   "flex justify-between items-center py-2 px-4 rounded-lg transition-colors",
                   item.type === "revenue" && "bg-indigo-500/5 text-indigo-400",
                   item.type === "deduction" && "bg-rose-500/5 text-rose-400",
-                  item.type === "subtotal" && "bg-amber-500/5 text-amber-400 font-semibold",
-                  item.type === "total" && "bg-emerald-500/10 text-emerald-400 font-bold text-lg",
-                  idx > 0 && "border-t border-border/30"
+                  item.type === "subtotal" &&
+                    "bg-amber-500/5 text-amber-400 font-semibold",
+                  item.type === "total" &&
+                    "bg-emerald-500/10 text-emerald-400 font-bold text-lg",
+                  idx > 0 && "border-t border-border/30",
                 )}
               >
                 <span>{item.label}</span>
