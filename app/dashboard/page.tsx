@@ -695,7 +695,9 @@ export default function DashboardOverview() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border px-3 py-2" style={{ borderColor: "var(--page-border)", color: "var(--page-muted)" }}>
             <Store size={16} style={{ color: "var(--page-accent)" }} />
-            
+            <span className="text-sm font-medium" style={{ color: "var(--page-text)" }}>
+              {branchName}
+            </span>
           </div>
           <div className="rounded-full border px-3 py-2" style={{ borderColor: "var(--page-border)" }}>
             <span className="text-sm font-medium uppercase" style={{ color: "var(--page-accent)" }}>
@@ -743,6 +745,31 @@ export default function DashboardOverview() {
           </div>
         </div>
 
+        <div className="rounded-[24px] border p-6" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
+          <p className="text-sm font-medium uppercase tracking-[0.3em]" style={{ color: "var(--page-accent)" }}>
+            Performance Snapshot
+          </p>
+          {roleName === "admin" || roleName === "branch_manager" ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Gross profit</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>${stats.grossProfit?.toLocaleString() || "0"}</p>
+              </div>
+              <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Margin</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-accent)" }}>{stats.grossProfitMargin?.toFixed(1) || "0"}%</p>
+              </div>
+              <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Monthly revenue</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>${stats.monthlyRevenue?.toLocaleString() || "0"}</p>
+              </div>
+              <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Today</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>${stats.todayRevenue?.toLocaleString() || "0"}</p>
+              </div>
+            </div>
+          )  : null}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
