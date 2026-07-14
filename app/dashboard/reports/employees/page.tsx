@@ -16,7 +16,6 @@ import {
   Clock,
   CheckCircle,
   RefreshCw,
-  AlertCircle,
 } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, differenceInMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -51,12 +50,6 @@ type KitchenStats = {
   delayed_orders: number;
 };
 
-type Employee = {
-  id: number;
-  username: string;
-  role: string;
-};
-
 // ─── Component ──────────────────────────────────────────────────────────
 export default function EmployeePerformancePage() {
   const { user } = useAuth();
@@ -75,6 +68,17 @@ export default function EmployeePerformancePage() {
 
   // ─── Helper to extract role name ─────────────────────────────────────
   const getUserRole = useCallback((user: any): string => {
+    // First check if role is a string directly
+    if (typeof user?.role === 'string' && user.role.length > 0) {
+      return user.role;
+    }
+    
+    // Check if role is an object with name
+    if (user?.role?.name && typeof user.role.name === 'string') {
+      return user.role.name;
+    }
+    
+    // Check other possible fields
     const roleCandidates = [
       user?.role?.name,
       user?.role,
@@ -83,8 +87,8 @@ export default function EmployeePerformancePage() {
       user?.role_name,
       user?.user_role_name,
       user?.role_type,
-      user?.role?.role_name,
-      user?.user_role?.role_name,
+      user?.role?.display_name,
+      user?.role_display_name,
     ];
     
     for (const candidate of roleCandidates) {
@@ -132,12 +136,14 @@ export default function EmployeePerformancePage() {
       // ─── 2. Filter users by role ────────────────────────────────────
       const waiterUsers = allUsers.filter((u: any) => {
         const role = getUserRole(u).toLowerCase();
-        return ['waiter', 'waiters', 'server', 'servers', 'service'].some(r => role.includes(r));
+        return ['waiter', 'waiters', 'server', 'servers', 'service', 'branch_manager'].some(r => role.includes(r));
       });
       
       const cashierUsers = allUsers.filter((u: any) => {
         const role = getUserRole(u).toLowerCase();
-        return ['cashier', 'cashiers', 'teller', 'payment'].some(r => role.includes(r));
+        return role === 'cashier' || 
+               role === 'cashiers' || 
+               role.includes('cashier');
       });
       
       const kitchenUsers = allUsers.filter((u: any) => {
@@ -152,10 +158,15 @@ export default function EmployeePerformancePage() {
       const orders = ordersData.results || ordersData || [];
 
       // ─── 4. Fetch payments ──────────────────────────────────────────
-      const paymentsUrl = `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`;
-      const paymentsRes = await apiFetch(paymentsUrl, {}, true);
-      const paymentsData = await paymentsRes.json();
-      const payments = paymentsData.results || paymentsData || [];
+      let payments: any[] = [];
+      try {
+        const paymentsUrl = `/api/orders/payments/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`;
+        const paymentsRes = await apiFetch(paymentsUrl, {}, true);
+        const paymentsData = await paymentsRes.json();
+        payments = paymentsData.results || paymentsData || [];
+      } catch (e) {
+        // Payments endpoint not available
+      }
 
       // ─── 5. Fetch COGS transactions ──────────────────────────────────
       let cogsItems: any[] = [];
@@ -239,7 +250,7 @@ export default function EmployeePerformancePage() {
         stat.total_collection += Number(p.amount || 0);
       });
       
-      const cashierArray = Array.from(cashierMap.values()).filter(c => c.transactions_processed > 0);
+      const cashierArray = Array.from(cashierMap.values());
       setCashiers(cashierArray);
 
       // ─── 8. Compute Kitchen Stats ──────────────────────────────────
@@ -319,12 +330,6 @@ export default function EmployeePerformancePage() {
     return `${h}h ${m}m`;
   };
 
-  // ─── Check if roles exist ────────────────────────────────────────────
-  const hasRequiredRoles = useCallback(() => {
-    // This will be checked during render
-    return false; // Will be computed in render
-  }, []);
-
   // ─── Loading ──────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -344,35 +349,8 @@ export default function EmployeePerformancePage() {
     );
   }
 
-  // Check if we have any waiter/cashier/kitchen roles in the system
-  // This is a simplified check - in production you'd want to check properly
-  const hasWaiters = waiters.length > 0;
-  const hasCashiers = cashiers.length > 0;
-  const hasKitchen = kitchen.length > 0;
-  const hasAnyRoles = hasWaiters || hasCashiers || hasKitchen;
-
   return (
     <div className="space-y-6">
-      {/* ─── Warning Banner ────────────────────────────────────────────────── */}
-      {!hasAnyRoles && (
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="text-sm font-medium text-amber-400">No Employee Roles Found</h4>
-              <p className="text-xs text-muted-foreground mt-1">
-                Your system doesn't have users with <strong>waiter</strong>, <strong>cashier</strong>, or <strong>kitchen_staff</strong> roles.
-                To see employee performance metrics, you need to:
-              </p>
-              <ul className="text-xs text-muted-foreground mt-1 list-disc list-inside space-y-0.5">
-                <li>Create users with roles: <strong>waiter</strong>, <strong>cashier</strong>, or <strong>kitchen_staff</strong></li>
-                <li>Or update existing users' roles in the admin panel</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ─── Header ────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Employee Performance</h1>
@@ -543,7 +521,10 @@ export default function EmployeePerformancePage() {
         <div className="space-y-4">
           {cashiers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No cashier data available for this period.
+              No cashiers found in the system.
+              <p className="text-xs mt-2 text-muted-foreground">
+                Make sure users have the "cashier" role assigned.
+              </p>
             </div>
           ) : (
             <>
@@ -554,7 +535,7 @@ export default function EmployeePerformancePage() {
                       <Users className="h-5 w-5 text-indigo-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Active Cashiers</p>
+                      <p className="text-xs text-muted-foreground">Total Cashiers</p>
                       <p className="text-lg font-bold">{cashiers.length}</p>
                     </div>
                   </CardContent>
@@ -603,10 +584,26 @@ export default function EmployeePerformancePage() {
                       {cashiers.map((c) => (
                         <tr key={c.user_id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-3 font-medium text-foreground">{c.user_name}</td>
-                          <td className="px-4 py-3 text-right">{c.transactions_processed}</td>
-                          <td className="px-4 py-3 text-right font-medium">{formatCurrency(c.total_collection)}</td>
-                          <td className="px-4 py-3 text-right text-red-400">{formatCurrency(c.refunds)}</td>
-                          <td className="px-4 py-3 text-right text-muted-foreground">{formatCurrency(c.cash_shortage_excess)}</td>
+                          <td className="px-4 py-3 text-right">
+                            {c.transactions_processed > 0 ? (
+                              c.transactions_processed
+                            ) : (
+                              <span className="text-muted-foreground">0</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium">
+                            {c.transactions_processed > 0 ? (
+                              formatCurrency(c.total_collection)
+                            ) : (
+                              <span className="text-muted-foreground">$0.00</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right text-red-400">
+                            {c.refunds > 0 ? formatCurrency(c.refunds) : <span className="text-muted-foreground">$0.00</span>}
+                          </td>
+                          <td className="px-4 py-3 text-right text-muted-foreground">
+                            {formatCurrency(c.cash_shortage_excess)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -614,6 +611,11 @@ export default function EmployeePerformancePage() {
                 </div>
                 <div className="p-3 border-t border-border text-xs text-muted-foreground">
                   {cashiers.length} cashiers • {cashiers.reduce((sum, c) => sum + c.transactions_processed, 0)} transactions
+                  {cashiers.some(c => c.transactions_processed === 0) && (
+                    <span className="ml-2 text-amber-400">
+                      • {cashiers.filter(c => c.transactions_processed === 0).length} cashier(s) with 0 transactions
+        </span>
+                  )}
                 </div>
               </Card>
             </>
