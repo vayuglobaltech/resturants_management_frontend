@@ -18,6 +18,7 @@ export interface MenuItem {
 }
 
 export interface MenuListResponse {
+  json(): unknown;
   count: number;
   next: string | null;
   previous: string | null;

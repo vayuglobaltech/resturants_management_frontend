@@ -613,7 +613,6 @@ export default function OrdersPage() {
               icon={<Timer className="h-4 w-4 sm:h-5 sm:w-5" />}
               color="text-cyan-400"
               subtitle="To completion"
-              trend={null}
             />
           </>
         )}
