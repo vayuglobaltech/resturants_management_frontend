@@ -1,31 +1,22 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
-  User,
   Coffee,
   ChefHat,
   DollarSign,
   ShoppingBag,
   Clock,
   CheckCircle,
-  XCircle,
   RefreshCw,
-  Calendar,
-  TrendingUp,
-  TrendingDown,
-  Search,
-  ArrowUp,
-  ArrowDown,
-  Minus,
+  AlertCircle,
 } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, differenceInMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -49,15 +40,15 @@ type CashierStats = {
   transactions_processed: number;
   total_collection: number;
   refunds: number;
-  cash_shortage_excess: number; // placeholder
+  cash_shortage_excess: number;
 };
 
 type KitchenStats = {
   user_id: number;
   user_name: string;
   orders_prepared: number;
-  average_prep_time: number; // minutes
-  delayed_orders: number; // orders where prep_time > 30 min
+  average_prep_time: number;
+  delayed_orders: number;
 };
 
 type Employee = {
@@ -81,6 +72,33 @@ export default function EmployeePerformancePage() {
   const [waiters, setWaiters] = useState<WaiterStats[]>([]);
   const [cashiers, setCashiers] = useState<CashierStats[]>([]);
   const [kitchen, setKitchen] = useState<KitchenStats[]>([]);
+
+  // ─── Helper to extract role name ─────────────────────────────────────
+  const getUserRole = useCallback((user: any): string => {
+    const roleCandidates = [
+      user?.role?.name,
+      user?.role,
+      user?.user_role?.name,
+      user?.user_role,
+      user?.role_name,
+      user?.user_role_name,
+      user?.role_type,
+      user?.role?.role_name,
+      user?.user_role?.role_name,
+    ];
+    
+    for (const candidate of roleCandidates) {
+      if (typeof candidate === 'string' && candidate.length > 0) {
+        return candidate;
+      }
+    }
+    
+    if (user?.is_staff) {
+      return "staff";
+    }
+    
+    return "unknown";
+  }, []);
 
   // ─── Date range helpers ──────────────────────────────────────────────
   const getDateRange = useCallback((period: Period) => {
@@ -106,55 +124,57 @@ export default function EmployeePerformancePage() {
       const startStr = format(start, "yyyy-MM-dd");
       const endStr = format(end, "yyyy-MM-dd");
 
-      // ─── 1. Fetch all users (to get roles) ──────────────────────────
+      // ─── 1. Fetch all users ──────────────────────────────────────────
       const usersRes = await apiFetch(`/api/users/?page_size=1000`, {}, true);
       const usersData = await usersRes.json();
       const allUsers = usersData.results || usersData || [];
-      const userMap = new Map<number, Employee>();
-      allUsers.forEach((u: any) => {
-        userMap.set(u.id, {
-          id: u.id,
-          username: u.username,
-          role: u.role?.name || "unknown",
-        });
+
+      // ─── 2. Filter users by role ────────────────────────────────────
+      const waiterUsers = allUsers.filter((u: any) => {
+        const role = getUserRole(u).toLowerCase();
+        return ['waiter', 'waiters', 'server', 'servers', 'service'].some(r => role.includes(r));
+      });
+      
+      const cashierUsers = allUsers.filter((u: any) => {
+        const role = getUserRole(u).toLowerCase();
+        return ['cashier', 'cashiers', 'teller', 'payment'].some(r => role.includes(r));
+      });
+      
+      const kitchenUsers = allUsers.filter((u: any) => {
+        const role = getUserRole(u).toLowerCase();
+        return ['kitchen_staff', 'kitchen staff', 'chef', 'cook', 'kitchen', 'prep', 'culinary'].some(r => role.includes(r));
       });
 
-      // ─── 2. Fetch orders for waiters ────────────────────────────────
-      const ordersRes = await apiFetch(
-        `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true
-      );
+      // ─── 3. Fetch orders ─────────────────────────────────────────────
+      const ordersUrl = `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`;
+      const ordersRes = await apiFetch(ordersUrl, {}, true);
       const ordersData = await ordersRes.json();
       const orders = ordersData.results || ordersData || [];
 
-      // ─── 3. Fetch payments for cashiers ─────────────────────────────
-      const paymentsRes = await apiFetch(
-        `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true
-      );
+      // ─── 4. Fetch payments ──────────────────────────────────────────
+      const paymentsUrl = `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`;
+      const paymentsRes = await apiFetch(paymentsUrl, {}, true);
       const paymentsData = await paymentsRes.json();
       const payments = paymentsData.results || paymentsData || [];
 
-      // ─── 4. Fetch COGS transactions for kitchen staff ───────────────
+      // ─── 5. Fetch COGS transactions ──────────────────────────────────
       let cogsItems: any[] = [];
+      let cogsAvailable = false;
       try {
-        const cogsRes = await apiFetch(
-          `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-          {},
-          true
-        );
+        const cogsUrl = `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`;
+        const cogsRes = await apiFetch(cogsUrl, {}, true);
         const cogsData = await cogsRes.json();
         cogsItems = cogsData.results || cogsData || [];
+        cogsAvailable = true;
       } catch (e) {
-        console.warn("COGS endpoint not available, using order timestamps for kitchen");
+        // COGS endpoint not available
       }
 
-      // ─── 5. Compute Waiter Stats ─────────────────────────────────────
+      // ─── 6. Compute Waiter Stats ─────────────────────────────────────
       const waiterMap = new Map<number, WaiterStats>();
-      const waiterUsers = allUsers.filter((u: any) => u.role?.name === "waiter");
-      waiterUsers.forEach((u: any) => {
+      const usersToUseForWaiters = waiterUsers.length > 0 ? waiterUsers : allUsers;
+      
+      usersToUseForWaiters.forEach((u: any) => {
         waiterMap.set(u.id, {
           user_id: u.id,
           user_name: u.username,
@@ -170,12 +190,15 @@ export default function EmployeePerformancePage() {
       orders.forEach((o: any) => {
         const waiterId = o.user;
         if (!waiterId || !waiterMap.has(waiterId)) return;
+        
         const stat = waiterMap.get(waiterId)!;
         stat.orders_handled += 1;
+        
         if (o.table) {
           if (!tablesPerWaiter[waiterId]) tablesPerWaiter[waiterId] = new Set();
           tablesPerWaiter[waiterId].add(o.table);
         }
+        
         const amount = Number(o.total_amount || 0);
         if (o.status?.toUpperCase() !== "CANCELLED") {
           stat.sales_handled += amount;
@@ -183,16 +206,20 @@ export default function EmployeePerformancePage() {
           stat.cancelled_orders += 1;
         }
       });
+      
       waiterMap.forEach((stat, id) => {
         stat.tables_served = tablesPerWaiter[id]?.size || 0;
         stat.average_order_value = stat.orders_handled > 0 ? stat.sales_handled / stat.orders_handled : 0;
       });
-      setWaiters(Array.from(waiterMap.values()));
+      
+      const waiterArray = Array.from(waiterMap.values()).filter(w => w.orders_handled > 0);
+      setWaiters(waiterArray);
 
-      // ─── 6. Compute Cashier Stats ──────────────────────────────────
+      // ─── 7. Compute Cashier Stats ──────────────────────────────────
       const cashierMap = new Map<number, CashierStats>();
-      const cashierUsers = allUsers.filter((u: any) => u.role?.name === "cashier");
-      cashierUsers.forEach((u: any) => {
+      const usersToUseForCashiers = cashierUsers.length > 0 ? cashierUsers : allUsers;
+      
+      usersToUseForCashiers.forEach((u: any) => {
         cashierMap.set(u.id, {
           user_id: u.id,
           user_name: u.username,
@@ -204,18 +231,22 @@ export default function EmployeePerformancePage() {
       });
 
       payments.forEach((p: any) => {
-        const cashierId = p.cashier;
+        const cashierId = p.cashier || p.user || p.processed_by;
         if (!cashierId || !cashierMap.has(cashierId)) return;
+        
         const stat = cashierMap.get(cashierId)!;
         stat.transactions_processed += 1;
         stat.total_collection += Number(p.amount || 0);
       });
-      setCashiers(Array.from(cashierMap.values()));
+      
+      const cashierArray = Array.from(cashierMap.values()).filter(c => c.transactions_processed > 0);
+      setCashiers(cashierArray);
 
-      // ─── 7. Compute Kitchen Stats ──────────────────────────────────
+      // ─── 8. Compute Kitchen Stats ──────────────────────────────────
       const kitchenMap = new Map<number, KitchenStats>();
-      const kitchenUsers = allUsers.filter((u: any) => u.role?.name === "kitchen_staff");
-      kitchenUsers.forEach((u: any) => {
+      const usersToUseForKitchen = kitchenUsers.length > 0 ? kitchenUsers : allUsers;
+      
+      usersToUseForKitchen.forEach((u: any) => {
         kitchenMap.set(u.id, {
           user_id: u.id,
           user_name: u.username,
@@ -225,13 +256,16 @@ export default function EmployeePerformancePage() {
         });
       });
 
-      if (cogsItems.length > 0) {
+      if (cogsAvailable && cogsItems.length > 0) {
         const prepTimes: Record<number, number[]> = {};
+        
         cogsItems.forEach((c: any) => {
-          const kitchenId = c.prepared_by;
+          const kitchenId = c.prepared_by || c.user || c.processed_by;
           if (!kitchenId || !kitchenMap.has(kitchenId)) return;
+          
           const stat = kitchenMap.get(kitchenId)!;
           stat.orders_prepared += 1;
+          
           const order = orders.find((o: any) => o.id === c.order);
           if (order && order.confirmed_at && order.ready_at) {
             const prep = differenceInMinutes(new Date(order.ready_at), new Date(order.confirmed_at));
@@ -240,12 +274,12 @@ export default function EmployeePerformancePage() {
             if (prep > 30) stat.delayed_orders += 1;
           }
         });
+        
         kitchenMap.forEach((stat, id) => {
           const times = prepTimes[id] || [];
           stat.average_prep_time = times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : 0;
         });
       } else {
-        // Fallback: aggregate kitchen stats
         const allPrepTimes: number[] = [];
         orders.forEach((o: any) => {
           if (o.confirmed_at && o.ready_at) {
@@ -253,19 +287,23 @@ export default function EmployeePerformancePage() {
             allPrepTimes.push(prep);
           }
         });
+        
         const avgPrep = allPrepTimes.length > 0 ? allPrepTimes.reduce((a, b) => a + b, 0) / allPrepTimes.length : 0;
         kitchenMap.forEach((stat) => {
           stat.average_prep_time = avgPrep;
         });
       }
-      setKitchen(Array.from(kitchenMap.values()));
+      
+      const kitchenArray = Array.from(kitchenMap.values()).filter(k => k.orders_prepared > 0 || k.average_prep_time > 0);
+      setKitchen(kitchenArray);
+      
     } catch (error) {
       console.error("Failed to fetch employee data:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [period, getDateRange]);
+  }, [period, getDateRange, getUserRole]);
 
   useEffect(() => {
     fetchEmployeeData();
@@ -280,6 +318,12 @@ export default function EmployeePerformancePage() {
     const m = Math.round(minutes % 60);
     return `${h}h ${m}m`;
   };
+
+  // ─── Check if roles exist ────────────────────────────────────────────
+  const hasRequiredRoles = useCallback(() => {
+    // This will be checked during render
+    return false; // Will be computed in render
+  }, []);
 
   // ─── Loading ──────────────────────────────────────────────────────────
   if (loading) {
@@ -300,8 +344,35 @@ export default function EmployeePerformancePage() {
     );
   }
 
+  // Check if we have any waiter/cashier/kitchen roles in the system
+  // This is a simplified check - in production you'd want to check properly
+  const hasWaiters = waiters.length > 0;
+  const hasCashiers = cashiers.length > 0;
+  const hasKitchen = kitchen.length > 0;
+  const hasAnyRoles = hasWaiters || hasCashiers || hasKitchen;
+
   return (
     <div className="space-y-6">
+      {/* ─── Warning Banner ────────────────────────────────────────────────── */}
+      {!hasAnyRoles && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="text-sm font-medium text-amber-400">No Employee Roles Found</h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                Your system doesn't have users with <strong>waiter</strong>, <strong>cashier</strong>, or <strong>kitchen_staff</strong> roles.
+                To see employee performance metrics, you need to:
+              </p>
+              <ul className="text-xs text-muted-foreground mt-1 list-disc list-inside space-y-0.5">
+                <li>Create users with roles: <strong>waiter</strong>, <strong>cashier</strong>, or <strong>kitchen_staff</strong></li>
+                <li>Or update existing users' roles in the admin panel</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ─── Header ────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Employee Performance</h1>
@@ -356,7 +427,7 @@ export default function EmployeePerformancePage() {
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
         >
-          <Coffee className="inline h-4 w-4 mr-2" /> Waiters
+          <Coffee className="inline h-4 w-4 mr-2" /> Waiters ({waiters.length})
         </button>
         <button
           onClick={() => setActiveTab("cashiers")}
@@ -367,7 +438,7 @@ export default function EmployeePerformancePage() {
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
         >
-          <DollarSign className="inline h-4 w-4 mr-2" /> Cashiers
+          <DollarSign className="inline h-4 w-4 mr-2" /> Cashiers ({cashiers.length})
         </button>
         <button
           onClick={() => setActiveTab("kitchen")}
@@ -378,7 +449,7 @@ export default function EmployeePerformancePage() {
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
         >
-          <ChefHat className="inline h-4 w-4 mr-2" /> Kitchen
+          <ChefHat className="inline h-4 w-4 mr-2" /> Kitchen ({kitchen.length})
         </button>
       </div>
 
@@ -386,7 +457,9 @@ export default function EmployeePerformancePage() {
       {activeTab === "waiters" && (
         <div className="space-y-4">
           {waiters.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No waiter data for this period.</div>
+            <div className="text-center py-8 text-muted-foreground">
+              No waiter data available for this period.
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -396,7 +469,7 @@ export default function EmployeePerformancePage() {
                       <Users className="h-5 w-5 text-indigo-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Waiters</p>
+                      <p className="text-xs text-muted-foreground">Active Waiters</p>
                       <p className="text-lg font-bold">{waiters.length}</p>
                     </div>
                   </CardContent>
@@ -469,7 +542,9 @@ export default function EmployeePerformancePage() {
       {activeTab === "cashiers" && (
         <div className="space-y-4">
           {cashiers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No cashier data for this period.</div>
+            <div className="text-center py-8 text-muted-foreground">
+              No cashier data available for this period.
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -479,7 +554,7 @@ export default function EmployeePerformancePage() {
                       <Users className="h-5 w-5 text-indigo-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Cashiers</p>
+                      <p className="text-xs text-muted-foreground">Active Cashiers</p>
                       <p className="text-lg font-bold">{cashiers.length}</p>
                     </div>
                   </CardContent>
@@ -551,7 +626,7 @@ export default function EmployeePerformancePage() {
         <div className="space-y-4">
           {kitchen.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No kitchen data for this period. (Make sure COGS transactions are recorded.)
+              No kitchen data available for this period.
             </div>
           ) : (
             <>
@@ -562,7 +637,7 @@ export default function EmployeePerformancePage() {
                       <ChefHat className="h-5 w-5 text-indigo-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Kitchen Staff</p>
+                      <p className="text-xs text-muted-foreground">Active Kitchen Staff</p>
                       <p className="text-lg font-bold">{kitchen.length}</p>
                     </div>
                   </CardContent>

@@ -133,10 +133,12 @@ export default function DashboardOverview() {
     "--page-bg": isDarkMode ? "#121110" : "#FAF8F5",
     "--page-surface": isDarkMode ? "#1C1A18" : "#FFFFFF",
     "--page-accent": isDarkMode ? "#D4A359" : "#B88E4C",
+    "--page-accent-foreground": isDarkMode ? "#121110" : "#171412",
     "--page-text": isDarkMode ? "#F2EAE1" : "#1A1816",
     "--page-muted": isDarkMode ? "#A69E95" : "#5C564F",
     "--page-border": isDarkMode ? "rgba(212, 163, 89, 0.2)" : "rgba(184, 142, 76, 0.22)",
     "--page-soft": isDarkMode ? "rgba(212, 163, 89, 0.12)" : "rgba(184, 142, 76, 0.12)",
+    "--page-hover": isDarkMode ? "rgba(212, 163, 89, 0.16)" : "rgba(184, 142, 76, 0.14)",
     "--page-shadow": isDarkMode ? "0 24px 80px rgba(0,0,0,0.35)" : "0 24px 80px rgba(26,24,22,0.08)",
   } as CSSProperties;
 
@@ -791,13 +793,13 @@ export default function DashboardOverview() {
             }
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <button className="rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5" style={{ backgroundColor: "var(--page-accent)", color: "#171412" }}>
+            <button className="rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5" style={{ backgroundColor: "var(--page-accent)", color: "var(--page-accent-foreground)" }}>
               {roleName === "waiter" ? "New Order" : 
                roleName === "cashier" ? "Process Payment" :
                roleName === "kitchen_staff" ? "Start Prep" :
                "View Reports"}
             </button>
-            <button className="rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5" style={{ borderColor: "var(--page-border)", color: "var(--page-text)" }}>
+            <button className="rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)", color: "var(--page-text)" }}>
               {roleName === "waiter" ? "View Tables" : 
                roleName === "cashier" ? "Payment History" :
                roleName === "kitchen_staff" ? "View Queue" :

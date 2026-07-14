@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -30,6 +30,7 @@ import toast from "react-hot-toast";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { apiFetch } from "@/lib/api";
 import { listOrders, getOrder, listTables } from "@/lib/ordersApi";
 import { Button } from "@/components/ui/Button";
@@ -52,6 +53,20 @@ interface FormData {
 export default function NewPaymentPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isDarkMode = theme === "dark";
+  const themeStyles = {
+    "--page-bg": isDarkMode ? "#121110" : "#FAF8F5",
+    "--page-surface": isDarkMode ? "#1C1A18" : "#FFFFFF",
+    "--page-card": isDarkMode ? "#23211F" : "#F9F5EE",
+    "--page-accent": isDarkMode ? "#D4A359" : "#B88E4C",
+    "--page-accent-foreground": isDarkMode ? "#121110" : "#171412",
+    "--page-text": isDarkMode ? "#F2EAE1" : "#1A1816",
+    "--page-muted": isDarkMode ? "#A69E95" : "#5C564F",
+    "--page-border": isDarkMode ? "rgba(212, 163, 89, 0.2)" : "rgba(184, 142, 76, 0.22)",
+    "--page-soft": isDarkMode ? "rgba(212, 163, 89, 0.12)" : "rgba(184, 142, 76, 0.12)",
+    "--page-overlay": isDarkMode ? "rgba(0, 0, 0, 0.78)" : "rgba(15, 23, 42, 0.6)",
+  } as CSSProperties;
 
   // ─── Role-based route guard ─────────────────────────────────────────
   // Managers/admins should NOT access Process Payment — only cashiers can.
@@ -342,9 +357,9 @@ export default function NewPaymentPage() {
   // We no longer have a single selectedOrder; discounts are handled elsewhere
   // For combined bills, we can sum discounts from all orders (optional)
   // ─── Compute discounts from all eligible orders ──────────────────────────
-  const totalDiscountFromOrders = eligibleOrders.reduce(
-    (sum, order) =>
-      sum + (order.discounts || []).reduce((s, d) => s + Number(d.amount), 0),
+  const totalDiscountFromOrders = eligibleOrders.reduce<number>(
+    (sum: number, order: any) =>
+      sum + (order.discounts || []).reduce<number>((s: number, d: any) => s + Number(d.amount), 0),
     0,
   );
 
@@ -375,7 +390,7 @@ export default function NewPaymentPage() {
       // payment_method: "CASH",
       status: "PENDING",
       transaction_id: data.transaction_id || undefined,
-      branch: user?.branch?.id || 1,
+      branch: branchId,
       customer_name: data.customer_name || "Guest",
       // We'll also store other order IDs to update later
       other_order_ids: eligibleOrders
@@ -453,6 +468,16 @@ export default function NewPaymentPage() {
       ? `${user.first_name} ${user.last_name}`
       : user?.username || "Cashier";
 
+  const branchName =
+    typeof user?.branch === "object" && user?.branch !== null && "name" in user.branch
+      ? (user.branch as { name?: string }).name
+      : undefined;
+
+  const branchId =
+    typeof user?.branch === "object" && user?.branch !== null && "id" in user.branch
+      ? Number((user.branch as { id?: number }).id)
+      : 1;
+
   const selectedTable = tables.find(
     (t) => t.id === parseInt(selectedTableIdForm),
   );
@@ -489,10 +514,15 @@ export default function NewPaymentPage() {
           relative cursor-pointer rounded-xl p-4 transition-all duration-300
           ${
             isSelected
-              ? "bg-indigo-500/20 border-2 border-indigo-400 shadow-lg shadow-indigo-500/20 scale-105"
-              : "bg-background border border-border hover:bg-muted hover:scale-105"
+              ? "border-2 scale-105"
+              : "border hover:scale-105"
           }
         `}
+        style={{
+          backgroundColor: isSelected ? "var(--page-soft)" : "var(--page-surface)",
+          borderColor: isSelected ? "var(--page-accent)" : "var(--page-border)",
+          boxShadow: isSelected ? "0 12px 30px rgba(184, 142, 76, 0.18)" : undefined,
+        }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -510,13 +540,13 @@ export default function NewPaymentPage() {
               />
             </div>
             <div>
-              <h3 className="text-foreground font-semibold text-lg">
+              <h3 className="font-semibold text-lg" style={{ color: "var(--page-text)" }}>
                 Table {table.table_number}
               </h3>
               <div className="flex items-center gap-2 mt-0.5">
                 <StatusBadge status={table.status} />
                 {isSelected && (
-                  <span className="text-xs text-indigo-400 animate-pulse">
+                  <span className="text-xs animate-pulse" style={{ color: "var(--page-accent)" }}>
                     ● Selected
                   </span>
                 )}
@@ -525,7 +555,7 @@ export default function NewPaymentPage() {
           </div>
           <div className="flex items-center gap-2">
             {isOccupied && (
-              <span className="text-xs text-muted-foreground bg-background px-2 py-1 rounded-full">
+              <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: "var(--page-soft)", color: "var(--page-muted)" }}>
                 Active
               </span>
             )}
@@ -544,14 +574,24 @@ export default function NewPaymentPage() {
   };
 
   // Compute total discount from all eligible orders
-  const totalDiscountValue = eligibleOrders.reduce(
-    (sum, order) =>
-      sum + (order.discounts || []).reduce((s, d) => s + Number(d.amount), 0),
+  const totalDiscountValue = eligibleOrders.reduce<number>(
+    (sum: number, order: any) =>
+      sum + (order.discounts || []).reduce<number>((s: number, d: any) => s + Number(d.amount), 0),
     0,
   );
   const subtotalBeforeDiscount = combinedTotal + totalDiscountValue;
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 print:bg-white print:p-0 print:block">
+    <div
+      className="min-h-screen p-6 print:bg-white print:p-0 print:block"
+      style={{
+        ...themeStyles,
+        backgroundColor: "var(--page-bg)",
+        color: "var(--page-text)",
+        backgroundImage: isDarkMode
+          ? "linear-gradient(135deg, #121110 0%, #1C1A18 100%)"
+          : "linear-gradient(135deg, #FAF8F5 0%, #F4ECE2 100%)",
+      }}
+    >
       <div className="max-w-7xl mx-auto space-y-6 print:hidden">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -559,21 +599,22 @@ export default function NewPaymentPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-foreground hover:bg-background gap-2 transition-all"
+              className="gap-2 transition-all"
+              style={{ color: "var(--page-muted)" }}
             >
               <ArrowLeft className="h-4 w-4" /> Back to Payments
             </Button>
           </Link>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border border-border">
-              <Building2 className="h-4 w-4 text-indigo-400" />
-              <span className="text-sm text-foreground/70">
-                {user?.branch?.name || "Main Branch"}
+              <Building2 className="h-4 w-4" style={{ color: "var(--page-accent)" }} />
+              <span className="text-sm" style={{ color: "var(--page-muted)" }}>
+                {branchName || "Main Branch"}
               </span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border border-border">
-              <User className="h-4 w-4 text-indigo-400" />
-              <span className="text-sm text-foreground/70">{cashierName}</span>
+              <User className="h-4 w-4" style={{ color: "var(--page-accent)" }} />
+              <span className="text-sm" style={{ color: "var(--page-muted)" }}>{cashierName}</span>
             </div>
           </div>
         </div>
@@ -584,10 +625,10 @@ export default function NewPaymentPage() {
             {/* ─── LEFT: Tables Grid (4 columns) ─── */}
             <div className="lg:col-span-4">
               <div className="sticky top-6">
-                <h2 className="text-foreground text-lg font-semibold mb-4 flex items-center gap-2">
-                  <TableIcon className="h-5 w-5 text-indigo-400" />
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: "var(--page-text)" }}>
+                  <TableIcon className="h-5 w-5" style={{ color: "var(--page-accent)" }} />
                   Active Tables
-                  <span className="text-sm font-normal text-slate-400 ml-2">
+                  <span className="text-sm font-normal ml-2" style={{ color: "var(--page-muted)" }}>
                     ({tables.length} active)
                   </span>
                 </h2>
@@ -624,8 +665,8 @@ export default function NewPaymentPage() {
                     <Card className="bg-muted/30 border-border backdrop-blur-sm shadow-xl">
                       <CardHeader className="border-b border-border pb-4">
                         <CardTitle className="text-foreground flex items-center gap-3">
-                          <div className="p-2 bg-indigo-500/20 rounded-lg">
-                            <CreditCard className="h-5 w-5 text-indigo-400" />
+                          <div className="p-2 rounded-lg" style={{ backgroundColor: "var(--page-soft)" }}>
+                            <CreditCard className="h-5 w-5" style={{ color: "var(--page-accent)" }} />
                           </div>
                           <span className="text-lg font-semibold">
                             Payment Details
@@ -659,7 +700,7 @@ export default function NewPaymentPage() {
 
                             {loadingOrders ? (
                               <div className="flex items-center justify-center py-3 bg-background rounded-lg border border-border">
-                                <Loader2 className="h-5 w-5 text-indigo-400 animate-spin" />
+                                <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--page-accent)" }} />
                                 <span className="ml-2 text-sm text-muted-foreground">
                                   Loading orders...
                                 </span>
@@ -711,7 +752,7 @@ export default function NewPaymentPage() {
                                 {/* Grand total (discounted) */}
                                 <div className="flex justify-between pt-2 border-t border-border font-bold text-foreground">
                                   <span>Total</span>
-                                  <span className="text-indigo-400">
+                                  <span style={{ color: "var(--page-accent)" }}>
                                     ${combinedTotal.toFixed(2)}
                                   </span>
                                 </div>
@@ -732,8 +773,8 @@ export default function NewPaymentPage() {
                               </div>
                             ) : showCreateOrder ? (
                               // ─── No order at all → cashier can create one ────────────────────
-                              <div className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-lg border border-dashed border-white/10">
-                                <p className="text-sm text-slate-400 mb-3">
+                              <div className="flex flex-col items-center justify-center p-6 rounded-lg border border-dashed" style={{ backgroundColor: "var(--page-soft)", borderColor: "var(--page-border)" }}>
+                                <p className="text-sm mb-3" style={{ color: "var(--page-muted)" }}>
                                   No orders found for this table.
                                 </p>
                                 <Button
@@ -755,7 +796,7 @@ export default function NewPaymentPage() {
                               </div>
                             ) : (
                               // ─── Fallback ──────────────────────────────────────────────────────
-                              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400">
+                              <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ backgroundColor: "var(--page-soft)", borderColor: "var(--page-border)", color: "var(--page-accent)" }}>
                                 <AlertCircle className="h-4 w-4" />
                                 <span className="text-sm">
                                   Unable to determine order status.
@@ -982,7 +1023,7 @@ export default function NewPaymentPage() {
                         setPendingPayload(null);
                       }
                     }}
-                    variant="primary"
+                    variant="default"
                     confirmDisabled={confirmLoading}
                   />
 
@@ -1005,7 +1046,7 @@ export default function NewPaymentPage() {
                       <CardContent className="pt-4">
                         {loadingOrders ? (
                           <div className="flex justify-center py-8">
-                            <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
+                            <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--page-accent)" }} />
                           </div>
                         ) : orders.length > 0 ? (
                           <div className="space-y-4">
@@ -1016,7 +1057,7 @@ export default function NewPaymentPage() {
                                   className="flex justify-between items-center p-3 bg-background rounded-lg border border-border hover:bg-muted transition-all"
                                 >
                                   <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium text-foreground bg-indigo-500/20 px-2.5 py-1 rounded">
+                                    <span className="text-sm font-medium px-2.5 py-1 rounded" style={{ backgroundColor: "var(--page-soft)", color: "var(--page-text)" }}>
                                       {item.quantity}×
                                     </span>
                                     <span className="text-foreground">
@@ -1047,7 +1088,7 @@ export default function NewPaymentPage() {
                               </div>
                               <div className="flex justify-between items-center pt-2 text-foreground text-lg font-bold border-t border-border">
                                 <span>Grand Total</span>
-                                <span className="text-emerald-400">
+                                <span style={{ color: "var(--page-accent)" }}>
                                   ${grandTotal.toFixed(2)}
                                 </span>
                               </div>
@@ -1067,7 +1108,7 @@ export default function NewPaymentPage() {
                 <div className="flex items-center justify-center h-full min-h-[400px] bg-background rounded-xl border border-border">
                   <div className="text-center text-muted-foreground">
                     <TableIcon className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                    <p className="text-lg font-medium text-foreground/60">
+                    <p className="text-lg font-medium" style={{ color: "var(--page-muted)" }}>
                       Select a table to start
                     </p>
                     <p className="text-sm mt-1">
@@ -1084,16 +1125,18 @@ export default function NewPaymentPage() {
       {/* ─── BILL SPLASH OVERLAY ─── */}
       {showBillSplash && paymentSuccess && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-lg print:static print:block print:bg-white print:p-0"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-lg print:static print:block print:bg-white print:p-0"
+          style={{ backgroundColor: "var(--page-overlay)" }}
           onClick={closeBillSplash}
         >
           <div
             ref={splashRef}
-            className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto animate-in slide-up duration-500 print:static print:shadow-none print:transform-none print:max-w-full print:max-h-none print:overflow-visible print:rounded-none"
+            className="relative rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto animate-in slide-up duration-500 print:static print:shadow-none print:transform-none print:max-w-full print:max-h-none print:overflow-visible print:rounded-none"
+            style={{ backgroundColor: "var(--page-surface)", border: "1px solid var(--page-border)" }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-gradient-to-r from-emerald-500 to-emerald-600 p-5 rounded-t-2xl print:hidden">
+            <div className="sticky top-0 z-10 p-5 rounded-t-2xl print:hidden" style={{ background: "linear-gradient(90deg, var(--page-accent), color-mix(in srgb, var(--page-accent) 80%, #ffffff 20%))" }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="bg-white/20 p-2.5 rounded-full animate-bounce">
@@ -1121,9 +1164,10 @@ export default function NewPaymentPage() {
             </div>
 
             {/* Invoice content */}
-            <div className="p-6 bg-gray-50 print:p-0 print:bg-white">
+            <div className="p-6 print:p-0" style={{ backgroundColor: "var(--page-card)" }}>
               <div
-                className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100 print:p-0 print:border-none print:shadow-none print:rounded-none"
+                className="rounded-xl shadow-lg p-6 border-2 print:p-0 print:border-none print:shadow-none print:rounded-none"
+                style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)" }}
                 ref={invoiceRef}
                 id="invoice-content"
               >
@@ -1147,7 +1191,7 @@ export default function NewPaymentPage() {
             </div>
 
             {/* Action buttons */}
-            <div className="sticky bottom-0 bg-white p-5 rounded-b-2xl border-t border-gray-100 no-print print:hidden">
+            <div className="sticky bottom-0 p-5 rounded-b-2xl border-t no-print print:hidden" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)" }}>
               <div className="flex flex-wrap gap-3 justify-center">
                 <Button
                   className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-foreground shadow-lg shadow-indigo-500/25 px-6"
