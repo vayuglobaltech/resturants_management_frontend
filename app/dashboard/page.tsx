@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, type ElementType, type CSSProperties, type ReactNode } from "react";
 import { getAccountingSummary } from "@/lib/accountingApi";
-import { getBranches } from "@/lib/api";
+import { getBranches, apiFetch } from "@/lib/api";
 import { listOrders } from "@/lib/ordersApi";
 import { listTables } from "@/lib/tableApi";
 import { useTheme } from "@/context/ThemeContext";
@@ -103,6 +103,7 @@ const safeExtract = (data: any, defaultValue: any = []) => {
 
 export default function DashboardOverview() {
   const { user } = useAuth();
+  
   const [loading, setLoading] = useState(true);
   const [branchName, setBranchName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +139,130 @@ export default function DashboardOverview() {
     "--page-soft": isDarkMode ? "rgba(212, 163, 89, 0.12)" : "rgba(184, 142, 76, 0.12)",
     "--page-shadow": isDarkMode ? "0 24px 80px rgba(0,0,0,0.35)" : "0 24px 80px rgba(26,24,22,0.08)",
   } as CSSProperties;
+
+  // ─── Fetch user profile and validate branch ──────────────────────────────────
+  useEffect(() => {
+    const fetchUserProfileAndValidate = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // First, fetch the user profile to get the branch
+        console.log("📡 Fetching user profile for branch...");
+        const res = await apiFetch('/api/users/profile/', {}, true);
+        
+        let profileBranchName = "";
+        let profileBranchId = null;
+        
+        if (res.ok) {
+          const profile = await res.json();
+          console.log("📋 User profile from API:", profile);
+          
+          // Try different possible field names for branch
+          if (profile.branch?.name) {
+            profileBranchName = profile.branch.name;
+            profileBranchId = profile.branch.id;
+          } else if (profile.branch_name) {
+            profileBranchName = profile.branch_name;
+          } else if (profile.branch?.branch_name) {
+            profileBranchName = profile.branch.branch_name;
+          }
+          
+          console.log("✅ Found branch name in profile:", profileBranchName);
+        } else {
+          console.error("Failed to fetch profile:", res.status);
+        }
+        
+        // Now fetch available branches
+        console.log("🔍 Fetching available branches...");
+        const branchData = await getBranches();
+        const branchList = branchData.results || branchData || [];
+        console.log("📋 Available branches:", branchList);
+        
+        if (branchList.length === 0) {
+          setError("No branches available in the system");
+          setLoading(false);
+          return;
+        }
+        
+        let selectedBranch = null;
+        let selectedBranchName = "";
+        
+        // FIRST: Try to use branch from profile
+        if (profileBranchName) {
+          const matchedBranch = branchList.find((b: any) => 
+            b.name?.toLowerCase() === profileBranchName.toLowerCase()
+          );
+          if (matchedBranch) {
+            selectedBranch = matchedBranch;
+            selectedBranchName = matchedBranch.name;
+            console.log("✅ Using branch from profile:", selectedBranchName);
+          } else {
+            // If branch not in list, use the profile branch name
+            selectedBranchName = profileBranchName;
+            selectedBranch = branchList[0];
+            console.log("📌 Using profile branch name (not in list):", selectedBranchName);
+          }
+        }
+        
+        // SECOND: Try by user's branch ID from auth
+        if (!selectedBranch) {
+          const userBranchId = (user as any)?.branch?.id;
+          if (userBranchId) {
+            const branchById = branchList.find((b: any) => b.id === userBranchId);
+            if (branchById) {
+              selectedBranch = branchById;
+              selectedBranchName = branchById.name;
+              console.log("✅ Using branch from user ID:", selectedBranchName);
+            }
+          }
+        }
+        
+        // THIRD: Try by user's branch name from auth
+        if (!selectedBranch) {
+          const userBranchName = (user as any)?.branch?.name;
+          if (userBranchName) {
+            const branchByName = branchList.find((b: any) => 
+              b.name?.toLowerCase() === userBranchName.toLowerCase()
+            );
+            if (branchByName) {
+              selectedBranch = branchByName;
+              selectedBranchName = branchByName.name;
+              console.log("✅ Using branch from user name:", selectedBranchName);
+            }
+          }
+        }
+        
+        // FINAL: Fallback to first branch
+        if (!selectedBranch && branchList.length > 0) {
+          selectedBranch = branchList[0];
+          selectedBranchName = selectedBranch.name || "Default Branch";
+          console.log("📌 Using first available branch as fallback:", selectedBranchName);
+        }
+        
+        if (selectedBranch) {
+          setValidBranchId(selectedBranch.id);
+          setBranchName(selectedBranchName);
+          setIsBranchValidated(true);
+          console.log("✅ Final branch:", selectedBranchName);
+        } else {
+          setError("No valid branch found");
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("❌ Failed to validate branch:", error);
+        setError("Failed to load branch data");
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfileAndValidate();
+  }, [user]);
 
   // ─── Fetch additional data based on role ──────────────────────────────────
   const fetchRoleSpecificData = async () => {
@@ -288,70 +413,6 @@ export default function DashboardOverview() {
       console.error("❌ Failed to fetch role-specific data:", error);
     }
   };
-
-  // ─── Fetch branches and validate user's branch ──────────────────────────
-  useEffect(() => {
-    const validateBranch = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        console.log("🔍 Fetching available branches...");
-        const data = await getBranches();
-        const branchList = data.results || data || [];
-        
-        console.log("📋 Available branches:", branchList);
-        
-        if (branchList.length === 0) {
-          setError("No branches available in the system");
-          setLoading(false);
-          return;
-        }
-        
-        const userBranchId = (user as any)?.branch?.id;
-        console.log("👤 User's branch ID:", userBranchId);
-        
-        let selectedBranch = null;
-        let selectedBranchName = "";
-        
-        if (userBranchId) {
-          selectedBranch = branchList.find((b: any) => b.id === userBranchId);
-          if (selectedBranch) {
-            selectedBranchName = selectedBranch.name || "My Branch";
-            console.log("✅ User's branch found:", selectedBranchName);
-          } else {
-            console.warn("⚠️ User's branch not found in available branches");
-          }
-        }
-        
-        if (!selectedBranch && branchList.length > 0) {
-          selectedBranch = branchList[0];
-          selectedBranchName = selectedBranch.name || "Default Branch";
-          console.log("📌 Using first available branch:", selectedBranchName);
-        }
-        
-        if (selectedBranch) {
-          setValidBranchId(selectedBranch.id);
-          setBranchName(selectedBranchName);
-          setIsBranchValidated(true);
-          console.log("✅ Validated branch ID:", selectedBranch.id);
-        } else {
-          setError("No valid branch found");
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("❌ Failed to fetch branches:", error);
-        setError("Failed to load branches");
-        setLoading(false);
-      }
-    };
-
-    if (user) {
-      validateBranch();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
 
   // ─── Fetch dashboard data when branch is validated ──────────────────────
   useEffect(() => {
@@ -696,7 +757,7 @@ export default function DashboardOverview() {
           <div className="flex items-center gap-2 rounded-full border px-3 py-2" style={{ borderColor: "var(--page-border)", color: "var(--page-muted)" }}>
             <Store size={16} style={{ color: "var(--page-accent)" }} />
             <span className="text-sm font-medium" style={{ color: "var(--page-text)" }}>
-              {branchName}
+              {branchName || "No Branch"}
             </span>
           </div>
           <div className="rounded-full border px-3 py-2" style={{ borderColor: "var(--page-border)" }}>
