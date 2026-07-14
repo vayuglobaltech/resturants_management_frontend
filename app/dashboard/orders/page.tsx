@@ -182,7 +182,7 @@ export default function OrdersPage() {
     ? String(user.role.name)
     : typeof user?.role === "string" ? user.role : "";
   
-  const canCreateOrder = Boolean(roleName && !["cashier"].includes(roleName));
+  const canCreateOrder = Boolean(roleName && ["cashier","waiter"].includes(roleName));
   const isManager = user?.role === "admin" || user?.role === "branch_manager";
 
   const tableId = searchParams.get("table");
