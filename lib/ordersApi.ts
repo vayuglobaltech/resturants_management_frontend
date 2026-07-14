@@ -55,7 +55,7 @@ export async function createOrder(data: any) {
   return json;
 }
 
-export async function updateOrder(id: number | string, data: { status: string }) {
+export async function updateOrder(id: number | string, data: Record<string, any>) {
   const res = await apiFetch(`/api/orders/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(data),
