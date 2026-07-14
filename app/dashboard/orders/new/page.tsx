@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import OrderSummary from "@/components/orders/orderSummary";
+import { getProductAvailabilities } from "@/lib/api";
 import {
   Plus,
   Minus,
@@ -69,6 +70,7 @@ export default function NewOrderPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [availabilities, setAvailabilities] = useState<any[]>([]);
 
   // ─── Discount State ──────────────────────────────────────────────────────
   const [discounts, setDiscounts] = useState<any[]>([]);
@@ -99,6 +101,27 @@ export default function NewOrderPage() {
   const preSelectedTable = searchParams.get("table");
   const preSelectedStatus = searchParams.get("status") || "PENDING";
 
+
+  // ─── Get available product IDs for user's branch ────────────────────────
+const availableProductIds = useMemo(() => {
+  const userBranchId = (user as any)?.branch?.id;
+  
+  // Filter availabilities for user's branch
+  let filteredAvail = availabilities;
+  if (userBranchId) {
+    filteredAvail = availabilities.filter((a: any) => {
+      const aBranch = typeof a.branch === 'object' ? a.branch.id : a.branch;
+      return aBranch === userBranchId;
+    });
+  }
+  
+  return new Set(
+    filteredAvail
+      .filter((a: any) => a.is_available === true)
+      .map((a: any) => typeof a.product === 'object' ? a.product.id : a.product)
+  );
+}, [availabilities, user]);
+
   useEffect(() => {
     if (preSelectedTable) {
       setValue("table", preSelectedTable);
@@ -109,12 +132,18 @@ export default function NewOrderPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tablesData, menuData] = await Promise.all([
+        const [tablesData, menuData, availData] = await Promise.all([
           listTables(),
           listMenuItems(),
+          getProductAvailabilities().catch(() => []) // Add this line
         ]);
+        
         setTables(tablesData.results || tablesData || []);
         setMenuItems(menuData.results || menuData || []);
+        
+        // Process availability data - Add this block
+        const availArray = Array.isArray(availData) ? availData : availData?.results || [];
+        setAvailabilities(availArray);
       } catch (error) {
         console.error("Failed to fetch data:", error);
         toast.error("Failed to load data. Please refresh.");
@@ -221,8 +250,15 @@ export default function NewOrderPage() {
   }, [menuItems]);
 
   // ─── Filter Menu Items ──────────────────────────────────────────────────
+  // ─── Filter Menu Items - ONLY SHOW AVAILABLE ITEMS ──────────────────────────────────
   const filteredItems = useMemo(() => {
     let filtered = menuItems;
+    
+    // Filter by availability - ONLY SHOW AVAILABLE ITEMS
+    // If availabilities exist, only show items that are available
+    if (availabilities.length > 0) {
+      filtered = filtered.filter((item) => availableProductIds.has(item.id));
+    }
     
     if (searchTerm.trim()) {
       filtered = filtered.filter((item) =>
@@ -236,7 +272,7 @@ export default function NewOrderPage() {
     }
     
     return filtered;
-  }, [menuItems, searchTerm, selectedSku]);
+  }, [menuItems, availabilities, availableProductIds, searchTerm, selectedSku]);
 
   // ─── Submit Order ────────────────────────────────────────────────────────
   const onSubmit = async (data: FormData) => {
