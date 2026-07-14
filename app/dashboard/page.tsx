@@ -695,9 +695,7 @@ export default function DashboardOverview() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border px-3 py-2" style={{ borderColor: "var(--page-border)", color: "var(--page-muted)" }}>
             <Store size={16} style={{ color: "var(--page-accent)" }} />
-            <span className="text-sm font-medium" style={{ color: "var(--page-text)" }}>
-              {branchName}
-            </span>
+            
           </div>
           <div className="rounded-full border px-3 py-2" style={{ borderColor: "var(--page-border)" }}>
             <span className="text-sm font-medium uppercase" style={{ color: "var(--page-accent)" }}>

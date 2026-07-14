@@ -23,7 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle,
-  XCircle
+  XCircle,
   PieChart,
   Lightbulb,
   Cloud,
