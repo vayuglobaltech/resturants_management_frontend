@@ -13,6 +13,8 @@ import {
 import { ProductAvailability, Branch, Product } from '@/types/index';
 import { useAuth } from "@/context/AuthContext";
 import { canManageMenu, getRoleName } from "@/lib/permissions";
+import { CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
 const ProductAvailabilityManagement: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -22,6 +24,7 @@ const ProductAvailabilityManagement: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [actionMsg, setActionMsg] = useState<{type: 'success'|'error', text: string} | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
   
   // Modal states
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -188,6 +191,28 @@ const ProductAvailabilityManagement: React.FC = () => {
     }
   };
 
+  // Handle toggle availability
+  const handleToggleAvailability = async (id: number, currentStatus: boolean, productName: string, branchName: string) => {
+    if (!canManage) {
+      setActionMsg({ type: 'error', text: 'You don\'t have permission to change availability.' });
+      return;
+    }
+    
+    setTogglingId(id);
+    try {
+      await updateProductAvailability(id, { is_available: !currentStatus });
+      setActionMsg({ 
+        type: 'success', 
+        text: `"${productName}" at "${branchName}" is now ${!currentStatus ? 'available' : 'unavailable'}.` 
+      });
+      fetchData();
+    } catch (error: any) {
+      setActionMsg({ type: 'error', text: error?.detail || 'Failed to update availability.' });
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   // Filter data based on search
   const filteredData = availabilities.filter(item => {
     const searchLower = searchTerm.toLowerCase();
@@ -315,16 +340,61 @@ const ProductAvailabilityManagement: React.FC = () => {
                   className="p-5 rounded-2xl border border-border bg-muted/30 backdrop-blur-md flex flex-col hover:border-orange-500/30 hover:bg-muted/30 transition-colors group"
                 >
                   <div>
-                    {/* Status Badge & Actions */}
+                    {/* Status Badge with Toggle Button */}
                     <div className="flex justify-between items-start mb-3">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border rounded-lg ${
-                        item.is_available
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          : 'bg-red-500/10 text-red-400 border-red-500/20'
-                      }`}>
-                        {item.is_available ? 'Available' : 'Unavailable'}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border rounded-lg ${
+                          item.is_available
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            : 'bg-red-500/10 text-red-400 border-red-500/20'
+                        }`}>
+                          {item.is_available ? 'Available' : 'Unavailable'}
+                        </span>
+                        
+                        {/* Toggle Button */}
+                        {canManage && (
+                          <button
+                            onClick={() => handleToggleAvailability(
+                              item.id, 
+                              item.is_available, 
+                              productName, 
+                              branchName
+                            )}
+                            disabled={togglingId === item.id}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all",
+                              item.is_available
+                                ? "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
+                                : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20",
+                              togglingId === item.id && "opacity-50 cursor-not-allowed"
+                            )}
+                            title={item.is_available ? "Mark as Unavailable" : "Mark as Available"}
+                          >
+                            {togglingId === item.id ? (
+                              <>
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                                Updating...
+                              </>
+                            ) : (
+                              <>
+                                {item.is_available ? (
+                                  <>
+                                    <XCircle className="h-3 w-3" />
+                                    Set Unavailable
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-3 w-3" />
+                                    Set Available
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                       
+                      {/* Edit/Delete Actions */}
                       {canManage && (
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
@@ -439,51 +509,51 @@ const ProductAvailabilityManagement: React.FC = () => {
                 
                 {/* Availability Status */}
                 <div>
-  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-    Availability Status
-  </label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                    Availability Status
+                  </label>
 
-  <div className="flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3">
-    <span
-      className={`text-sm font-medium transition-colors ${
-        formData.is_available ? "text-emerald-400" : "text-muted-foreground"
-      }`}
-    >
-      Available
-    </span>
+                  <div className="flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3">
+                    <span
+                      className={`text-sm font-medium transition-colors ${
+                        formData.is_available ? "text-emerald-400" : "text-muted-foreground"
+                      }`}
+                    >
+                      Available
+                    </span>
 
-    <button
-      type="button"
-      onClick={() =>
-        setFormData({
-          ...formData,
-          is_available: !formData.is_available,
-        })
-      }
-      className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-500 ${
-        formData.is_available
-          ? "bg-emerald-500"
-          : "bg-slate-600"
-      }`}
-    >
-      <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
-          formData.is_available
-            ? "translate-x-8"
-            : "translate-x-1"
-        }`}
-      />
-    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          is_available: !formData.is_available,
+                        })
+                      }
+                      className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                        formData.is_available
+                          ? "bg-emerald-500"
+                          : "bg-slate-600"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
+                          formData.is_available
+                            ? "translate-x-8"
+                            : "translate-x-1"
+                        }`}
+                      />
+                    </button>
 
-    <span
-      className={`text-sm font-medium transition-colors ${
-        !formData.is_available ? "text-red-400" : "text-muted-foreground"
-      }`}
-    >
-      Unavailable
-    </span>
-  </div>
-</div>
+                    <span
+                      className={`text-sm font-medium transition-colors ${
+                        !formData.is_available ? "text-red-400" : "text-muted-foreground"
+                      }`}
+                    >
+                      Unavailable
+                    </span>
+                  </div>
+                </div>
               </div>
               
               {/* Action Buttons */}
