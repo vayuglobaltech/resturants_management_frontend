@@ -87,27 +87,29 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon, subtitle, color = "text-indigo-400", trend }: StatCardProps) {
   return (
-    <Card className="bg-muted/30 border-border hover:bg-muted/30 transition-colors">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn("p-2.5 rounded-xl bg-background", color)}>{icon}</div>
+    <Card className="bg-muted/30 border-border hover:bg-muted/30 transition-colors min-h-[148px]">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className={cn("p-3 rounded-2xl bg-background shadow-sm", color)}>{icon}</div>
             <div>
-              <p className="text-sm text-muted-foreground font-medium">{title}</p>
-              <p className="text-2xl font-bold text-foreground">{value}</p>
+              <p className="text-xs uppercase tracking-[0.16em] font-semibold text-muted-foreground">{title}</p>
+              <p className="mt-2 text-2xl font-bold leading-tight text-foreground">{value}</p>
             </div>
           </div>
           {trend !== undefined && (
             <div className={cn(
-              "flex items-center gap-1 text-sm font-medium",
+              "rounded-2xl border border-border bg-background px-3 py-2 text-sm font-semibold",
               trend >= 0 ? "text-emerald-400" : "text-red-400"
             )}>
-              {trend >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-              {Math.abs(trend)}%
+              <div className="flex items-center gap-1">
+                {trend >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                {Math.abs(trend)}%
+              </div>
             </div>
           )}
         </div>
-        {subtitle && <p className="text-xs text-muted-foreground mt-2">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{subtitle}</p>}
       </CardContent>
     </Card>
   );
@@ -115,7 +117,6 @@ function StatCard({ title, value, icon, subtitle, color = "text-indigo-400", tre
 
 // ─── Peak Hours Chart ──────────────────────────────────────────────────────
 
-// app/dashboard/reports/insights/page.tsx - Update the PeakHoursChart component
 
 // ─── Peak Hours Chart ──────────────────────────────────────────────────────
 
@@ -237,48 +238,48 @@ interface TopProductsProps {
 function TopProducts({ title, products, icon, color, accentColor }: TopProductsProps) {
   return (
     <Card className="bg-muted/30 border-border">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-4">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">By revenue</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground mt-1">By revenue</p>
           </div>
-          {icon}
+          <div className="rounded-2xl bg-background p-2.5 text-foreground shadow-sm">{icon}</div>
         </div>
 
         {products.length === 0 ? (
-          <div className="text-center py-6">
+          <div className="text-center py-8">
             <p className="text-sm text-muted-foreground">No data available</p>
           </div>
         ) : (
           <div className="space-y-3">
             {products.slice(0, 5).map((product, index) => (
-              <div key={product.id || index} className="flex items-center gap-3">
-                <div className={cn(
-                  "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                  index === 0 ? "bg-yellow-500/20 text-yellow-400" :
-                  index === 1 ? "bg-slate-400/20 text-muted-foreground" :
-                  index === 2 ? "bg-amber-700/20 text-amber-600" :
-                  "bg-background text-muted-foreground"
-                )}>
-                  {index + 1}
+              <div key={product.id || index} className="space-y-3 border-b border-border pb-3 last:border-b-0 last:pb-0">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold",
+                      index === 0 ? "bg-yellow-500/20 text-yellow-400" :
+                      index === 1 ? "bg-slate-400/20 text-muted-foreground" :
+                      index === 2 ? "bg-amber-700/20 text-amber-600" :
+                      "bg-background text-muted-foreground"
+                    )}>
+                      {index + 1}
+                    </div>
+                    <span className="text-sm font-medium text-foreground truncate">{product.name}</span>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">{formatCompactCurrency(product.revenue)}</span>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-foreground truncate">{product.name}</span>
-                    <span className="text-sm font-bold text-foreground">{formatCompactCurrency(product.revenue)}</span>
-                  </div>
-                  <div className="w-full bg-background rounded-full h-1.5 mt-1">
-                    <div 
-                      className={cn("h-1.5 rounded-full transition-all", accentColor)}
-                      style={{ width: `${Math.min(product.percentage, 100)}%` }}
-                    />
-                  </div>
+                <div className="h-2 rounded-full bg-background overflow-hidden">
+                  <div
+                    className={cn("h-2 rounded-full transition-all", accentColor)}
+                    style={{ width: `${Math.min(product.percentage, 100)}%` }}
+                  />
                 </div>
               </div>
             ))}
             {products.length > 5 && (
-              <p className="text-xs text-muted-foreground text-center mt-2">
+              <p className="text-xs text-muted-foreground text-center mt-3">
                 +{products.length - 5} more items
               </p>
             )}
@@ -300,37 +301,39 @@ function DailySalesTrend({ data }: DailySalesTrendProps) {
 
   return (
     <Card className="bg-muted/30 border-border">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-4">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Daily Sales Trend</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Revenue trend over time</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground mt-1">Revenue trend over time</p>
           </div>
-          <BarChart3 className="h-5 w-5 text-muted-foreground" />
+          <div className="rounded-2xl bg-background p-2 text-muted-foreground shadow-sm">
+            <BarChart3 className="h-5 w-5" />
+          </div>
         </div>
 
         {data.length === 0 || data.every(d => d.revenue === 0) ? (
-          <div className="text-center py-8">
-            <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+          <div className="text-center py-10">
+            <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">No daily trend data available</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-end justify-between h-32 gap-1">
+          <div className="space-y-4">
+            <div className="flex items-end justify-between h-36 gap-2">
               {data.map((item, index) => {
                 const height = maxRevenue > 0 ? (item.revenue / maxRevenue) * 100 : 0;
                 const isHighest = item.revenue === maxRevenue && maxRevenue > 0;
                 
                 return (
-                  <div key={index} className="flex-1 flex flex-col items-center gap-1">
+                  <div key={index} className="flex-1 flex flex-col items-center gap-2">
                     <div 
                       className={cn(
                         "w-full rounded-t transition-all duration-500",
                         isHighest ? "bg-gradient-to-t from-emerald-500 to-emerald-400" : "bg-indigo-500/40 hover:bg-indigo-500/60"
                       )}
                       style={{ 
-                        height: `${Math.max(height * 0.9, 4)}%`,
-                        minHeight: '4px'
+                        height: `${Math.max(height * 0.9, 6)}%`,
+                        minHeight: '6px'
                       }}
                       title={`${item.date}: ${formatCompactCurrency(item.revenue)}`}
                     />
@@ -572,14 +575,14 @@ export default function InsightsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Business Insights</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Peak hours, best sellers, and performance metrics
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-4 md:gap-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">Business Insights</h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-2 leading-relaxed">
+              Peak hours, best sellers, and performance metrics
+            </p>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -589,49 +592,68 @@ export default function InsightsPage() {
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
         </div>
-      </div>
 
-      {/* Branch and Date Filters */}
-      <Card className="bg-muted/30 border-border">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Store className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">Branch:</span>
+        <Card className="bg-muted/30 border-border">
+          <CardContent className="p-5">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(220px,1fr)_minmax(260px,1fr)] xl:grid-cols-[minmax(260px,1fr)_minmax(260px,1fr)_minmax(180px,1fr)] items-end">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Store className="h-4 w-4" />
+                  <span className="text-sm font-semibold">Branch</span>
+                </div>
+                <select
+                  value={selectedBranch === null ? "all" : selectedBranch.toString()}
+                  onChange={(e) => handleBranchChange(e.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
+                >
+                  <option value="all">All Branches</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span className="text-sm font-semibold">From</span>
+                  </div>
+                  <input
+                    type="date"
+                    value={dateRange.start_date}
+                    onChange={(e) => setDateRange({ ...dateRange, start_date: e.target.value })}
+                    className="rounded-lg border border-border bg-background px-3 py-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span className="text-sm font-semibold">To</span>
+                  </div>
+                  <input
+                    type="date"
+                    value={dateRange.end_date}
+                    onChange={(e) => setDateRange({ ...dateRange, end_date: e.target.value })}
+                    className="rounded-lg border border-border bg-background px-3 py-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Selected Range</p>
+                  <p className="mt-1 text-sm text-foreground font-semibold">{dateRange.start_date} – {dateRange.end_date}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={handleRefresh} className="whitespace-nowrap">
+                  Refresh data
+                </Button>
+              </div>
             </div>
-            <select
-              value={selectedBranch === null ? "all" : selectedBranch.toString()}
-              onChange={(e) => handleBranchChange(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
-            >
-              <option value="all">All Branches</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-            
-            <div className="flex items-center gap-2 ml-4">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">From:</span>
-            </div>
-            <input
-              type="date"
-              value={dateRange.start_date}
-              onChange={(e) => setDateRange({ ...dateRange, start_date: e.target.value })}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <span className="text-sm text-muted-foreground">to</span>
-            <input
-              type="date"
-              value={dateRange.end_date}
-              onChange={(e) => setDateRange({ ...dateRange, end_date: e.target.value })}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

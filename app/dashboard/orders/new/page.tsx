@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
+import OrderSummary from "@/components/orders/orderSummary";
 import {
   Plus,
   Minus,
@@ -13,7 +14,11 @@ import {
   Table as TableIcon,
   Send,
   Loader2,
+  Barcode,
+  X,
   AlertCircle,
+  Eye,
+  ChevronUp,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { listTables } from "@/lib/ordersApi";
@@ -34,6 +39,7 @@ interface MenuItem {
   description: string;
   category_name: string;
   is_available: boolean;
+  sku?: string;
 }
 
 interface CartItem extends MenuItem {
@@ -58,6 +64,8 @@ export default function NewOrderPage() {
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedSku, setSelectedSku] = useState<string>("");
+  const [showSkuFilter, setShowSkuFilter] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -68,6 +76,8 @@ export default function NewOrderPage() {
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [loadingDiscounts, setLoadingDiscounts] = useState(false);
   const [promoCode, setPromoCode] = useState("");
+  const [cartSplash, setCartSplash] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const {
     register,
@@ -85,7 +95,6 @@ export default function NewOrderPage() {
   const selectedTableId = watch("table");
   const specialInstructions = watch("special_instructions");
 
-  // Inside the component
   const searchParams = useSearchParams();
   const preSelectedTable = searchParams.get("table");
   const preSelectedStatus = searchParams.get("status") || "PENDING";
@@ -115,10 +124,14 @@ export default function NewOrderPage() {
     };
     fetchData();
 
-    // Fetch active discounts (only if user can apply discounts)
     const fetchDiscounts = async () => {
-      const role = user?.role?.name;
-      if (!role || !["admin", "branch_manager", "cashier"].includes(role))
+      const roleName =
+        typeof user?.role === "object" && user?.role !== null && "name" in user.role
+          ? String(user.role.name)
+          : typeof user?.role === "string"
+            ? user.role
+            : "";
+      if (!roleName || !["admin", "branch_manager", "cashier"].includes(roleName))
         return;
       setLoadingDiscounts(true);
       try {
@@ -167,6 +180,8 @@ export default function NewOrderPage() {
 
   // ─── Cart Operations ─────────────────────────────────────────────────────
   const addToCart = (item: MenuItem) => {
+    setCartSplash(true);
+    setTimeout(() => setCartSplash(false), 600);
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
       if (existing) {
@@ -176,6 +191,10 @@ export default function NewOrderPage() {
       }
       return [...prev, { ...item, quantity: 1 }];
     });
+  };
+
+  const handleSpecialInstructionsChange = (instructions: string) => {
+    setValue("special_instructions", instructions);
   };
 
   const updateQuantity = (id: number, delta: number) => {
@@ -194,13 +213,30 @@ export default function NewOrderPage() {
     setCart((prev) => prev.filter((i) => i.id !== id));
   };
 
+  const uniqueSkus = useMemo(() => {
+    const skus = menuItems
+      .map(item => item.sku)
+      .filter((sku): sku is string => !!sku);
+    return [...new Set(skus)];
+  }, [menuItems]);
+
   // ─── Filter Menu Items ──────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
-    if (!searchTerm.trim()) return menuItems;
-    return menuItems.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-  }, [menuItems, searchTerm]);
+    let filtered = menuItems;
+    
+    if (searchTerm.trim()) {
+      filtered = filtered.filter((item) =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+    }
+    if (selectedSku) {
+      filtered = filtered.filter((item) =>
+        item.sku?.toLowerCase() === selectedSku.toLowerCase(),
+      );
+    }
+    
+    return filtered;
+  }, [menuItems, searchTerm, selectedSku]);
 
   // ─── Submit Order ────────────────────────────────────────────────────────
   const onSubmit = async (data: FormData) => {
@@ -241,289 +277,442 @@ export default function NewOrderPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
+        <Loader2 className="h-8 w-8 text-yellow-500 animate-spin" />
       </div>
     );
   }
 
-  // const roleName = typeof user?.role === 'object' ? user.role.name : user?.role;
-  // const canApplyDiscount = roleName && ["admin", "branch_manager", "cashier"].includes(roleName);
-  const roleName = typeof user?.role === "object" ? user.role.name : user?.role;
-  const canApplyDiscount =
-    roleName && ["admin", "branch_manager", "cashier"].includes(roleName);
+  // ─── Clear all filters ───────────────────────────────────────────────────
+  const clearFilters = () => { 
+    setSearchTerm("");
+    setSelectedSku("");
+    setShowSkuFilter(false);
+  };
+
+  const roleName =
+    typeof user?.role === "object" && user?.role !== null && "name" in user.role
+      ? String(user.role.name)
+      : typeof user?.role === "string"
+        ? user.role
+        : "";
+  const canApplyDiscount = Boolean(
+    roleName && ["admin", "branch_manager", "cashier"].includes(roleName),
+  );
+  
   const handleDiscountChange = (id: string) => {
     setSelectedDiscountId(id);
-    setPromoCode(""); // reset promo code
+    setPromoCode("");
+  };
+
+  // ─── Mobile Summary Toggle ──────────────────────────────────────────────
+  const toggleCart = () => {
+    setIsCartOpen(!isCartOpen);
   };
 
   return (
     <ProtectedOrder>
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">New Order</h1>
-
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* ─── Left Panel: Menu Browser ─── */}
-          <div className="flex-1 space-y-4">
-            {/* ─── Table Selection ─── */}
-            <div>
-              <label
-                htmlFor="table"
-                className="block text-sm font-medium text-slate-300 mb-1"
-              >
-                Select Table *
-              </label>
-
-              {preSelectedTable ? (
-                // ─── Locked: read‑only display ──────────────────────────────────────
-                <div className="text-white bg-white/5 px-3 py-2 rounded-md border border-white/10">
-                  Table{" "}
-                  {tables.find((t) => String(t.id) === preSelectedTable)
-                    ?.table_number || preSelectedTable}
-                  <input
-                    type="hidden"
-                    value={preSelectedTable}
-                    {...register("table")}
-                  />
-                </div>
-              ) : (
-                // ─── Normal dropdown ────────────────────────────────────────────────
-                <select
-                  id="table"
-                  {...register("table", { required: "Table is required" })}
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">Select a table</option>
-                  {tables.map((table) => (
-                    <option key={table.id} value={table.id}>
-                      Table {table.table_number}{" "}
-                      {table.status === "OCCUPIED" && "(Occupied)"}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {errors.table && (
-                <p className="text-sm text-red-400 mt-1">
-                  {errors.table.message}
-                </p>
-              )}
+      <div className="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-5 lg:px-6">
+        {/* ─── Header ─────────────────────────────────────────────────────────── */}
+        <div className="overflow-hidden rounded-[30px] border border-yellow-500/20 bg-gradient-to-br from-yellow-500/10 via-background to-amber-500/5 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,0.5)] sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-3 inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-yellow-500">
+                <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+                Premium order builder
+              </div>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                Create a new order
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+                Build your order with speed and clarity using a refined, high-end interface.
+              </p>
             </div>
 
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search menu items..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            {/* Menu grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto pr-1">
-              {filteredItems.length === 0 ? (
-                <div className="col-span-2 text-center py-8 text-muted-foreground">
-                  No menu items found.
+            <div className="rounded-[22px] border border-yellow-500/20 bg-yellow-500/5 px-3.5 py-3 shadow-sm backdrop-blur">
+              <div className="flex items-center gap-3 text-foreground">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-yellow-500/15 text-yellow-500">
+                  <ShoppingCart className="h-5 w-5" />
                 </div>
-              ) : (
-                filteredItems.map((item) => (
-                  <motion.button
-                    key={item.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => addToCart(item)}
-                    disabled={!item.is_available}
-                    className={cn(
-                      "text-left p-3 rounded-xl border transition-all",
-                      item.is_available
-                        ? "border-border hover:border-indigo-500/50 bg-muted/30 hover:bg-muted/30"
-                        : "border-border bg-muted/30 opacity-50 cursor-not-allowed",
-                    )}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-foreground font-medium text-sm truncate">
-                          {item.name}
-                        </h4>
-                        <p className="text-muted-foreground text-xs line-clamp-1">
-                          {item.category_name || "Uncategorized"}
-                        </p>
-                      </div>
-                      <span className="text-indigo-400 font-bold text-sm ml-2">
-                        ${parseFloat(item.price).toFixed(2)}
-                      </span>
-                    </div>
-                  </motion.button>
-                ))
-              )}
+                <div>
+                  <p className="text-sm font-semibold">{cart.length} item{cart.length === 1 ? "" : "s"}</p>
+                  <p className="text-xs text-muted-foreground">Total ${grandTotal.toFixed(2)}</p>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* ─── Right Panel: Order Summary ─── */}
-          <div className="lg:w-96 flex-shrink-0">
-            <Card className="sticky top-20 bg-muted/30 border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-foreground flex items-center gap-2 text-base">
-                  <ShoppingCart className="h-5 w-5 text-indigo-400" />
-                  Order Summary
-                  {cart.length > 0 && (
-                    <span className="ml-auto text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
-                      {cart.length} items
-                    </span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {cart.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    <p>No items added yet.</p>
-                    <p className="text-xs mt-1">
-                      Select items from the left panel.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="max-h-64 overflow-y-auto space-y-1.5">
-                      {cart.map((item) => (
-                        <motion.div
-                          key={item.id}
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          className="flex items-center gap-2 p-2 rounded-lg bg-background"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-foreground text-sm font-medium truncate">
-                              {item.name}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              ${parseFloat(item.price).toFixed(2)} x{" "}
-                              {item.quantity}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => updateQuantity(item.id, -1)}
-                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                            >
-                              <Minus className="h-3.5 w-3.5" />
-                            </button>
-                            <span className="text-foreground text-sm w-6 text-center">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => updateQuantity(item.id, 1)}
-                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => removeItem(item.id)}
-                              className="p-1 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 ml-1"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </motion.div>
-                      ))}
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+          {/* ─── Left Panel: Menu Browser ─── */}
+          <div className="flex-1 space-y-4">
+            {/* ─── Table Selection with View Summary Button ─── */}
+            <div className="rounded-[24px] border border-yellow-500/20 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                <div className="flex-1">
+                  <label
+                    htmlFor="table"
+                    className="mb-2 block text-sm font-medium text-foreground"
+                  >
+                    Select Table *
+                  </label>
+
+                  {preSelectedTable ? (
+                    <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 px-3 py-3 text-sm text-foreground shadow-sm">
+                      Table{" "}
+                      {tables.find((t) => String(t.id) === preSelectedTable)
+                        ?.table_number || preSelectedTable}
+                      <input
+                        type="hidden"
+                        value={preSelectedTable}
+                        {...register("table")}
+                      />
                     </div>
-
-                    {/* ─── Totals ────────────────────────────────────────── */}
-                    <div className="pt-3 border-t border-border space-y-1">
-                      <div className="flex justify-between text-foreground">
-                        <span>Subtotal</span>
-                        <span>${total.toFixed(2)}</span>
-                      </div>
-                      {discountAmount > 0 && (
-                        <div className="flex justify-between text-emerald-400">
-                          <span>Discount</span>
-                          <span>-${discountAmount.toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-foreground font-bold text-lg pt-1 border-t border-border">
-                        <span>Grand Total</span>
-                        <span className="text-indigo-400">
-                          ${grandTotal.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* ─── Discount Dropdown ────────────────────────────────── */}
-                {canApplyDiscount && (
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">
-                      Apply Discount
-                    </label>
+                  ) : (
                     <select
-                      value={selectedDiscountId}
-                      onChange={(e) => handleDiscountChange(e.target.value)}
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      disabled={loadingDiscounts}
+                      id="table"
+                      {...register("table", { required: "Table is required" })}
+                      className="w-full rounded-2xl border border-yellow-500/20 bg-background/80 px-3 py-2.5 text-sm text-foreground shadow-sm focus:border-yellow-500/50 focus:outline-none focus:ring-2 focus:ring-yellow-500/30"
                     >
-                      <option value="">No discount</option>
-                      {discounts.map((d) => (
-                        <option key={d.id} value={String(d.id)}>
-                          {d.name} (
-                          {d.type === "percentage"
-                            ? `${d.value}%`
-                            : `$${d.value}`}
-                          ){d.requires_code ? " 🔑" : ""}
+                      <option value="">Select a table</option>
+                      {tables.map((table) => (
+                        <option key={table.id} value={table.id}>
+                          Table {table.table_number}{" "}
+                          {table.status === "OCCUPIED" && "(Occupied)"}
                         </option>
                       ))}
                     </select>
+                  )}
 
-                    {/* ─── Promo Code Input ─── */}
-                    {selectedDiscountId &&
-                      discounts.find((d) => String(d.id) === selectedDiscountId)
-                        ?.requires_code && (
-                        <div className="mt-2">
-                          <label className="block text-xs font-medium text-muted-foreground mb-1">
-                            Promo Code
-                          </label>
-                          <input
-                            type="text"
-                            value={promoCode}
-                            onChange={(e) => setPromoCode(e.target.value)}
-                            placeholder="Enter promo code..."
-                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      )}
-                  </div>
-                )}
-                {/* ─── Special Instructions ────────────────────────────── */}
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Special Instructions
-                  </label>
-                  <textarea
-                    {...register("special_instructions")}
-                    rows={2}
-                    placeholder="e.g. No onions, extra cheese..."
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                  />
+                  {errors.table && (
+                    <p className="mt-1 text-sm text-red-400">
+                      {errors.table.message}
+                    </p>
+                  )}
                 </div>
 
-                {/* ─── Submit Button ────────────────────────────────────── */}
-                <Button
-                  onClick={handleSubmit(onSubmit)}
-                  disabled={cart.length === 0 || submitting}
-                  className="w-full gap-2"
+                {/* ─── View Summary Button (next to table selection) ─── */}
+                <button
+                  onClick={toggleCart}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 px-4 py-2.5 text-sm font-medium text-black shadow-lg shadow-yellow-500/30 transition-all hover:shadow-yellow-500/50 lg:hidden flex-shrink-0"
                 >
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
+                  <Eye className="h-4 w-4" />
+                  <span>Summary</span>
+                  {cart.length > 0 && (
+                    <span className="ml-1 rounded-full bg-black/20 px-2 py-0.5 text-xs font-bold">
+                      {cart.length}
+                    </span>
                   )}
-                  {submitting ? "Creating Order..." : "Create Order"}
-                </Button>
-              </CardContent>
-            </Card>
+                </button>
+              </div>
+            </div>
+
+            {/* ─── Search and Filter Section with SKU ─── */}
+            <div className="rounded-[24px] border border-yellow-500/20 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="h-11 rounded-2xl border-yellow-500/20 bg-background/70 pl-9 text-sm shadow-sm focus:border-yellow-500/50 focus:ring-yellow-500/30"
+                    />
+                  </div>
+
+                  {/* ─── SKU Filter Button ─── */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSkuFilter(!showSkuFilter)}
+                      className={cn(
+                        "h-11 gap-1.5 rounded-2xl border-yellow-500/20 px-3 hover:border-yellow-500/50",
+                        showSkuFilter && "border-yellow-500 bg-yellow-500/10 text-yellow-500"
+                      )}
+                    >
+                      <Barcode className="h-4 w-4" />
+                      SKU
+                      {selectedSku && (
+                        <span className="ml-1 h-2 w-2 rounded-full bg-yellow-500" />
+                      )}
+                    </Button>
+                    {(searchTerm || selectedSku) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="h-11 rounded-2xl text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* ─── SKU Filter - Horizontal Chips ─── */}
+                <AnimatePresence>
+                  {showSkuFilter && uniqueSkus.length > 0 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-2.5">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          <Barcode className="mr-1 inline h-3 w-3" />
+                          SKUs:
+                        </span>
+                        <button
+                          onClick={() => setSelectedSku("")}
+                          className={cn(
+                            "rounded-full px-3 py-1 text-xs transition-all",
+                            !selectedSku
+                              ? "bg-yellow-500 text-black shadow-md shadow-yellow-500/25"
+                              : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+                          )}
+                        >
+                          All
+                        </button>
+                        {uniqueSkus.map((sku) => (
+                          <button
+                            key={sku}
+                            onClick={() => setSelectedSku(sku)}
+                            className={cn(
+                              "rounded-full px-3 py-1 text-xs font-mono transition-all",
+                              selectedSku === sku
+                                ? "bg-yellow-500 text-black shadow-md shadow-yellow-500/25"
+                                : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                          >
+                            {sku}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="ml-1 mt-2 text-xs text-muted-foreground">
+                        {filteredItems.length} item(s) found
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Menu grid */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-h-[70vh] lg:overflow-y-auto lg:pr-1">
+              {filteredItems.length === 0 ? (
+                <div className="col-span-2 rounded-[24px] border border-dashed border-yellow-500/30 bg-yellow-500/5 py-8 text-center text-muted-foreground shadow-sm">
+                  <AlertCircle className="mx-auto h-10 w-10 text-yellow-500/40" />
+                  <p className="mt-2">No menu items found.</p>
+                  {(searchTerm || selectedSku) && (
+                    <button
+                      onClick={clearFilters}
+                      className="mt-2 text-sm text-yellow-500 hover:text-yellow-400"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
+                </div>
+              ) : (
+                filteredItems.map((item) => {
+                  const cartItem = cart.find((i) => i.id === item.id);
+                  const quantityInCart = cartItem?.quantity || 0;
+
+                  return (
+                    <motion.button
+                      key={item.id}
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => addToCart(item)}
+                      disabled={!item.is_available}
+                      className={cn(
+                        "group relative overflow-hidden rounded-[22px] border p-3.5 text-left shadow-sm transition-all duration-300",
+                        item.is_available
+                          ? "border-yellow-500/20 bg-gradient-to-br from-background via-background to-yellow-500/5 hover:-translate-y-0.5 hover:border-yellow-500/50 hover:shadow-[0_16px_40px_-22px_rgba(234,179,8,0.7)]"
+                          : "cursor-not-allowed border-yellow-500/20 bg-muted/30 opacity-60"
+                      )}
+                    >
+                      {quantityInCart > 0 && (
+                        <div className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-yellow-500 text-xs font-bold text-black shadow-lg">
+                          {quantityInCart}
+                        </div>
+                      )}
+
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="truncate text-sm font-semibold text-foreground">
+                              {item.name}
+                            </h4>
+                            {!item.is_available && (
+                              <span className="rounded-full bg-yellow-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-yellow-500">
+                                Unavailable
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                            {item.category_name || "Uncategorized"}
+                          </p>
+                          {item.sku && (
+                            <div className="mt-1 flex items-center gap-1">
+                              <Barcode className="h-3 w-3 text-muted-foreground/60" />
+                              <span className="text-[10px] font-mono text-muted-foreground/70">
+                                {item.sku}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <span className="ml-2 text-sm font-semibold text-yellow-500">
+                          ${parseFloat(item.price).toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="rounded-full bg-yellow-500/10 px-2 py-1 text-yellow-500/70">
+                          Tap to add
+                        </span>
+                        <span className="font-medium text-foreground/80">Quick pick</span>
+                      </div>
+                    </motion.button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* ─── Right Panel: Order Summary (Desktop) ─── */}
+          <div className="hidden lg:block lg:w-[380px] xl:w-[420px] flex-shrink-0">
+            <div className="sticky top-4">
+              <OrderSummary
+                cart={cart}
+                total={total}
+                discountAmount={discountAmount}
+                grandTotal={grandTotal}
+                cartSplash={cartSplash}
+                canApplyDiscount={canApplyDiscount}
+                discounts={discounts}
+                selectedDiscountId={selectedDiscountId}
+                loadingDiscounts={loadingDiscounts}
+                promoCode={promoCode}
+                submitting={submitting}
+                specialInstructions={specialInstructions}
+                onUpdateQuantity={updateQuantity}
+                onRemoveItem={removeItem}
+                onDiscountChange={handleDiscountChange}
+                onPromoCodeChange={setPromoCode}
+                onSpecialInstructionsChange={handleSpecialInstructionsChange}
+                onSubmit={handleSubmit(onSubmit)}
+              />
+            </div>
           </div>
         </div>
+
+        {/* ─── Mobile: Order Summary Overlay ─── */}
+        <AnimatePresence>
+          {isCartOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed inset-0 z-50 flex items-end lg:hidden"
+            >
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={toggleCart}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+
+              {/* Summary Panel */}
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-[30px] border border-yellow-500/20 bg-gradient-to-b from-background to-yellow-500/5 p-4 shadow-2xl"
+              >
+                {/* Handle Bar */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-yellow-500/15 text-yellow-500">
+                      <ShoppingCart className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-foreground">Order Summary</h2>
+                      <p className="text-xs text-muted-foreground">
+                        {cart.length} item{cart.length === 1 ? "" : "s"} • ${grandTotal.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={toggleCart}
+                    className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/30 text-muted-foreground transition hover:bg-muted"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="mb-4 h-px bg-gradient-to-r from-yellow-500/20 via-yellow-500/40 to-yellow-500/20" />
+
+                {/* Order Summary Content */}
+                <OrderSummary
+                  cart={cart}
+                  total={total}
+                  discountAmount={discountAmount}
+                  grandTotal={grandTotal}
+                  cartSplash={cartSplash}
+                  canApplyDiscount={canApplyDiscount}
+                  discounts={discounts}
+                  selectedDiscountId={selectedDiscountId}
+                  loadingDiscounts={loadingDiscounts}
+                  promoCode={promoCode}
+                  submitting={submitting}
+                  specialInstructions={specialInstructions}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveItem={removeItem}
+                  onDiscountChange={handleDiscountChange}
+                  onPromoCodeChange={setPromoCode}
+                  onSpecialInstructionsChange={handleSpecialInstructionsChange}
+                  onSubmit={handleSubmit(onSubmit)}
+                />
+
+                {/* Bottom Close Button */}
+                <button
+                  onClick={toggleCart}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 py-3 text-sm font-medium text-muted-foreground transition hover:bg-yellow-500/10"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                  Close Summary
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ─── Mobile Floating Cart Button ─── */}
+        {!isCartOpen && cart.length > 0 && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            onClick={toggleCart}
+            className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full bg-gradient-to-r from-yellow-500 to-amber-500 px-6 py-3 text-black shadow-2xl shadow-yellow-500/40 lg:hidden"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            <span className="font-medium">View Order</span>
+            <span className="rounded-full bg-black/20 px-2.5 py-0.5 text-sm font-bold">
+              {cart.length}
+            </span>
+          </motion.button>
+        )}
       </div>
     </ProtectedOrder>
   );
