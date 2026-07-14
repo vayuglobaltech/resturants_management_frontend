@@ -5,7 +5,7 @@ export function useCanModifyOrders() {
   const { user } = useAuth();
   if (!user) return false;
   const role = user.role && typeof user.role === "object" ? user.role.name : null;
-  return role === "admin" || role === "branch_manager" || role === "waiter";
+  return ["admin", "branch_manager", "waiter", "cashier", "kitchen_staff"].includes(role);
 }
 
 export function useIsKitchenStaff() {

@@ -24,6 +24,8 @@ import { updateOrder } from "@/lib/ordersApi";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useCanModifyOrders } from "@/hooks/usePermissions";
+
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -93,28 +95,51 @@ function OrderCard({ order, onClick }: OrderCardProps) {
       {...listeners}
       onClick={() => onClick?.(order.id)}
       className={cn(
-        "p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors cursor-grab active:cursor-grabbing touch-none"
+        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none"
       )}
     >
-      <div className="flex justify-between items-start">
-        <div>
-          <h4 className="text-foreground font-medium text-sm">{order.order_number}</h4>
-          <p className="text-xs text-muted-foreground">Table {order.table_number_display || order.table_number}</p>
+      {/* ─── Top: Order number + Status ──────────────────────────────── */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-semibold text-foreground truncate">
+            {order.order_number}
+          </h4>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className="text-xs text-muted-foreground">
+              Table {order.table_number_display || order.table_number}
+            </span>
+            {order.user_name && (
+              <>
+                <span className="text-xs text-muted-foreground">•</span>
+                <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                  {order.user_name}
+                </span>
+              </>
+            )}
+          </div>
         </div>
-        <Badge className={cn("text-xs", statusColor)}>
+        <Badge className={cn("shrink-0 text-xs font-medium", statusColor)}>
           {STATUS_LABELS[order.status] || order.status}
         </Badge>
       </div>
-      <div className="mt-2 flex justify-between items-center">
-        <span className="text-xs text-muted-foreground">{order.items?.length || 0} items</span>
-        <span className="text-foreground font-bold text-sm">
+
+      {/* ─── Bottom: Items count + Total ─────────────────────────────── */}
+      <div className="mt-3 flex items-center justify-between pt-3 border-t border-border/50">
+        <span className="text-xs text-muted-foreground">
+          {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
+        </span>
+        <span className="text-sm font-bold text-foreground">
           ${parseFloat(order.total_amount || 0).toFixed(2)}
         </span>
+      </div>
+
+      {/* ─── Optional: subtle drag indicator ──────────────────────────── */}
+      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-xs text-muted-foreground">↕</span>
       </div>
     </div>
   );
 }
-
 // ─── Kanban Column ─────────────────────────────────────────────────────────
 
 interface KanbanColumnProps {
@@ -171,10 +196,16 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
   const { user } = useAuth(); // get current user
   const router = useRouter();
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const canModify = useCanModifyOrders();
+
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 },
+      // Disable if can't modify
+      enabled: canModify, }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } ,
+      // Disable if can't modify
+      enabled: canModify,}),
     useSensor(KeyboardSensor)
   );
 
@@ -184,6 +215,9 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
   }, {} as Record<string, any[]>);
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    // ─── 1. Early exit if user is not allowed to drag ────────────────
+    if (!canModify) return;
+
     const { active, over } = event;
     if (!over) return;
 
