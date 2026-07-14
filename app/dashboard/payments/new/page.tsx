@@ -44,7 +44,7 @@ interface FormData {
   order: string;
   amount: string;
   customer_name: string;
-  payment_method: string;
+  // payment_method: string;
   status: string;
   transaction_id: string;
 }
@@ -88,6 +88,10 @@ export default function NewPaymentPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<any>(null);
+  const [eligibleOrders, setEligibleOrders] = useState<any[]>([]);
+  const [combinedItems, setCombinedItems] = useState<any[]>([]);
+  const [combinedTotal, setCombinedTotal] = useState(0);
+  const [masterOrderId, setMasterOrderId] = useState<number | null>(null);
 
   // ─── Block rendering for unauthorized roles ─────────────────────────
   if (isManager) {
@@ -111,23 +115,22 @@ export default function NewPaymentPage() {
       order: "",
       amount: "",
       customer_name: "",
-      payment_method: "CASH",
+      // payment_method: "CASH",
       status: "COMPLETED",
       transaction_id: "",
     },
   });
 
   const selectedTableIdForm = watch("table");
-  const selectedOrderId = watch("order");
+  // const selectedOrderId = watch("order");
   const customerName = watch("customer_name");
-  const paymentMethod = watch("payment_method");
+  // const paymentMethod = watch("payment_method");
 
   const handleDownloadPDF = async () => {
     console.log("📄 PDF button clicked");
 
     await new Promise((resolve) => setTimeout(resolve, 300));
 
-    // Try ref first, fallback to ID
     const element =
       invoiceRef.current || document.getElementById("invoice-content");
     if (!element) {
@@ -148,7 +151,16 @@ export default function NewPaymentPage() {
       await img.decode();
       const pdfHeight = (img.height * pdfWidth) / img.width;
       pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`invoice-${selectedOrder?.order_number || "receipt"}.pdf`);
+
+      // ─── Use combined order numbers ──────────────────────────────
+      let filename = "receipt";
+      if (eligibleOrders.length > 0) {
+        const orderNumbers = eligibleOrders
+          .map((o) => o.order_number)
+          .join("_");
+        filename = `invoice-${orderNumbers}`;
+      }
+      pdf.save(`${filename}.pdf`);
       toast.success("Invoice downloaded!");
     } catch (error) {
       console.error("❌ PDF generation failed:", error);
@@ -163,7 +175,7 @@ export default function NewPaymentPage() {
         const allTables = Array.isArray(data) ? data : [];
         // ✅ Show ALL active tables (is_active = true)
         const activeTables = allTables.filter(
-          (t: any) => t.status === "OCCUPIED" || t.status === "AVAILABLE",
+          (t: any) => t.status === "OCCUPIED",
         );
         setTables(activeTables);
       } catch (error) {
@@ -177,6 +189,7 @@ export default function NewPaymentPage() {
   }, []);
 
   // ─── 2. When table selected → fetch its orders ──────────────────────
+  // ─── 2. When table selected → fetch all its orders ──────────────────────
   useEffect(() => {
     if (selectedTableIdForm) {
       const fetchOrdersForTable = async () => {
@@ -201,33 +214,44 @@ export default function NewPaymentPage() {
 
           const hasActiveOrder = activeOrders.length > 0;
           setHasActiveOrder(hasActiveOrder);
-          console.log("📦 hasActiveOrder:", hasActiveOrder);
 
           // ─── Eligible for payment = READY or DELIVERED ─────────────
           const eligibleOrders = activeOrders.filter(
             (o: any) =>
-              o.status?.toUpperCase() === "READY" ||
-              o.status?.toUpperCase() === "DELIVERED",
+              // o.status?.toUpperCase() === "READY" ||
+              o.status?.toUpperCase() === "DELIVERED" && !o.has_payment, // ✅ exclude already paid orders
           );
           console.log("📦 Eligible orders (READY/DELIVERED):", eligibleOrders);
 
           setOrders(eligibleOrders);
+          setShowCreateOrder(eligibleOrders.length === 0 && hasActiveOrder);
 
+          // ─── If eligible orders exist, combine them ────────────────────
+          // ─── If eligible orders exist, combine them ────────────────────
           if (eligibleOrders.length > 0) {
-            const firstOrder = eligibleOrders[0];
-            setValue("order", String(firstOrder.id));
-            setSelectedOrder(firstOrder);
-            setShowCreateOrder(false);
-          } else if (hasActiveOrder) {
-            setOrders([]);
-            setSelectedOrder(null);
-            setValue("order", "");
-            setShowCreateOrder(false);
+            // Store all eligible orders
+            setEligibleOrders(eligibleOrders);
+            // Combine items
+            const combined = combineOrderItems(eligibleOrders);
+            setCombinedItems(combined);
+            const total = eligibleOrders.reduce(
+              (sum, order) => sum + parseFloat(order.total_amount || 0),
+              0,
+            );
+            setCombinedTotal(total);
+            setValue("amount", total.toFixed(2));
+            // Use the first order as master for API
+            setMasterOrderId(eligibleOrders[0].id);
+            // Pre-fill customer name from the first order
+            if (eligibleOrders[0].customer_name) {
+              setValue("customer_name", eligibleOrders[0].customer_name);
+            }
           } else {
-            setOrders([]);
-            setSelectedOrder(null);
-            setValue("order", "");
-            setShowCreateOrder(true);
+            setEligibleOrders([]);
+            setCombinedItems([]);
+            setCombinedTotal(0);
+            setMasterOrderId(null);
+            setValue("amount", "");
           }
         } catch (error) {
           console.error("❌ Failed to fetch orders:", error);
@@ -236,73 +260,129 @@ export default function NewPaymentPage() {
           setLoadingOrders(false);
         }
       };
+
       fetchOrdersForTable();
     } else {
       setOrders([]);
-      setSelectedOrder(null);
+      setEligibleOrders([]);
+      setCombinedItems([]);
+      setCombinedTotal(0);
+      setMasterOrderId(null);
       setValue("order", "");
       setShowCreateOrder(false);
       setHasActiveOrder(false);
     }
   }, [selectedTableIdForm, setValue]);
-  // ─── 3. When order selected → fetch full details ────────────────────
-  useEffect(() => {
-    if (selectedOrderId) {
-      const fetchOrderDetails = async () => {
-        try {
-          const order = await getOrder(selectedOrderId);
-          setSelectedOrder(order);
-        } catch (error) {
-          console.error("Failed to fetch order details:", error);
-          toast.error("Failed to load order details.");
+
+  // ─── Helper: combine items from multiple orders ──────────────────────────
+  const combineOrderItems = (orders: any[]) => {
+    const itemMap = new Map<
+      number,
+      {
+        product_id: number;
+        product_name: string;
+        quantity: number;
+        price_at_order: number;
+        total_price: number;
+      }
+    >();
+
+    orders.forEach((order) => {
+      (order.items || []).forEach((item: any) => {
+        // ✅ Use `product` field (the ID) instead of `product_id`
+        const productId = item.product;
+        if (!productId) return;
+
+        const qty = item.quantity || 1;
+        const price = item.price_at_order || 0;
+        const name = item.product_name || "Unknown";
+
+        if (itemMap.has(productId)) {
+          const existing = itemMap.get(productId)!;
+          existing.quantity += qty;
+          existing.total_price = existing.quantity * existing.price_at_order;
+        } else {
+          itemMap.set(productId, {
+            product_id: productId,
+            product_name: name,
+            quantity: qty,
+            price_at_order: price,
+            total_price: qty * price,
+          });
         }
-      };
-      fetchOrderDetails();
-    }
-  }, [selectedOrderId]);
+      });
+    });
+
+    const result = Array.from(itemMap.values());
+    console.log("✅ Combined items:", result);
+    return result;
+  };
+  // ─── 3. When order selected → fetch full details ────────────────────
+  // useEffect(() => {
+  //   if (selectedOrderId) {
+  //     const fetchOrderDetails = async () => {
+  //       try {
+  //         const order = await getOrder(selectedOrderId);
+  //         setSelectedOrder(order);
+  //       } catch (error) {
+  //         console.error("Failed to fetch order details:", error);
+  //         toast.error("Failed to load order details.");
+  //       }
+  //     };
+  //     fetchOrderDetails();
+  //   }
+  // }, [selectedOrderId]);
 
   // ─── 4. Compute table totals ────────────────────────────────────────────
-  // ─── Use selectedOrder, not all orders ──────────────────────────────────
-  const combinedItems = selectedOrder?.items || [];
-  const subtotal = parseFloat(selectedOrder?.total_amount || 0);
-  const grandTotal = subtotal;
+  // We now use combinedTotal from state instead of selectedOrder
+  const subtotal = combinedTotal;
+  const grandTotal = combinedTotal; // or subtotal + tax - discount if needed
 
   // ─── Total discount from selected order ──────────────────────────────────
-  const totalDiscount =
-    selectedOrder?.discounts?.reduce(
-      (sum: number, d: any) => sum + Number(d.amount),
-      0,
-    ) || 0;
+  // We no longer have a single selectedOrder; discounts are handled elsewhere
+  // For combined bills, we can sum discounts from all orders (optional)
+  // ─── Compute discounts from all eligible orders ──────────────────────────
+  const totalDiscountFromOrders = eligibleOrders.reduce(
+    (sum, order) =>
+      sum + (order.discounts || []).reduce((s, d) => s + Number(d.amount), 0),
+    0,
+  );
 
   // ─── 5. Auto‑fill amount when table changes ──────────────────────────
   useEffect(() => {
-    if (selectedTableIdForm && orders.length > 0) {
-      setValue("amount", grandTotal.toFixed(2));
+    if (selectedTableIdForm && combinedTotal > 0) {
+      setValue("amount", combinedTotal.toFixed(2));
     } else {
       setValue("amount", "");
     }
-  }, [selectedTableIdForm, orders, grandTotal, setValue]);
+  }, [selectedTableIdForm, combinedTotal, setValue]);
 
   // ─── 6. Submit payment ──────────────────────────────────────────────────
   const onSubmit = async (data: FormData) => {
-    if (!data.order) {
-      toast.error("Please select an order to pay.");
+    if (!masterOrderId) {
+      toast.error("No eligible order found for this table.");
       return;
     }
 
-    // Prepare payload but don't send yet
+    const allOrderIds = eligibleOrders.map((o) => o.id); // all order IDs
+
+    // Prepare payload with master order
     const payload = {
-      order: parseInt(data.order, 10),
-      amount: parseFloat(data.amount),
-      subtotal: parseFloat(subtotal.toFixed(2)),
-      payment_method: data.payment_method,
-      status: data.status, // we'll override this in confirm
+      order: masterOrderId, // use master order for the API
+      order_ids: allOrderIds, // ✅ send all order IDs
+      amount: parseFloat(data.amount) || combinedTotal,
+      subtotal: parseFloat(combinedTotal.toFixed(2)),
+      // payment_method: "CASH",
+      status: "PENDING",
       transaction_id: data.transaction_id || undefined,
       branch: user?.branch?.id || 1,
       customer_name: data.customer_name || "Guest",
+      // We'll also store other order IDs to update later
+      other_order_ids: eligibleOrders
+        .filter((o) => o.id !== masterOrderId)
+        .map((o) => o.id),
     };
 
-    // Open confirmation modal
     setPendingPayload(payload);
     setShowConfirmModal(true);
   };
@@ -312,10 +392,9 @@ export default function NewPaymentPage() {
     if (!pendingPayload) return;
     setConfirmLoading(true);
     try {
-      // Override status to COMPLETED (cashier shouldn't choose)
       const finalPayload = {
         ...pendingPayload,
-        status: "PENDING",
+        status: "PENDING", // always pending
       };
 
       const res = await apiFetch(
@@ -329,13 +408,17 @@ export default function NewPaymentPage() {
       const json = await res.json();
       if (!res.ok) throw json;
 
+      // ✅ Success – show invoice preview
       setPaymentSuccess(true);
       setShowBillSplash(true);
       setShowConfirmModal(false);
-      toast.success("Payment processed successfully!");
+      toast.success("Bill generated successfully! Payment is pending.");
+
+      // (Optional) store the created payment ID if needed
+      // setCreatedPaymentId(json.id);
     } catch (error: any) {
       const messages = Object.values(error).flat().join(" ");
-      toast.error(messages || "Failed to process payment.");
+      toast.error(messages || "Failed to generate bill.");
     } finally {
       setConfirmLoading(false);
     }
@@ -460,6 +543,13 @@ export default function NewPaymentPage() {
     );
   };
 
+  // Compute total discount from all eligible orders
+  const totalDiscountValue = eligibleOrders.reduce(
+    (sum, order) =>
+      sum + (order.discounts || []).reduce((s, d) => s + Number(d.amount), 0),
+    0,
+  );
+  const subtotalBeforeDiscount = combinedTotal + totalDiscountValue;
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 print:bg-white print:p-0 print:block">
       <div className="max-w-7xl mx-auto space-y-6 print:hidden">
@@ -561,15 +651,12 @@ export default function NewPaymentPage() {
                             </span>
                           </div>
 
-                          {/* ─── Order Selection ─── */}
+                          {/* ─── Combined Order Summary ─── */}
                           <div>
-                            <label
-                              htmlFor="order"
-                              className="block text-sm font-medium text-muted-foreground mb-1.5"
-                            >
-                              Select Order{" "}
-                              <span className="text-red-400">*</span>
+                            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                              Order Summary
                             </label>
+
                             {loadingOrders ? (
                               <div className="flex items-center justify-center py-3 bg-background rounded-lg border border-border">
                                 <Loader2 className="h-5 w-5 text-indigo-400 animate-spin" />
@@ -577,29 +664,57 @@ export default function NewPaymentPage() {
                                   Loading orders...
                                 </span>
                               </div>
-                            ) : orders.length > 0 ? (
-                              <div className="relative">
-                                <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <select
-                                  id="order"
-                                  {...register("order", {
-                                    required: "Please select an order",
-                                  })}
-                                  className="w-full pl-10 rounded-lg border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-muted"
-                                >
-                                  {orders.map((order) => (
-                                    <option
-                                      key={order.id}
-                                      value={order.id}
-                                      className="bg-slate-800 py-2"
+                            ) : eligibleOrders.length > 0 ? (
+                              <div className="space-y-2 bg-background rounded-lg border border-border p-3">
+                                <div className="text-xs text-muted-foreground">
+                                  Combining {eligibleOrders.length} order
+                                  {eligibleOrders.length > 1 ? "s" : ""} for
+                                  this table
+                                </div>
+                                <div className="space-y-1 max-h-48 overflow-y-auto">
+                                  {combinedItems.map((item) => (
+                                    <div
+                                      key={item.product_id}
+                                      className="flex justify-between items-center text-sm"
                                     >
-                                      #{order.order_number} — $
-                                      {parseFloat(order.total_amount).toFixed(
-                                        2,
-                                      )}
-                                    </option>
+                                      <span>
+                                        <span className="font-medium">
+                                          {item.quantity}×
+                                        </span>{" "}
+                                        {item.product_name}
+                                      </span>
+                                      <span className="text-muted-foreground">
+                                        ${item.total_price.toFixed(2)}
+                                      </span>
+                                    </div>
                                   ))}
-                                </select>
+                                </div>
+
+                                {/* Subtotal before discount */}
+                                <div className="flex justify-between text-sm text-muted-foreground pt-1">
+                                  <span>Subtotal</span>
+                                  <span>
+                                    ${subtotalBeforeDiscount.toFixed(2)}
+                                  </span>
+                                </div>
+
+                                {/* Discount if any */}
+                                {totalDiscountFromOrders > 0 && (
+                                  <div className="flex justify-between text-sm text-emerald-400">
+                                    <span>Discount</span>
+                                    <span>
+                                      -${totalDiscountFromOrders.toFixed(2)}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Grand total (discounted) */}
+                                <div className="flex justify-between pt-2 border-t border-border font-bold text-foreground">
+                                  <span>Total</span>
+                                  <span className="text-indigo-400">
+                                    ${combinedTotal.toFixed(2)}
+                                  </span>
+                                </div>
                               </div>
                             ) : hasActiveOrder ? (
                               // ─── Order exists but not ready for payment ──────────────────────
@@ -639,19 +754,13 @@ export default function NewPaymentPage() {
                                 </Button>
                               </div>
                             ) : (
-                              // ─── Fallback (should not happen) ──────────────────────────────────
+                              // ─── Fallback ──────────────────────────────────────────────────────
                               <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400">
                                 <AlertCircle className="h-4 w-4" />
                                 <span className="text-sm">
                                   Unable to determine order status.
                                 </span>
                               </div>
-                            )}
-                            {errors.order && (
-                              <p className="text-sm text-red-400 mt-1.5 flex items-center gap-1">
-                                <AlertCircle className="h-3.5 w-3.5" />{" "}
-                                {errors.order.message}
-                              </p>
                             )}
                           </div>
                           {/* Customer Name */}
@@ -706,7 +815,7 @@ export default function NewPaymentPage() {
 
                           {/* Payment Method & Status Row */}
                           <div className="grid grid-cols-2 gap-3">
-                            <div>
+                            {/* <div>
                               <label
                                 htmlFor="payment_method"
                                 className="block text-sm font-medium text-muted-foreground mb-1.5"
@@ -737,7 +846,7 @@ export default function NewPaymentPage() {
                                   </option>
                                 </select>
                               </div>
-                            </div>
+                            </div> */}
                             {/* <div>
                               <label
                                 htmlFor="status"
@@ -792,7 +901,11 @@ export default function NewPaymentPage() {
                           {/* Submit Button */}
                           <Button
                             type="submit"
-                            disabled={submitting || !selectedOrderId}
+                            disabled={
+                              submitting ||
+                              !masterOrderId ||
+                              combinedItems.length === 0
+                            }
                             className="w-full gap-2 py-3 text-base font-semibold bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg shadow-indigo-500/25"
                           >
                             {submitting ? (
@@ -821,13 +934,11 @@ export default function NewPaymentPage() {
                         setPendingPayload(null);
                       }
                     }}
-                    title="Confirm Payment"
+                    title="Confirm Bill Generation"
                     icon={<Receipt className="h-8 w-8 text-indigo-500" />}
                     description={
                       <div className="space-y-2 text-left">
-                        <p>
-                          You are about to process a payment for this order.
-                        </p>
+                        <p>You are about to generate a bill for this order.</p>
                         <div className="bg-muted/30 p-3 rounded-lg text-sm">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">
@@ -845,14 +956,6 @@ export default function NewPaymentPage() {
                               {pendingPayload?.customer_name}
                             </span>
                           </div>
-                          <div className="flex justify-between mt-1">
-                            <span className="text-muted-foreground">
-                              Payment Method:
-                            </span>
-                            <span className="font-medium">
-                              {pendingPayload?.payment_method}
-                            </span>
-                          </div>
                           <div className="flex justify-between mt-1 border-t border-border pt-1">
                             <span className="text-muted-foreground">
                               Total Amount:
@@ -863,13 +966,13 @@ export default function NewPaymentPage() {
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          This will mark the payment as{" "}
-                          <strong>Completed</strong>.
+                          This will create a pending payment. Complete the
+                          payment in the "Process Payment" section.
                         </p>
                       </div>
                     }
                     confirmText={
-                      confirmLoading ? "Processing..." : "Confirm Payment"
+                      confirmLoading ? "Generating..." : "Confirm & Generate"
                     }
                     cancelText="Cancel"
                     onConfirm={handleConfirmPayment}
@@ -879,7 +982,7 @@ export default function NewPaymentPage() {
                         setPendingPayload(null);
                       }
                     }}
-                    variant="default"
+                    variant="primary"
                     confirmDisabled={confirmLoading}
                   />
 
@@ -989,7 +1092,7 @@ export default function NewPaymentPage() {
             className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto animate-in slide-up duration-500 print:static print:shadow-none print:transform-none print:max-w-full print:max-h-none print:overflow-visible print:rounded-none"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header with close button */}
+            {/* Header */}
             <div className="sticky top-0 z-10 bg-gradient-to-r from-emerald-500 to-emerald-600 p-5 rounded-t-2xl print:hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -998,10 +1101,12 @@ export default function NewPaymentPage() {
                   </div>
                   <div>
                     <h3 className="text-foreground font-bold text-xl">
-                      Payment Successful! 🎉
+                      Bill Generated! 🎉
                     </h3>
                     <p className="text-emerald-100 text-sm">
-                      Transaction #{selectedOrder?.order_number || "N/A"}
+                      {eligibleOrders.length > 0
+                        ? `Orders: ${eligibleOrders.map((o) => o.order_number).join(", ")}`
+                        : "Transaction pending"}
                     </p>
                   </div>
                 </div>
@@ -1025,24 +1130,25 @@ export default function NewPaymentPage() {
                 <InvoicePreview
                   tableNumber={selectedTable?.table_number || null}
                   items={combinedItems}
-                  subtotal={subtotal}
-                  grandTotal={grandTotal}
+                  subtotal={subtotalBeforeDiscount}
+                  grandTotal={combinedTotal}
                   customerName={customerName || "Guest"}
                   cashierName={cashierName}
-                  paymentMethod={paymentMethod}
-                  orderNumber={selectedOrder?.order_number}
+                  orderNumber={
+                    eligibleOrders.length > 0
+                      ? eligibleOrders[0].order_number
+                      : "N/A"
+                  }
                   date={new Date().toISOString()}
-                  discounts={selectedOrder.discounts || []}
-                  totalDiscount={totalDiscount}
+                  discounts={eligibleOrders.flatMap((o) => o.discounts || [])}
+                  totalDiscount={totalDiscountValue} // or calculate combined discounts if needed
                 />
               </div>
             </div>
 
             {/* Action buttons */}
-            {/* ─── Action Buttons ─── */}
             <div className="sticky bottom-0 bg-white p-5 rounded-b-2xl border-t border-gray-100 no-print print:hidden">
               <div className="flex flex-wrap gap-3 justify-center">
-                {/* ─── Save as PDF ─── */}
                 <Button
                   className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-foreground shadow-lg shadow-indigo-500/25 px-6"
                   onClick={(e) => {
@@ -1054,7 +1160,6 @@ export default function NewPaymentPage() {
                   Save as PDF
                 </Button>
 
-                {/* ─── Print (Hard Copy) ─── */}
                 <Button
                   className="gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 px-6"
                   onClick={(e) => {
@@ -1066,7 +1171,6 @@ export default function NewPaymentPage() {
                   Print
                 </Button>
 
-                {/* ─── Close ─── */}
                 <Button
                   onClick={closeBillSplash}
                   variant="outline"
@@ -1078,7 +1182,8 @@ export default function NewPaymentPage() {
               </div>
               <div className="mt-3 text-center">
                 <p className="text-xs text-muted-foreground">
-                  Thank you for your payment! Receipt generated successfully.
+                  Payment is pending – complete it in the "Process Payment"
+                  section.
                 </p>
               </div>
             </div>
