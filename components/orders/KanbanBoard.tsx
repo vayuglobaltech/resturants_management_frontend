@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
   DndContext,
   closestCorners,
   DragEndEvent,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
@@ -25,9 +26,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useCanModifyOrders } from "@/hooks/usePermissions";
-
-
-// ─── Constants ──────────────────────────────────────────────────────────────
 
 const ORDER_STATUSES = [
   "PENDING",
@@ -62,8 +60,41 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelled",
 };
 
-// ─── Order Card ─────────────────────────────────────────────────────────────
+// ─── Overlay Order Card ──────────────────────────────────────────────
+function OverlayOrderCard({ order }: { order: any }) {
+  const statusColor = STATUS_COLORS[order.status] || "bg-slate-500/20 text-muted-foreground";
+  return (
+    <div className="p-4 rounded-xl border-2 border-indigo-500/50 bg-card shadow-2xl shadow-indigo-500/30 rotate-1 scale-105 w-[280px] pointer-events-none">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-semibold text-foreground truncate">{order.order_number}</h4>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className="text-xs text-muted-foreground">Table {order.table_number_display || order.table_number}</span>
+            {order.user_name && (
+              <>
+                <span className="text-xs text-muted-foreground">•</span>
+                <span className="text-xs text-muted-foreground truncate max-w-[120px]">{order.user_name}</span>
+              </>
+            )}
+          </div>
+        </div>
+        <Badge className={cn("shrink-0 text-xs font-medium", statusColor)}>
+          {STATUS_LABELS[order.status] || order.status}
+        </Badge>
+      </div>
+      <div className="mt-3 flex items-center justify-between pt-3 border-t border-border/50">
+        <span className="text-xs text-muted-foreground">
+          {order.items?.length || 0} item{order.items?.length !== 1 ? "s" : ""}
+        </span>
+        <span className="text-sm font-bold text-foreground">
+          ${parseFloat(order.total_amount || 0).toFixed(2)}
+        </span>
+      </div>
+    </div>
+  );
+}
 
+// ─── Order Card ──────────────────────────────────────────────────────
 interface OrderCardProps {
   order: any;
   onClick?: (id: number) => void;
@@ -82,7 +113,7 @@ function OrderCard({ order, onClick }: OrderCardProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.3 : 1,
   };
 
   const statusColor = STATUS_COLORS[order.status] || "bg-slate-500/20 text-muted-foreground";
@@ -95,25 +126,18 @@ function OrderCard({ order, onClick }: OrderCardProps) {
       {...listeners}
       onClick={() => onClick?.(order.id)}
       className={cn(
-        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none"
+        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none select-none will-change-transform"
       )}
     >
-      {/* ─── Top: Order number + Status ──────────────────────────────── */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-semibold text-foreground truncate">
-            {order.order_number}
-          </h4>
+          <h4 className="text-sm font-semibold text-foreground truncate">{order.order_number}</h4>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-xs text-muted-foreground">
-              Table {order.table_number_display || order.table_number}
-            </span>
+            <span className="text-xs text-muted-foreground">Table {order.table_number_display || order.table_number}</span>
             {order.user_name && (
               <>
                 <span className="text-xs text-muted-foreground">•</span>
-                <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                  {order.user_name}
-                </span>
+                <span className="text-xs text-muted-foreground truncate max-w-[120px]">{order.user_name}</span>
               </>
             )}
           </div>
@@ -122,26 +146,22 @@ function OrderCard({ order, onClick }: OrderCardProps) {
           {STATUS_LABELS[order.status] || order.status}
         </Badge>
       </div>
-
-      {/* ─── Bottom: Items count + Total ─────────────────────────────── */}
       <div className="mt-3 flex items-center justify-between pt-3 border-t border-border/50">
         <span className="text-xs text-muted-foreground">
-          {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
+          {order.items?.length || 0} item{order.items?.length !== 1 ? "s" : ""}
         </span>
         <span className="text-sm font-bold text-foreground">
           ${parseFloat(order.total_amount || 0).toFixed(2)}
         </span>
       </div>
-
-      {/* ─── Optional: subtle drag indicator ──────────────────────────── */}
       <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
         <span className="text-xs text-muted-foreground">↕</span>
       </div>
     </div>
   );
 }
-// ─── Kanban Column ─────────────────────────────────────────────────────────
 
+// ─── Kanban Column ──────────────────────────────────────────────────
 interface KanbanColumnProps {
   status: string;
   orders: any[];
@@ -185,41 +205,61 @@ function KanbanColumn({ status, orders, onCardClick }: KanbanColumnProps) {
   );
 }
 
-// ─── Main Board ─────────────────────────────────────────────────────────────
-
+// ─── Main Board ──────────────────────────────────────────────────────
 interface KanbanBoardProps {
   orders: any[];
   onOrderUpdate?: () => void;
 }
 
 export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
-  const { user } = useAuth(); // get current user
+  const { user } = useAuth();
   const router = useRouter();
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeOrder, setActiveOrder] = useState<any>(null);
   const canModify = useCanModifyOrders();
 
-
+  // Sensors: desktop drag after 5px movement; mobile long‑press (300ms delay)
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 },
-      // Disable if can't modify
-      enabled: canModify, }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } ,
-      // Disable if can't modify
-      enabled: canModify,}),
-    useSensor(KeyboardSensor)
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+      enabled: canModify,
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 300, tolerance: 5 },
+      enabled: canModify,
+    }),
+    useSensor(KeyboardSensor, { enabled: canModify })
   );
 
-  const groupedOrders = ORDER_STATUSES.reduce((acc, status) => {
-    acc[status] = orders.filter((o) => o.status === status);
-    return acc;
-  }, {} as Record<string, any[]>);
+  const groupedOrders = useMemo(() => {
+    return ORDER_STATUSES.reduce((acc, status) => {
+      acc[status] = orders.filter((o) => o.status === status);
+      return acc;
+    }, {} as Record<string, any[]>);
+  }, [orders]);
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    // ─── 1. Early exit if user is not allowed to drag ────────────────
-    if (!canModify) return;
+  const handleDragStart = useCallback((event: any) => {
+    const order = orders.find((o) => o.id === event.active.id);
+    if (order) {
+      setActiveOrder(order);
+      setActiveId(event.active.id);
+    }
+  }, [orders]);
 
+  const handleDragCancel = useCallback(() => {
+    setActiveOrder(null);
+    setActiveId(null);
+  }, []);
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over) return;
+
+    if (!over) {
+      setActiveOrder(null);
+      setActiveId(null);
+      return;
+    }
 
     const orderId = active.id as number;
     let newStatus: string | null = null;
@@ -231,17 +271,26 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
       if (targetCard) newStatus = targetCard.status;
     }
 
-    if (!newStatus) return;
+    if (!newStatus) {
+      setActiveOrder(null);
+      setActiveId(null);
+      return;
+    }
 
     const order = orders.find((o) => o.id === orderId);
-    if (!order || order.status === newStatus) return;
+    if (!order || order.status === newStatus) {
+      setActiveOrder(null);
+      setActiveId(null);
+      return;
+    }
 
-    // ─── Restrict PAID status ──────────────────────────────────────────────
     if (newStatus === "PAID") {
       const role = user?.role;
       const allowedRoles = ["admin", "cashier"];
       if (!role || !allowedRoles.includes(role)) {
         toast.error("Only Cashier or Admin can mark an order as PAID.");
+        setActiveOrder(null);
+        setActiveId(null);
         return;
       }
     }
@@ -256,18 +305,22 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
       toast.error(msg);
     } finally {
       setUpdatingOrderId(null);
+      setActiveOrder(null);
+      setActiveId(null);
     }
-  };
+  }, [orders, user, onOrderUpdate]);
 
-  const handleCardClick = (orderId: number) => {
+  const handleCardClick = useCallback((orderId: number) => {
     router.push(`/dashboard/orders/${orderId}`);
-  };
+  }, [router]);
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 snap-x">
         {ORDER_STATUSES.map((status) => (
@@ -280,6 +333,10 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
           </div>
         ))}
       </div>
+
+      <DragOverlay>
+        {activeId && activeOrder ? <OverlayOrderCard order={activeOrder} /> : null}
+      </DragOverlay>
     </DndContext>
   );
 }
