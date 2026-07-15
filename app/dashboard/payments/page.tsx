@@ -44,6 +44,7 @@ type Payment = {
   payment_method: string;
   status: "COMPLETED" | "PENDING" | "FAILED" | string;
   created_at: string;
+  cashier_name?: string;
 };
 
 type FilterState = {
@@ -480,6 +481,7 @@ export default function PaymentsPage() {
                           <th className="px-4 py-3 text-left">Order</th>
                           <th className="px-4 py-3 text-left">Amount</th>
                           <th className="px-4 py-3 text-left">Method</th>
+                          <th className="px-4 py-3 text-left">Cashier</th>
                           <th className="px-4 py-3 text-left">Status</th>
                           <th className="px-4 py-3 text-left hidden sm:table-cell">
                             Date
@@ -511,6 +513,9 @@ export default function PaymentsPage() {
                               <td className="px-4 py-3 capitalize">
                                 {payment.payment_method.toLowerCase() || "—"}
                               </td>
+                              <td className="px-4 py-3">
+            {payment.cashier_name || "—"}  {/* ✅ new */}
+          </td>
                               <td className="px-4 py-3">
                                 <span
                                   className={cn(
@@ -626,6 +631,12 @@ export default function PaymentsPage() {
                           {payment.payment_method.toLowerCase()}
                         </span>
                       </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Cashier</span>
+                        <span className="capitalize">
+                          {payment.cashier_name || "—"}
+                        </span>
+                      </div>
 
                       <div className="pt-2 border-t border-border/50">
                         <Link href={`/dashboard/payments/${payment.id}`}>
@@ -637,6 +648,19 @@ export default function PaymentsPage() {
                             <Receipt className="h-4 w-4" /> View Receipt
                           </Button>
                         </Link>
+                      </div>
+                      <div className="pt-2 border-t border-border/50">
+                        {(payment.status === "COMPLETED" ||
+                                  payment.status === "PARTIALLY_REFUNDED") && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setRefundTarget(payment)}
+                                    className="w-full gap-1"
+                                  >
+                                    Refund
+                                  </Button>
+                                )}
                       </div>
                     </CardContent>
                   </Card>
