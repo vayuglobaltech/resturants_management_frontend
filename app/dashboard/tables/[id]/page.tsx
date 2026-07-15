@@ -27,14 +27,12 @@ const STATUS_COLORS: Record<string, string> = {
   AVAILABLE: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   OCCUPIED: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   RESERVED: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  OUT_OF_SERVICE: "bg-red-500/20 text-red-400 border-red-500/30",
 };
 
 const STATUS_LABELS: Record<string, string> = {
   AVAILABLE: "Available",
   OCCUPIED: "Occupied",
   RESERVED: "Reserved",
-  OUT_OF_SERVICE: "Out of Service",
 };
 
 // ─── Helper: format timestamp with smart time/date using local time ──

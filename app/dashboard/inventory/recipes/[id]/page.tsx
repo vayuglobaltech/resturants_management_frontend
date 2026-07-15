@@ -8,10 +8,11 @@ import { ArrowLeft, Pencil, Trash2, Loader2, Package, Clock, DollarSign, Tag, Al
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { useCanManage } from "@/hooks/useCanManage";
-import { getRecipe, deleteRecipe } from "@/lib/api";
+import { getRecipe, deleteRecipe, updateRecipe, getIngredients } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
+import { IngredientManager } from "@/components/inventory/IngredientManager";
 import { cn } from "@/lib/utils";
 
 interface RecipeDetailPageProps {
@@ -27,25 +28,49 @@ export default function RecipeDetailPage({ params }: RecipeDetailPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [ingredientOptions, setIngredientOptions] = useState<any[]>([]);
+
+  const recipeId = parseInt(id);
+  const isValidId = !isNaN(recipeId) && recipeId > 0;
 
   useEffect(() => {
-    const fetchRecipe = async () => {
-      try {
-        const data = await getRecipe(parseInt(id));
-        setRecipe(data);
-      } catch (err: any) {
-        console.error("Failed to fetch recipe:", err);
-        setError("Recipe not found or you don't have permission.");
-        toast.error("Recipe not found.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRecipe();
-  }, [id]);
+    if (!isValidId) {
+      toast.error("Invalid recipe ID.");
+      router.replace("/dashboard/inventory/recipes");
+    }
+  }, [isValidId, router]);
+
+  const fetchRecipe = async () => {
+    if (!isValidId) {
+      setError("Invalid recipe ID.");
+      setLoading(false);
+      return;
+    }
+    try {
+      const [recipeData, ingredientsData] = await Promise.all([
+        getRecipe(recipeId),
+        getIngredients(),
+      ]);
+      if (!recipeData) throw new Error("Recipe not found");
+      setRecipe(recipeData);
+      setIngredientOptions(Array.isArray(ingredientsData) ? ingredientsData : []);
+    } catch (err: any) {
+      console.error("Failed to fetch recipe:", err);
+      setError("Recipe not found or you don't have permission.");
+      toast.error("Recipe not found.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isValidId) {
+      fetchRecipe();
+    }
+  }, [isValidId]);
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !isValidId) return;
     try {
       await deleteRecipe(deleteTarget.id);
       toast.success("Recipe deleted successfully.");
@@ -54,6 +79,26 @@ export default function RecipeDetailPage({ params }: RecipeDetailPageProps) {
       toast.error(err?.detail || "Failed to delete recipe.");
     } finally {
       setDeleteTarget(null);
+    }
+  };
+
+  const handleUpdateIngredients = async (updatedIngredients: any[]) => {
+    if (!recipe || !isValidId) return;
+    const payload = {
+      ...recipe,
+      ingredients: updatedIngredients.map((ing: any) => ({
+        ingredient: ing.ingredient,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        preparation_note: ing.preparation_note || "",
+      })),
+    };
+    try {
+      await updateRecipe(recipeId, payload);
+      await fetchRecipe();
+      toast.success("Ingredients updated.");
+    } catch (err) {
+      toast.error("Failed to update ingredients.");
     }
   };
 
@@ -83,6 +128,15 @@ export default function RecipeDetailPage({ params }: RecipeDetailPageProps) {
     );
   }
 
+  const ingredientList = recipe.ingredients?.map((ing: any) => ({
+    id: ing.id,
+    ingredient: ing.ingredient,
+    ingredient_name: ing.ingredient_name,
+    quantity: parseFloat(ing.quantity),
+    unit: ing.unit,
+    preparation_note: ing.preparation_note || "",
+  })) || [];
+
   return (
     <>
       <motion.div
@@ -100,7 +154,7 @@ export default function RecipeDetailPage({ params }: RecipeDetailPageProps) {
           <div className="flex items-center gap-2">
             {canManage && (
               <>
-                <Link href={`/dashboard/inventory/recipes/${recipe.id}/edit`}>
+                <Link href={`/dashboard/inventory/recipes/${recipeId}/edit`}>
                   <Button variant="primary" size="sm" className="gap-1">
                     <Pencil className="h-4 w-4" /> Edit
                   </Button>
@@ -125,14 +179,7 @@ export default function RecipeDetailPage({ params }: RecipeDetailPageProps) {
               {recipe.product_name}
             </CardTitle>
             <div className="flex items-center gap-2 mt-1">
-              <span
-                className={cn(
-                  "text-xs px-2.5 py-1 rounded-full border font-medium",
-                  recipe.is_active
-                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                    : "bg-red-500/20 text-red-400 border-red-500/30"
-                )}
-              >
+              <span className={cn("text-xs px-2.5 py-1 rounded-full border font-medium", recipe.is_active ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-red-500/20 text-red-400 border-red-500/30")}>
                 {recipe.is_active ? "Active" : "Inactive"}
               </span>
               <span className="text-xs px-2.5 py-1 rounded-full bg-background text-muted-foreground border border-border">
@@ -167,31 +214,19 @@ export default function RecipeDetailPage({ params }: RecipeDetailPageProps) {
 
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Ingredients</h3>
-              <div className="space-y-1.5">
-                {recipe.ingredients?.length > 0 ? (
-                  recipe.ingredients.map((ing: any) => (
-                    <div key={ing.id} className="flex justify-between items-center p-2 rounded-lg bg-background border border-border">
-                      <div>
-                        <span className="text-foreground text-sm">{ing.ingredient_name}</span>
-                        {ing.preparation_note && (
-                          <span className="text-xs text-muted-foreground ml-2">({ing.preparation_note})</span>
-                        )}
-                      </div>
-                      <span className="text-muted-foreground text-sm">
-                        {ing.quantity} {ing.unit}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-sm">No ingredients defined.</p>
-                )}
-              </div>
+              <IngredientManager
+                value={ingredientList}
+                onChange={() => {}}
+                ingredientOptions={ingredientOptions}
+                autoSave={true}
+                onSave={handleUpdateIngredients}
+                disabled={!canManage}
+              />
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Delete Modal */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
