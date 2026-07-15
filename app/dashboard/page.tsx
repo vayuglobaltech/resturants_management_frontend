@@ -667,6 +667,7 @@ export default function DashboardOverview() {
 
   const items = getStatItems();
   const canViewModules = ["admin", "branch_manager"].includes(roleName);
+  const showPerformanceSnapshot = ["admin", "branch_manager"].includes(roleName);
 
   const shell = (content: ReactNode) => (
     <div className="min-h-screen transition-all duration-300" style={{ ...themeStyles, backgroundColor: "var(--page-bg)" }}>
@@ -808,11 +809,12 @@ export default function DashboardOverview() {
           </div>
         </div>
 
-        <div className="rounded-[24px] border p-6" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
-          <p className="text-sm font-medium uppercase tracking-[0.3em]" style={{ color: "var(--page-accent)" }}>
-            Performance Snapshot
-          </p>
-          {roleName === "admin" || roleName === "branch_manager" ? (
+        {/* ─── Performance Snapshot - Only shown for admin and branch_manager ─── */}
+        {showPerformanceSnapshot && (
+          <div className="rounded-[24px] border p-6" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
+            <p className="text-sm font-medium uppercase tracking-[0.3em]" style={{ color: "var(--page-accent)" }}>
+              Performance Snapshot
+            </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
                 <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Gross profit</p>
@@ -831,8 +833,8 @@ export default function DashboardOverview() {
                 <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>${stats.todayRevenue?.toLocaleString() || "0"}</p>
               </div>
             </div>
-          )  : null}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
