@@ -3,7 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch } from "@/lib/api";
+import { 
+  getSalesTransactions, 
+  getCOGSTransactions, 
+  getExpenses,
+  getGrossProfitReport,
+  getDailySalesSummary,
+} from "@/lib/accountingApi";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +26,7 @@ import {
   Minus,
   Percent,
   Activity,
+  AlertCircle,
 } from "lucide-react";
 import {
   format,
@@ -43,6 +50,7 @@ import {
   ResponsiveContainer,
   ComposedChart,
 } from "recharts";
+import toast from "react-hot-toast";
 
 type Period = "today" | "week" | "month" | "custom";
 type PnLData = {
@@ -100,6 +108,18 @@ export default function ProfitLossPage() {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [dataSource, setDataSource] = useState<string>("");
+
+  // ─── Get user's branch ID ─────────────────────────────────────────────
+  const getBranchId = useCallback(() => {
+    if (!user) return undefined;
+    // Try to get branch from user object
+    const branch = (user as any)?.branch;
+    if (branch) {
+      return typeof branch === 'object' ? branch.id : branch;
+    }
+    return undefined;
+  }, [user]);
 
   // ─── Date range helpers ──────────────────────────────────────────────
   const getDateRange = useCallback(
@@ -123,204 +143,183 @@ export default function ProfitLossPage() {
     [customStart, customEnd],
   );
 
-  // ─── Fetch P&L data ──────────────────────────────────────────────────
+  // ─── Fetch P&L data using real API ──────────────────────────────────
   const fetchPnL = useCallback(async () => {
     setLoading(true);
     try {
       const { start, end } = getDateRange(period);
       const startStr = format(start, "yyyy-MM-dd");
       const endStr = format(end, "yyyy-MM-dd");
+      const branchId = getBranchId();
 
-      // ─── 1. Gross Sales (completed payments) ──────────────────────
-      const salesRes = await apiFetch(
-        `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true,
-      );
-      const salesData = await salesRes.json();
-      const payments = salesData.results || salesData || [];
+      console.log("📊 Fetching P&L data from:", startStr, "to:", endStr);
+      console.log("🏢 Branch ID:", branchId);
 
-      // ─── 2. Refunded payments (real refunds) ──────────────────────
-      const refundRes = await apiFetch(
-        `/api/orders/payments/?status=REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true,
-      );
-      const refundData = await refundRes.json();
-      const refundedPayments = refundData.results || refundData || [];
-
-      // ─── 3. Discounts (from orders) ──────────────────────────────
-      const ordersRes = await apiFetch(
-        `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true,
-      );
-      const ordersData = await ordersRes.json();
-      const orders = ordersData.results || ordersData || [];
-      const discountMap: Record<string, number> = {};
-      let totalDiscounts = 0;
-      orders.forEach((o: any) => {
-        const date = format(new Date(o.created_at), "yyyy-MM-dd");
-        const discSum = (o.discounts || []).reduce(
-          (s: number, d: any) => s + Number(d.amount),
-          0,
-        );
-        discountMap[date] = (discountMap[date] || 0) + discSum;
-        totalDiscounts += discSum;
-      });
-
-      // ─── 4. COGS (from COGSTransaction endpoint) ──────────────────
-      let cogsTotal = 0;
-      const cogsMap: Record<string, number> = {};
+      // ─── 1. Get Gross Profit Report (Revenue + COGS) ──────────────
+      let grossProfitData = null;
+      let revenue = 0;
+      let cogs = 0;
+      
       try {
-        const cogsRes = await apiFetch(
-          `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-          {},
-          true,
-        );
-        const cogsData = await cogsRes.json();
-        const cogsItems = cogsData.results || cogsData || [];
-        cogsItems.forEach((c: any) => {
-          const date = format(new Date(c.created_at), "yyyy-MM-dd");
-          const amount = Number(c.total_cogs || 0);
-          cogsMap[date] = (cogsMap[date] || 0) + amount;
-          cogsTotal += amount;
-        });
+        grossProfitData = await getGrossProfitReport(startStr, endStr, branchId);
+        console.log("📊 Gross Profit Report:", grossProfitData);
+        
+        if (grossProfitData) {
+          revenue = parseFloat(grossProfitData.total_revenue || '0');
+          cogs = parseFloat(grossProfitData.total_cogs || '0');
+        }
       } catch (error) {
-        // If endpoint not available, compute from order items using product cost
-        console.warn("COGS endpoint not available, computing from orders...");
-        orders.forEach((o: any) => {
-          const date = format(new Date(o.created_at), "yyyy-MM-dd");
-          let orderCogs = 0;
-          (o.items || []).forEach((item: any) => {
-            const price = Number(item.price_at_order || 0);
-            const qty = Number(item.quantity || 0);
-            const cost = price * 0.6; // placeholder
-            orderCogs += cost * qty;
-          });
-          cogsMap[date] = (cogsMap[date] || 0) + orderCogs;
-          cogsTotal += orderCogs;
-        });
+        console.error("Failed to fetch gross profit report:", error);
+        toast.error("Failed to fetch gross profit data");
       }
 
-      // ─── 5. Operating Expenses (from ExpenseEntry) ──────────────
-      let expenseTotal = 0;
-      const expenseMap: Record<string, number> = {};
+      // ─── 2. Get Expenses ────────────────────────────────────────────
+      let expenses = 0;
+      let expenseItems: any[] = [];
       try {
-        const expRes = await apiFetch(
-          `/api/accounting/expenses/?expense_date__gte=${startStr}&expense_date__lte=${endStr}&page_size=1000`,
-          {},
-          true,
-        );
-        const expData = await expRes.json();
-        const expenses = expData.results || expData || [];
-        expenses.forEach((e: any) => {
-          const date = format(
-            new Date(e.expense_date || e.created_at),
-            "yyyy-MM-dd",
-          );
-          const amount = Number(e.amount || 0);
-          expenseMap[date] = (expenseMap[date] || 0) + amount;
-          expenseTotal += amount;
+        const expenseData = await getExpenses({
+          branch: branchId,
+          is_approved: true,
+          expense_date__gte: startStr,
+          expense_date__lte: endStr,
         });
+        console.log("📊 Expense Data:", expenseData);
+        
+        const expenseList = expenseData?.results || expenseData || [];
+        expenseItems = expenseList;
+        expenses = expenseList.reduce(
+          (sum: number, e: any) => sum + parseFloat(e.amount || 0),
+          0
+        );
       } catch (error) {
-        console.warn(
-          "Expense endpoint not available, using placeholder (5% of gross sales)",
-        );
-        const totalGross = payments.reduce(
-          (s: number, p: any) => s + Number(p.amount || 0),
-          0,
-        );
-        expenseTotal = totalGross * 0.05;
-        const days = Math.max(1, Object.keys(salesGrouped).length || 1);
-        const perDay = expenseTotal / days;
-        Object.keys(salesGrouped).forEach((date) => {
-          expenseMap[date] = perDay;
-        });
+        console.error("Failed to fetch expenses:", error);
+        toast.error("Failed to fetch expense data");
       }
 
-      // ─── 6. Group by date ──────────────────────────────────────────
+      // ─── 3. Get Sales Transactions for daily breakdown ─────────────
+      let salesItems: any[] = [];
+      try {
+        const salesData = await getSalesTransactions({
+          branch: branchId,
+          created_at__gte: startStr,
+          created_at__lte: endStr,
+        });
+        console.log("📊 Sales Data:", salesData);
+        salesItems = salesData?.results || salesData || [];
+      } catch (error) {
+        console.error("Failed to fetch sales transactions:", error);
+      }
+
+      // ─── 4. Get COGS Transactions for daily breakdown ──────────────
+      let cogsItems: any[] = [];
+      try {
+        const cogsData = await getCOGSTransactions({
+          branch: branchId,
+          created_at__gte: startStr,
+          created_at__lte: endStr,
+        });
+        console.log("📊 COGS Data:", cogsData);
+        cogsItems = cogsData?.results || cogsData || [];
+      } catch (error) {
+        console.error("Failed to fetch COGS transactions:", error);
+      }
+
+      // ─── 5. Group data by date ──────────────────────────────────────
       const salesGrouped: Record<string, number> = {};
-      payments.forEach((p: any) => {
-        const date = format(new Date(p.created_at), "yyyy-MM-dd");
-        salesGrouped[date] = (salesGrouped[date] || 0) + Number(p.amount || 0);
+      salesItems.forEach((item: any) => {
+        const date = format(new Date(item.created_at), "yyyy-MM-dd");
+        const amount = parseFloat(item.revenue_amount || item.amount || 0);
+        salesGrouped[date] = (salesGrouped[date] || 0) + amount;
       });
 
-      const refundGrouped: Record<string, number> = {};
-      refundedPayments.forEach((p: any) => {
-        const date = format(new Date(p.created_at), "yyyy-MM-dd");
-        const refundAmt = Number(p.refunded_amount || 0);
-        refundGrouped[date] = (refundGrouped[date] || 0) + refundAmt;
+      const cogsGrouped: Record<string, number> = {};
+      cogsItems.forEach((item: any) => {
+        const date = format(new Date(item.created_at), "yyyy-MM-dd");
+        const amount = parseFloat(item.total_cogs || 0);
+        cogsGrouped[date] = (cogsGrouped[date] || 0) + amount;
       });
 
-      // ─── 7. Build daily data ──────────────────────────────────────
+      const expenseGrouped: Record<string, number> = {};
+      expenseItems.forEach((item: any) => {
+        const date = format(
+          new Date(item.expense_date || item.created_at),
+          "yyyy-MM-dd"
+        );
+        const amount = parseFloat(item.amount || 0);
+        expenseGrouped[date] = (expenseGrouped[date] || 0) + amount;
+      });
+
+      // ─── 6. Build daily data ──────────────────────────────────────
       const allDates = new Set([
         ...Object.keys(salesGrouped),
-        ...Object.keys(discountMap),
-        ...Object.keys(cogsMap),
-        ...Object.keys(expenseMap),
-        ...Object.keys(refundGrouped),
+        ...Object.keys(cogsGrouped),
+        ...Object.keys(expenseGrouped),
       ]);
 
-      let totalRefunds = 0;
+      // If no dates, use the date range
+      if (allDates.size === 0) {
+        let current = new Date(start);
+        while (current <= end) {
+          allDates.add(format(current, "yyyy-MM-dd"));
+          current = new Date(current.setDate(current.getDate() + 1));
+        }
+      }
+
       const result: PnLData[] = Array.from(allDates)
         .sort()
         .map((date) => {
-          const gross = salesGrouped[date] || 0;
-          const discounts = discountMap[date] || 0;
-          const refunds = refundGrouped[date] || 0;
-          totalRefunds += refunds;
-          const netSales = gross - discounts - refunds;
-          const cogs = cogsMap[date] || 0;
-          const grossProfit = netSales - cogs;
-          const operatingExpenses = expenseMap[date] || 0;
-          const netProfit = grossProfit - operatingExpenses;
+          const grossSales = salesGrouped[date] || 0;
+          const dailyCogs = cogsGrouped[date] || 0;
+          const dailyExpenses = expenseGrouped[date] || 0;
+          const grossProfit = grossSales - dailyCogs;
+          const netProfit = grossProfit - dailyExpenses;
+
           return {
             date: format(new Date(date), "MMM dd"),
-            grossSales: gross,
-            discounts,
-            refunds,
-            netSales,
-            cogs,
+            grossSales,
+            discounts: 0, // Can be fetched separately if needed
+            refunds: 0, // Can be fetched separately if needed
+            netSales: grossSales,
+            cogs: dailyCogs,
             grossProfit,
-            operatingExpenses,
+            operatingExpenses: dailyExpenses,
             netProfit,
           };
         });
 
       setPnlData(result);
 
-      // ─── 8. Summary ──────────────────────────────────────────────────
-      const totalGross = payments.reduce(
-        (s: number, p: any) => s + Number(p.amount || 0),
-        0,
-      );
-      const totalNetSales = totalGross - totalDiscounts - totalRefunds;
-      const totalCogs = cogsTotal;
-      const totalGrossProfit = totalNetSales - totalCogs;
-      const totalExpenses = expenseTotal;
+      // ─── 7. Summary ──────────────────────────────────────────────────
+      const totalGross = revenue;
+      const totalCogs = cogs;
+      const totalExpenses = expenses;
+      const totalGrossProfit = totalGross - totalCogs;
       const totalNetProfit = totalGrossProfit - totalExpenses;
       const netProfitMargin =
-        totalNetSales > 0 ? (totalNetProfit / totalNetSales) * 100 : 0;
+        totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0;
 
       setSummary({
         grossSales: totalGross,
-        discounts: totalDiscounts,
-        refunds: totalRefunds,
-        netSales: totalNetSales,
+        discounts: 0,
+        refunds: 0,
+        netSales: totalGross,
         cogs: totalCogs,
         grossProfit: totalGrossProfit,
         operatingExpenses: totalExpenses,
         netProfit: totalNetProfit,
         netProfitMargin: netProfitMargin,
       });
+
+      setDataSource("Real data from API");
+
     } catch (error) {
       console.error("Failed to fetch P&L data:", error);
+      toast.error("Failed to load profit & loss data");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [period, getDateRange]);
+  }, [period, getDateRange, getBranchId]);
 
   useEffect(() => {
     fetchPnL();
@@ -353,8 +352,6 @@ export default function ProfitLossPage() {
   // ─── Financial Statement data ────────────────────────────────────────
   const statementItems = [
     { label: "Gross Sales", value: summary.grossSales, type: "revenue" },
-    { label: "Discounts", value: summary.discounts, type: "deduction" },
-    { label: "Refunds", value: summary.refunds, type: "deduction" },
     { label: "Net Sales", value: summary.netSales, type: "subtotal" },
     {
       label: "Cost of Goods Sold (COGS)",
@@ -374,7 +371,17 @@ export default function ProfitLossPage() {
     <div className="space-y-6">
       {/* ─── Header ────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Profit & Loss</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Profit & Loss</h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            {dataSource && `📊 ${dataSource}`}
+            {summary.transaction_count !== undefined && (
+              <span className="ml-2">
+                • {summary.transaction_count} transactions
+              </span>
+            )}
+          </p>
+        </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Button
@@ -417,6 +424,31 @@ export default function ProfitLossPage() {
         </div>
       </div>
 
+      {/* ─── COGS Warning ──────────────────────────────────────────────── */}
+      {summary.cogs === 0 && summary.grossSales > 0 && (
+        <Card className="bg-amber-500/10 border-amber-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-400 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-400">
+                  COGS Data Missing
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  COGS is showing as 0. This usually means products don't have 
+                  cost prices set or COGS transactions haven't been created.
+                  <br />
+                  <span className="text-amber-400/70">
+                    Tip: Set cost prices on products and ensure COGS transactions 
+                    are created when orders are delivered.
+                  </span>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ─── Summary Cards ────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20">
@@ -438,9 +470,9 @@ export default function ProfitLossPage() {
               <DollarSign className="h-5 w-5 text-rose-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Net Sales</p>
+              <p className="text-xs text-muted-foreground">COGS</p>
               <p className="text-lg font-bold">
-                {formatCurrency(summary.netSales)}
+                {formatCurrency(summary.cogs)}
               </p>
             </div>
           </CardContent>
@@ -481,9 +513,9 @@ export default function ProfitLossPage() {
               <DollarSign className="h-5 w-5 text-cyan-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">COGS</p>
+              <p className="text-xs text-muted-foreground">Net Sales</p>
               <p className="text-lg font-bold">
-                {formatCurrency(summary.cogs)}
+                {formatCurrency(summary.netSales)}
               </p>
             </div>
           </CardContent>
@@ -506,25 +538,27 @@ export default function ProfitLossPage() {
         <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-purple-500/20">
-              <TrendingDown className="h-5 w-5 text-purple-400" />
+              <DollarSign className="h-5 w-5 text-purple-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Discounts</p>
+              <p className="text-xs text-muted-foreground">Net Profit</p>
               <p className="text-lg font-bold">
-                {formatCurrency(summary.discounts)}
+                {formatCurrency(summary.netProfit)}
               </p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-full bg-red-500/20">
-              <TrendingDown className="h-5 w-5 text-red-400" />
+            <div className="p-2.5 rounded-full bg-emerald-500/20">
+              <TrendingUp className="h-5 w-5 text-emerald-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Refunds</p>
+              <p className="text-xs text-muted-foreground">Revenue / COGS</p>
               <p className="text-lg font-bold">
-                {formatCurrency(summary.refunds)}
+                {summary.cogs > 0 
+                  ? (summary.grossSales / summary.cogs).toFixed(2)
+                  : 'N/A'}
               </p>
             </div>
           </CardContent>
