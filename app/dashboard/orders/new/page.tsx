@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Eye,
   ChevronUp,
+  Tag,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { listTables } from "@/lib/ordersApi";
@@ -65,12 +66,12 @@ export default function NewOrderPage() {
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [selectedSku, setSelectedSku] = useState<string>("");
-  const [showSkuFilter, setShowSkuFilter] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [availabilities, setAvailabilities] = useState<any[]>([]);
+  const [tableError, setTableError] = useState<string>("");
 
   // ─── Discount State ──────────────────────────────────────────────────────
   const [discounts, setDiscounts] = useState<any[]>([]);
@@ -87,6 +88,8 @@ export default function NewOrderPage() {
     watch,
     setValue,
     formState: { errors },
+    trigger,
+    clearErrors,
   } = useForm<FormData>({
     defaultValues: {
       table: "",
@@ -101,32 +104,31 @@ export default function NewOrderPage() {
   const preSelectedTable = searchParams.get("table");
   const preSelectedStatus = searchParams.get("status") || "PENDING";
 
-
   // ─── Get available product IDs for user's branch ────────────────────────
-const availableProductIds = useMemo(() => {
-  const userBranchId = (user as any)?.branch?.id;
-  
-  // Filter availabilities for user's branch
-  let filteredAvail = availabilities;
-  if (userBranchId) {
-    filteredAvail = availabilities.filter((a: any) => {
-      const aBranch = typeof a.branch === 'object' ? a.branch.id : a.branch;
-      return aBranch === userBranchId;
-    });
-  }
-  
-  return new Set(
-    filteredAvail
-      .filter((a: any) => a.is_available === true)
-      .map((a: any) => typeof a.product === 'object' ? a.product.id : a.product)
-  );
-}, [availabilities, user]);
+  const availableProductIds = useMemo(() => {
+    const userBranchId = (user as any)?.branch?.id;
+    
+    let filteredAvail = availabilities;
+    if (userBranchId) {
+      filteredAvail = availabilities.filter((a: any) => {
+        const aBranch = typeof a.branch === 'object' ? a.branch.id : a.branch;
+        return aBranch === userBranchId;
+      });
+    }
+    
+    return new Set(
+      filteredAvail
+        .filter((a: any) => a.is_available === true)
+        .map((a: any) => typeof a.product === 'object' ? a.product.id : a.product)
+    );
+  }, [availabilities, user]);
 
   useEffect(() => {
     if (preSelectedTable) {
       setValue("table", preSelectedTable);
+      clearErrors("table");
     }
-  }, [preSelectedTable, setValue]);
+  }, [preSelectedTable, setValue, clearErrors]);
 
   // ─── Fetch Tables, Menu, and Discounts ──────────────────────────────────
   useEffect(() => {
@@ -135,13 +137,12 @@ const availableProductIds = useMemo(() => {
         const [tablesData, menuData, availData] = await Promise.all([
           listTables(),
           listMenuItems(),
-          getProductAvailabilities().catch(() => []) // Add this line
+          getProductAvailabilities().catch(() => [])
         ]);
         
         setTables(tablesData.results || tablesData || []);
         setMenuItems(menuData.results || menuData || []);
         
-        // Process availability data - Add this block
         const availArray = Array.isArray(availData) ? availData : availData?.results || [];
         setAvailabilities(availArray);
       } catch (error) {
@@ -242,44 +243,59 @@ const availableProductIds = useMemo(() => {
     setCart((prev) => prev.filter((i) => i.id !== id));
   };
 
-  const uniqueSkus = useMemo(() => {
-    const skus = menuItems
-      .map(item => item.sku)
-      .filter((sku): sku is string => !!sku);
-    return [...new Set(skus)];
+  // ─── Get unique categories ──────────────────────────────────────────────
+  const uniqueCategories = useMemo(() => {
+    const categories = menuItems
+      .map(item => item.category_name)
+      .filter((category): category is string => !!category);
+    return [...new Set(categories)].sort();
   }, [menuItems]);
 
-  // ─── Filter Menu Items ──────────────────────────────────────────────────
-  // ─── Filter Menu Items - ONLY SHOW AVAILABLE ITEMS ──────────────────────────────────
+  // ─── Filter Menu Items - ONLY SHOW AVAILABLE ITEMS ────────────────────
   const filteredItems = useMemo(() => {
     let filtered = menuItems;
     
-    // Filter by availability - ONLY SHOW AVAILABLE ITEMS
-    // If availabilities exist, only show items that are available
+    // Filter by availability
     if (availabilities.length > 0) {
       filtered = filtered.filter((item) => availableProductIds.has(item.id));
     }
     
+    // Filter by search term
     if (searchTerm.trim()) {
       filtered = filtered.filter((item) =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
-    if (selectedSku) {
+    
+    // Filter by category
+    if (selectedCategory) {
       filtered = filtered.filter((item) =>
-        item.sku?.toLowerCase() === selectedSku.toLowerCase(),
+        item.category_name?.toLowerCase() === selectedCategory.toLowerCase(),
       );
     }
     
     return filtered;
-  }, [menuItems, availabilities, availableProductIds, searchTerm, selectedSku]);
+  }, [menuItems, availabilities, availableProductIds, searchTerm, selectedCategory]);
+
+  // ─── Handle Table Change ──────────────────────────────────────────────────
+  const handleTableChange = (value: string) => {
+    setValue("table", value);
+    if (value) {
+      clearErrors("table");
+      setTableError("");
+    }
+    trigger("table");
+  };
 
   // ─── Submit Order ────────────────────────────────────────────────────────
   const onSubmit = async (data: FormData) => {
-    if (!selectedTableId) {
+    // Validate table selection
+    if (!data.table) {
+      setTableError("Please select a table");
       toast.error("Please select a table.");
       return;
     }
+    
     if (cart.length === 0) {
       toast.error("Please add at least one item.");
       return;
@@ -288,7 +304,7 @@ const availableProductIds = useMemo(() => {
     setSubmitting(true);
     try {
       const payload = {
-        table: parseInt(selectedTableId),
+        table: parseInt(data.table),
         priority: false,
         special_instructions: data.special_instructions || "",
         items_data: cart.map((item) => ({
@@ -313,7 +329,7 @@ const availableProductIds = useMemo(() => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 text-yellow-500 animate-spin" />
+        <Loader2 className="h-8 w-8 text-[var(--primary)] animate-spin" />
       </div>
     );
   }
@@ -321,8 +337,7 @@ const availableProductIds = useMemo(() => {
   // ─── Clear all filters ───────────────────────────────────────────────────
   const clearFilters = () => { 
     setSearchTerm("");
-    setSelectedSku("");
-    setShowSkuFilter(false);
+    setSelectedCategory("");
   };
 
   const roleName =
@@ -349,10 +364,10 @@ const availableProductIds = useMemo(() => {
     <ProtectedOrder>
       <div className="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-5 lg:px-6">
         {/* ─── Header ─────────────────────────────────────────────────────────── */}
-        <div className="overflow-hidden rounded-[30px] border border-yellow-500/20 bg-gradient-to-br from-yellow-500/10 via-background to-amber-500/5 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,0.5)] sm:p-6">
+        <div className="overflow-hidden rounded-[30px] border border-[var(--primary)]/20 bg-gradient-to-br from-[var(--primary)]/10 via-background to-[var(--primary)]/5 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,0.5)] sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
-              <div className="mb-3 inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-yellow-500">
+              <div className="mb-3 inline-flex items-center rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--primary)]">
                 <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
                 Premium order builder
               </div>
@@ -364,9 +379,9 @@ const availableProductIds = useMemo(() => {
               </p>
             </div>
 
-            <div className="rounded-[22px] border border-yellow-500/20 bg-yellow-500/5 px-3.5 py-3 shadow-sm backdrop-blur">
+            <div className="rounded-[22px] border border-[var(--primary)]/20 bg-[var(--primary)]/5 px-3.5 py-3 shadow-sm backdrop-blur">
               <div className="flex items-center gap-3 text-foreground">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-yellow-500/15 text-yellow-500">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--primary)]/15 text-[var(--primary)]">
                   <ShoppingCart className="h-5 w-5" />
                 </div>
                 <div>
@@ -382,7 +397,7 @@ const availableProductIds = useMemo(() => {
           {/* ─── Left Panel: Menu Browser ─── */}
           <div className="flex-1 space-y-4">
             {/* ─── Table Selection with View Summary Button ─── */}
-            <div className="rounded-[24px] border border-yellow-500/20 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
+            <div className="rounded-[24px] border border-[var(--primary)]/20 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
               <div className="flex flex-col sm:flex-row sm:items-end gap-3">
                 <div className="flex-1">
                   <label
@@ -393,7 +408,7 @@ const availableProductIds = useMemo(() => {
                   </label>
 
                   {preSelectedTable ? (
-                    <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 px-3 py-3 text-sm text-foreground shadow-sm">
+                    <div className="rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 px-3 py-3 text-sm text-foreground shadow-sm">
                       Table{" "}
                       {tables.find((t) => String(t.id) === preSelectedTable)
                         ?.table_number || preSelectedTable}
@@ -407,7 +422,13 @@ const availableProductIds = useMemo(() => {
                     <select
                       id="table"
                       {...register("table", { required: "Table is required" })}
-                      className="w-full rounded-2xl border border-yellow-500/20 bg-background/80 px-3 py-2.5 text-sm text-foreground shadow-sm focus:border-yellow-500/50 focus:outline-none focus:ring-2 focus:ring-yellow-500/30"
+                      onChange={(e) => handleTableChange(e.target.value)}
+                      className={cn(
+                        "w-full rounded-2xl border bg-background/80 px-3 py-2.5 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2",
+                        errors.table || tableError
+                          ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/30"
+                          : "border-[var(--primary)]/20 focus:border-[var(--primary)]/50 focus:ring-[var(--primary)]/30"
+                      )}
                     >
                       <option value="">Select a table</option>
                       {tables.map((table) => (
@@ -419,17 +440,17 @@ const availableProductIds = useMemo(() => {
                     </select>
                   )}
 
-                  {errors.table && (
+                  {(errors.table || tableError) && (
                     <p className="mt-1 text-sm text-red-400">
-                      {errors.table.message}
+                      {errors.table?.message || tableError}
                     </p>
                   )}
                 </div>
 
-                {/* ─── View Summary Button (next to table selection) ─── */}
+                {/* ─── View Summary Button ─── */}
                 <button
                   onClick={toggleCart}
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 px-4 py-2.5 text-sm font-medium text-black shadow-lg shadow-yellow-500/30 transition-all hover:shadow-yellow-500/50 lg:hidden flex-shrink-0"
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--primary)] hover:bg-[color:var(--primary)]/80 px-4 py-2.5 text-sm font-medium text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary)]/30 transition-all hover:shadow-[var(--primary)]/50 lg:hidden flex-shrink-0"
                 >
                   <Eye className="h-4 w-4" />
                   <span>Summary</span>
@@ -442,8 +463,8 @@ const availableProductIds = useMemo(() => {
               </div>
             </div>
 
-            {/* ─── Search and Filter Section with SKU ─── */}
-            <div className="rounded-[24px] border border-yellow-500/20 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
+            {/* ─── Search and Category Filter ─── */}
+            <div className="rounded-[24px] border border-[var(--primary)]/20 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
               <div className="flex flex-col gap-2">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <div className="relative flex-1">
@@ -452,102 +473,68 @@ const availableProductIds = useMemo(() => {
                       placeholder="Search by name..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="h-11 rounded-2xl border-yellow-500/20 bg-background/70 pl-9 text-sm shadow-sm focus:border-yellow-500/50 focus:ring-yellow-500/30"
+                      className="h-11 rounded-2xl border-[var(--primary)]/20 bg-background/70 pl-9 text-sm shadow-sm focus:border-[var(--primary)]/50 focus:ring-[var(--primary)]/30"
                     />
                   </div>
 
-                  {/* ─── SKU Filter Button ─── */}
-                  <div className="flex items-center gap-2">
+                  {(searchTerm || selectedCategory) && (
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      onClick={() => setShowSkuFilter(!showSkuFilter)}
-                      className={cn(
-                        "h-11 gap-1.5 rounded-2xl border-yellow-500/20 px-3 hover:border-yellow-500/50",
-                        showSkuFilter && "border-yellow-500 bg-yellow-500/10 text-yellow-500"
-                      )}
+                      onClick={clearFilters}
+                      className="h-11 rounded-2xl text-muted-foreground hover:text-foreground"
                     >
-                      <Barcode className="h-4 w-4" />
-                      SKU
-                      {selectedSku && (
-                        <span className="ml-1 h-2 w-2 rounded-full bg-yellow-500" />
-                      )}
+                      <X className="h-4 w-4" />
                     </Button>
-                    {(searchTerm || selectedSku) && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearFilters}
-                        className="h-11 rounded-2xl text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </div>
 
-                {/* ─── SKU Filter - Horizontal Chips ─── */}
-                <AnimatePresence>
-                  {showSkuFilter && uniqueSkus.length > 0 && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
+                {/* ─── Category Filter - Always Visible ─── */}
+                <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-2.5">
+                  <button
+                    onClick={() => setSelectedCategory("")}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs transition-all",
+                      !selectedCategory
+                        ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-md shadow-[var(--primary)]/25"
+                        : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+                    )}
+                  >
+                    All
+                  </button>
+                  {uniqueCategories.map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs transition-all",
+                        selectedCategory === category
+                          ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-md shadow-[var(--primary)]/25"
+                          : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+                      )}
                     >
-                      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-2.5">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          <Barcode className="mr-1 inline h-3 w-3" />
-                          SKUs:
-                        </span>
-                        <button
-                          onClick={() => setSelectedSku("")}
-                          className={cn(
-                            "rounded-full px-3 py-1 text-xs transition-all",
-                            !selectedSku
-                              ? "bg-yellow-500 text-black shadow-md shadow-yellow-500/25"
-                              : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
-                          )}
-                        >
-                          All
-                        </button>
-                        {uniqueSkus.map((sku) => (
-                          <button
-                            key={sku}
-                            onClick={() => setSelectedSku(sku)}
-                            className={cn(
-                              "rounded-full px-3 py-1 text-xs font-mono transition-all",
-                              selectedSku === sku
-                                ? "bg-yellow-500 text-black shadow-md shadow-yellow-500/25"
-                                : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
-                            )}
-                          >
-                            {sku}
-                          </button>
-                        ))}
-                      </div>
-                      <p className="ml-1 mt-2 text-xs text-muted-foreground">
-                        {filteredItems.length} item(s) found
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      {category}
+                    </button>
+                  ))}
+                </div>
+                
+                <p className="ml-1 text-xs text-muted-foreground">
+                  {filteredItems.length} item(s) found
+                </p>
               </div>
             </div>
 
             {/* Menu grid */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-h-[70vh] lg:overflow-y-auto lg:pr-1">
               {filteredItems.length === 0 ? (
-                <div className="col-span-2 rounded-[24px] border border-dashed border-yellow-500/30 bg-yellow-500/5 py-8 text-center text-muted-foreground shadow-sm">
-                  <AlertCircle className="mx-auto h-10 w-10 text-yellow-500/40" />
+                <div className="col-span-2 rounded-[24px] border border-dashed border-[var(--primary)]/30 bg-[var(--primary)]/5 py-8 text-center text-muted-foreground shadow-sm">
+                  <AlertCircle className="mx-auto h-10 w-10 text-[var(--primary)]/40" />
                   <p className="mt-2">No menu items found.</p>
-                  {(searchTerm || selectedSku) && (
+                  {(searchTerm || selectedCategory) && (
                     <button
                       onClick={clearFilters}
-                      className="mt-2 text-sm text-yellow-500 hover:text-yellow-400"
+                      className="mt-2 text-sm text-[var(--primary)] hover:text-[color:var(--primary)]/80"
                     >
                       Clear all filters
                     </button>
@@ -566,14 +553,14 @@ const availableProductIds = useMemo(() => {
                       onClick={() => addToCart(item)}
                       disabled={!item.is_available}
                       className={cn(
-                        "group relative overflow-hidden rounded-[22px] border p-3.5 text-left shadow-sm transition-all duration-300",
+                        "group relative  rounded-[22px] border p-3.5 text-left shadow-sm transition-all duration-300",
                         item.is_available
-                          ? "border-yellow-500/20 bg-gradient-to-br from-background via-background to-yellow-500/5 hover:-translate-y-0.5 hover:border-yellow-500/50 hover:shadow-[0_16px_40px_-22px_rgba(234,179,8,0.7)]"
-                          : "cursor-not-allowed border-yellow-500/20 bg-muted/30 opacity-60"
+                          ? "border-[var(--primary)]/20 bg-gradient-to-br from-background via-background to-[var(--primary)]/5 hover:-translate-y-0.5 hover:border-[var(--primary)]/50 hover:shadow-[0_16px_40px_-22px_rgba(234,179,8,0.7)]"
+                          : "cursor-not-allowed border-[var(--primary)]/20 bg-muted/30 opacity-60"
                       )}
                     >
                       {quantityInCart > 0 && (
-                        <div className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-yellow-500 text-xs font-bold text-black shadow-lg">
+                        <div className="absolute -right-1 -top-2 flex h-7 w-7  items-center justify-center rounded-full bg-[var(--primary)] text-xs font-bold text-[var(--primary-foreground)] shadow-lg">
                           {quantityInCart}
                         </div>
                       )}
@@ -585,7 +572,7 @@ const availableProductIds = useMemo(() => {
                               {item.name}
                             </h4>
                             {!item.is_available && (
-                              <span className="rounded-full bg-yellow-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-yellow-500">
+                              <span className="rounded-full bg-[var(--primary)]/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--primary)]">
                                 Unavailable
                               </span>
                             )}
@@ -602,13 +589,13 @@ const availableProductIds = useMemo(() => {
                             </div>
                           )}
                         </div>
-                        <span className="ml-2 text-sm font-semibold text-yellow-500">
+                        <span className="ml-2 text-sm font-semibold text-[var(--primary)]">
                           ${parseFloat(item.price).toFixed(2)}
                         </span>
                       </div>
 
                       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="rounded-full bg-yellow-500/10 px-2 py-1 text-yellow-500/70">
+                        <span className="rounded-full bg-[var(--primary)]/10 px-2 py-1 text-[var(--primary)]/70">
                           Tap to add
                         </span>
                         <span className="font-medium text-foreground/80">Quick pick</span>
@@ -636,6 +623,10 @@ const availableProductIds = useMemo(() => {
                 promoCode={promoCode}
                 submitting={submitting}
                 specialInstructions={specialInstructions}
+                tables={tables}
+                selectedTableId={selectedTableId}
+                tableError={tableError || errors.table?.message}
+                onTableChange={handleTableChange}
                 onUpdateQuantity={updateQuantity}
                 onRemoveItem={removeItem}
                 onDiscountChange={handleDiscountChange}
@@ -672,12 +663,12 @@ const availableProductIds = useMemo(() => {
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-[30px] border border-yellow-500/20 bg-gradient-to-b from-background to-yellow-500/5 p-4 shadow-2xl"
+                className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-[30px] border border-[var(--primary)]/20 bg-gradient-to-b from-background to-[var(--primary)]/5 p-4 shadow-2xl"
               >
                 {/* Handle Bar */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-yellow-500/15 text-yellow-500">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--primary)]/15 text-[var(--primary)]">
                       <ShoppingCart className="h-5 w-5" />
                     </div>
                     <div>
@@ -696,7 +687,7 @@ const availableProductIds = useMemo(() => {
                 </div>
 
                 {/* Divider */}
-                <div className="mb-4 h-px bg-gradient-to-r from-yellow-500/20 via-yellow-500/40 to-yellow-500/20" />
+                <div className="mb-4 h-px bg-gradient-to-r from-[var(--primary)]/20 via-[var(--primary)]/40 to-[var(--primary)]/20" />
 
                 {/* Order Summary Content */}
                 <OrderSummary
@@ -712,6 +703,10 @@ const availableProductIds = useMemo(() => {
                   promoCode={promoCode}
                   submitting={submitting}
                   specialInstructions={specialInstructions}
+                  tables={tables}
+                  selectedTableId={selectedTableId}
+                  tableError={tableError || errors.table?.message}
+                  onTableChange={handleTableChange}
                   onUpdateQuantity={updateQuantity}
                   onRemoveItem={removeItem}
                   onDiscountChange={handleDiscountChange}
@@ -723,7 +718,7 @@ const availableProductIds = useMemo(() => {
                 {/* Bottom Close Button */}
                 <button
                   onClick={toggleCart}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 py-3 text-sm font-medium text-muted-foreground transition hover:bg-yellow-500/10"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 py-3 text-sm font-medium text-muted-foreground transition hover:bg-[var(--primary)]/10"
                 >
                   <ChevronUp className="h-4 w-4" />
                   Close Summary
@@ -740,7 +735,7 @@ const availableProductIds = useMemo(() => {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={toggleCart}
-            className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full bg-gradient-to-r from-yellow-500 to-amber-500 px-6 py-3 text-black shadow-2xl shadow-yellow-500/40 lg:hidden"
+            className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full bg-[var(--primary)] hover:bg-[color:var(--primary)]/80 px-6 py-3 text-[var(--primary-foreground)] shadow-2xl shadow-[var(--primary)]/40 lg:hidden"
           >
             <ShoppingCart className="h-5 w-5" />
             <span className="font-medium">View Order</span>

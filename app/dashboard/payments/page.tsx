@@ -335,7 +335,7 @@ export default function PaymentsPage() {
       </div>
 
       {/* ─── Summary Cards ──────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2  md:grid-cols-4 gap-3">
         <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-full bg-indigo-500/20">
