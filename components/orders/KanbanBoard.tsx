@@ -101,6 +101,7 @@ interface OrderCardProps {
 }
 
 function OrderCard({ order, onClick }: OrderCardProps) {
+  const isPaid = order.status === "PAID";
   const {
     attributes,
     listeners,
@@ -108,7 +109,7 @@ function OrderCard({ order, onClick }: OrderCardProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: order.id });
+  } = useSortable({ id: order.id, disabled: isPaid, });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -122,8 +123,7 @@ function OrderCard({ order, onClick }: OrderCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
+      {...(isPaid ? {} : { ...attributes, ...listeners })}
       onClick={() => onClick?.(order.id)}
       className={cn(
         "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none select-none will-change-transform"
