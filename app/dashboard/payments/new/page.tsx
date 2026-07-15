@@ -534,7 +534,7 @@ export default function NewPaymentPage() {
             >
               <TableIcon
                 className={`
-                h-5 w-5
+                h-4 w-4
                 ${isOccupied ? "text-emerald-400" : "text-amber-400"}
               `}
               />
@@ -543,7 +543,7 @@ export default function NewPaymentPage() {
               <h3 className="font-semibold text-lg" style={{ color: "var(--page-text)" }}>
                 Table {table.table_number}
               </h3>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex items-center gap-2 mt-1.5">
                 <StatusBadge status={table.status} />
                 {isSelected && (
                   <span className="text-xs animate-pulse" style={{ color: "var(--page-accent)" }}>
@@ -555,7 +555,7 @@ export default function NewPaymentPage() {
           </div>
           <div className="flex items-center gap-2">
             {isOccupied && (
-              <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: "var(--page-soft)", color: "var(--page-muted)" }}>
+              <span className="text-xs px-1 py-1 rounded-full" style={{ backgroundColor: "var(--page-soft)", color: "var(--page-muted)" }}>
                 Active
               </span>
             )}
@@ -565,7 +565,7 @@ export default function NewPaymentPage() {
         {/* Status indicator dot */}
         <div
           className={`
-          absolute top-3 right-3 w-2 h-2 rounded-full
+          absolute top-3 right-4 w-2 h-2 rounded-full
           ${isOccupied ? "bg-emerald-400 animate-pulse" : "bg-amber-400 animate-pulse"}
         `}
         />
@@ -582,7 +582,7 @@ export default function NewPaymentPage() {
   const subtotalBeforeDiscount = combinedTotal + totalDiscountValue;
   return (
     <div
-      className="min-h-screen p-6 print:bg-white print:p-0 print:block"
+      className="min-h-screen md:p-6 print:bg-white print:p-0 print:block"
       style={{
         ...themeStyles,
         backgroundColor: "var(--page-bg)",
@@ -599,16 +599,16 @@ export default function NewPaymentPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 transition-all"
+              className=" transition-all"
               style={{ color: "var(--page-muted)" }}
             >
-              <ArrowLeft className="h-4 w-4" /> Back to Payments
+              <ArrowLeft className="h-4 w-4" /> 
             </Button>
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border border-border">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 px-3 py- bg-background rounded-full border border-border">
               <Building2 className="h-4 w-4" style={{ color: "var(--page-accent)" }} />
-              <span className="text-sm" style={{ color: "var(--page-muted)" }}>
+              <span className="text-xs md:text-sm" style={{ color: "var(--page-muted)" }}>
                 {branchName || "Main Branch"}
               </span>
             </div>

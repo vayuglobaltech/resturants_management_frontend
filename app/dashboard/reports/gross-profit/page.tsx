@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getBranches } from "@/lib/api";
+import { getBranches, apiFetch } from "@/lib/api";
 import { getGrossProfitReport } from "@/lib/accountingApi";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -41,18 +41,14 @@ const getDateRange = (period: string) => {
 
   switch (period) {
     case 'today':
-      // Today only
       break;
     case 'week':
-      // Last 7 days
       start.setDate(today.getDate() - 6);
       break;
     case 'month':
-      // This month
       start.setDate(1);
       break;
     case 'year':
-      // This year
       start.setMonth(0, 1);
       break;
     default:
@@ -88,8 +84,9 @@ interface ProfitReport {
 export default function GrossProfitReportPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+  const [branchName, setBranchName] = useState("");
+  const [validBranchId, setValidBranchId] = useState<number | null>(null);
+  const [isBranchValidated, setIsBranchValidated] = useState(false);
   const [report, setReport] = useState<ProfitReport | null>(null);
   const [period, setPeriod] = useState<string>('week');
   const [dateRange, setDateRange] = useState({
@@ -98,26 +95,141 @@ export default function GrossProfitReportPage() {
   });
   const [showCustomDate, setShowCustomDate] = useState(false);
 
-  // Fetch branches on mount
+  // ─── Fetch user profile and validate branch ──────────────────────────────
   useEffect(() => {
-    fetchBranches();
-  }, []);
+    const fetchUserProfileAndValidate = async () => {
+      if (!user) return;
 
-  const fetchBranches = async () => {
-    try {
-      const data = await getBranches();
-      const branchList = data.results || data || [];
-      setBranches(branchList);
-      setSelectedBranch(null);
-    } catch (error) {
-      console.error("Failed to fetch branches:", error);
-      toast.error("Failed to load branches");
+      try {
+        setLoading(true);
+        
+        // First, fetch the user profile to get the branch
+        console.log("📡 Fetching user profile for branch...");
+        const res = await apiFetch('/api/users/profile/', {}, true);
+        
+        let profileBranchName = "";
+        let profileBranchId = null;
+        
+        if (res.ok) {
+          const profile = await res.json();
+          console.log("📋 User profile from API:", profile);
+          
+          if (profile.branch?.name) {
+            profileBranchName = profile.branch.name;
+            profileBranchId = profile.branch.id;
+          } else if (profile.branch_name) {
+            profileBranchName = profile.branch_name;
+          } else if (profile.branch?.branch_name) {
+            profileBranchName = profile.branch.branch_name;
+          }
+          
+          console.log("✅ Found branch name in profile:", profileBranchName);
+        } else {
+          console.error("Failed to fetch profile:", res.status);
+        }
+        
+        // Now fetch available branches
+        console.log("🔍 Fetching available branches...");
+        const branchData = await getBranches();
+        const branchList = branchData.results || branchData || [];
+        console.log("📋 Available branches:", branchList);
+        
+        if (branchList.length === 0) {
+          toast.error("No branches available in the system");
+          setLoading(false);
+          return;
+        }
+        
+        let selectedBranch = null;
+        let selectedBranchName = "";
+        
+        // FIRST: Try to use branch from profile
+        if (profileBranchName) {
+          const matchedBranch = branchList.find((b: any) => 
+            b.name?.toLowerCase() === profileBranchName.toLowerCase()
+          );
+          if (matchedBranch) {
+            selectedBranch = matchedBranch;
+            selectedBranchName = matchedBranch.name;
+            console.log("✅ Using branch from profile:", selectedBranchName);
+          } else {
+            selectedBranchName = profileBranchName;
+            selectedBranch = branchList[0];
+            console.log("📌 Using profile branch name (not in list):", selectedBranchName);
+          }
+        }
+        
+        // SECOND: Try by user's branch ID from auth
+        if (!selectedBranch) {
+          const userBranchId = (user as any)?.branch?.id;
+          if (userBranchId) {
+            const branchById = branchList.find((b: any) => b.id === userBranchId);
+            if (branchById) {
+              selectedBranch = branchById;
+              selectedBranchName = branchById.name;
+              console.log("✅ Using branch from user ID:", selectedBranchName);
+            }
+          }
+        }
+        
+        // THIRD: Try by user's branch name from auth
+        if (!selectedBranch) {
+          const userBranchName = (user as any)?.branch?.name;
+          if (userBranchName) {
+            const branchByName = branchList.find((b: any) => 
+              b.name?.toLowerCase() === userBranchName.toLowerCase()
+            );
+            if (branchByName) {
+              selectedBranch = branchByName;
+              selectedBranchName = branchByName.name;
+              console.log("✅ Using branch from user name:", selectedBranchName);
+            }
+          }
+        }
+        
+        // FINAL: Fallback to first branch
+        if (!selectedBranch && branchList.length > 0) {
+          selectedBranch = branchList[0];
+          selectedBranchName = selectedBranch.name || "Default Branch";
+          console.log("📌 Using first available branch as fallback:", selectedBranchName);
+        }
+        
+        if (selectedBranch) {
+          setValidBranchId(selectedBranch.id);
+          setBranchName(selectedBranchName);
+          setIsBranchValidated(true);
+          console.log("✅ Final branch:", selectedBranchName);
+        } else {
+          toast.error("No valid branch found");
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("❌ Failed to validate branch:", error);
+        toast.error("Failed to load branch data");
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchUserProfileAndValidate();
     }
-  };
+  }, [user]);
+
+  // ─── Fetch report when branch is validated ──────────────────────────────
+  useEffect(() => {
+    if (isBranchValidated && validBranchId !== null) {
+      fetchReport();
+    }
+  }, [isBranchValidated, validBranchId, dateRange.start_date, dateRange.end_date, period]);
 
   const fetchReport = async () => {
     if (!dateRange.start_date || !dateRange.end_date) {
       toast.error("Please select both start and end dates");
+      return;
+    }
+
+    if (validBranchId === null) {
+      toast.error("No valid branch found");
       return;
     }
 
@@ -126,7 +238,7 @@ export default function GrossProfitReportPage() {
       const data = await getGrossProfitReport(
         dateRange.start_date, 
         dateRange.end_date,
-        selectedBranch || undefined
+        validBranchId // ← Always use the user's branch
       );
       setReport(data);
     } catch (error) {
@@ -134,20 +246,6 @@ export default function GrossProfitReportPage() {
       toast.error("Failed to load report");
     } finally {
       setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (branches.length > 0) {
-      fetchReport();
-    }
-  }, [dateRange.start_date, dateRange.end_date, selectedBranch, period]);
-
-  const handleBranchChange = (branchId: string) => {
-    if (branchId === "all") {
-      setSelectedBranch(null);
-    } else {
-      setSelectedBranch(parseInt(branchId));
     }
   };
 
@@ -170,7 +268,8 @@ export default function GrossProfitReportPage() {
     { value: 'year', label: 'This Year', icon: CalendarIcon },
   ];
 
-  if (loading) {
+  // ─── Loading state ──────────────────────────────────────────────────────
+  if (loading && !report) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
@@ -183,8 +282,13 @@ export default function GrossProfitReportPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Gross Profit Report</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
             Revenue vs Cost of Goods Sold analysis - {getPeriodLabel(period)}
+            {branchName && (
+              <span className="ml-2 text-xs bg-background px-2 py-1 rounded-lg border border-border text-indigo-400">
+                🏢 {branchName}
+              </span>
+            )}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchReport} className="gap-2">
@@ -192,29 +296,22 @@ export default function GrossProfitReportPage() {
         </Button>
       </div>
 
-      {/* Branch Filter */}
+      {/* Branch Display (Read-only) */}
       <Card className="bg-muted/30 border-border">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <Store className="h-4 w-4 text-muted-foreground" />
+              <Store className="h-4 w-4 text-indigo-400" />
               <span className="text-sm text-muted-foreground font-medium">Branch:</span>
             </div>
-            <select
-              value={selectedBranch === null ? "all" : selectedBranch.toString()}
-              onChange={(e) => handleBranchChange(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
-            >
-              <option value="all">All Branches</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+              <span className="text-xs text-indigo-400">Viewing:</span>
+              <span className="text-sm font-medium text-foreground">{branchName || "No Branch"}</span>
+            </div>
+            <span className="text-xs text-muted-foreground">(Your assigned branch)</span>
 
             {/* Period Filter */}
-            <div className="flex items-center gap-2 ml-4">
+            <div className="flex items-center gap-2 ml-auto">
               <span className="text-sm text-muted-foreground font-medium">Period:</span>
               <div className="flex bg-background rounded-lg p-1">
                 {periods.map((p) => (

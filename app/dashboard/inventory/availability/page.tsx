@@ -9,6 +9,7 @@ import {
   deleteProductAvailability,
   getBranches,
   getProducts,
+  apiFetch
 } from '@/lib/api';
 import { ProductAvailability, Branch, Product } from '@/types/index';
 import { useAuth } from "@/context/AuthContext";
@@ -26,6 +27,11 @@ const ProductAvailabilityManagement: React.FC = () => {
   const [actionMsg, setActionMsg] = useState<{type: 'success'|'error', text: string} | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
   
+  // ─── Branch state ──────────────────────────────────────────────────────────
+  const [branchName, setBranchName] = useState("");
+  const [validBranchId, setValidBranchId] = useState<number | null>(null);
+  const [isBranchValidated, setIsBranchValidated] = useState(false);
+  
   // Modal states
   const [showModal, setShowModal] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -40,41 +46,167 @@ const ProductAvailabilityManagement: React.FC = () => {
   const canManage = user ? canManageMenu(user) : false;
   const userRole = user ? getRoleName(user) : null;
 
-  // Fetch branches and products
-  const loadBranchesAndProducts = async () => {
+  // ─── Fetch user profile and validate branch (same as dashboard) ──────────
+  useEffect(() => {
+    const fetchUserProfileAndValidate = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // First, fetch the user profile to get the branch
+        console.log("📡 Fetching user profile for branch...");
+        const res = await apiFetch('/api/users/profile/', {}, true);
+        
+        let profileBranchName = "";
+        let profileBranchId = null;
+        
+        if (res.ok) {
+          const profile = await res.json();
+          console.log("📋 User profile from API:", profile);
+          
+          // Try different possible field names for branch
+          if (profile.branch?.name) {
+            profileBranchName = profile.branch.name;
+            profileBranchId = profile.branch.id;
+          } else if (profile.branch_name) {
+            profileBranchName = profile.branch_name;
+          } else if (profile.branch?.branch_name) {
+            profileBranchName = profile.branch.branch_name;
+          }
+          
+          console.log("✅ Found branch name in profile:", profileBranchName);
+        } else {
+          console.error("Failed to fetch profile:", res.status);
+        }
+        
+        // Now fetch available branches
+        console.log("🔍 Fetching available branches...");
+        const branchData = await getBranches();
+        const branchList = branchData.results || branchData || [];
+        console.log("📋 Available branches:", branchList);
+        
+        if (branchList.length === 0) {
+          setActionMsg({ type: 'error', text: 'No branches available in the system' });
+          setLoading(false);
+          return;
+        }
+        
+        let selectedBranch = null;
+        let selectedBranchName = "";
+        
+        // FIRST: Try to use branch from profile
+        if (profileBranchName) {
+          const matchedBranch = branchList.find((b: any) => 
+            b.name?.toLowerCase() === profileBranchName.toLowerCase()
+          );
+          if (matchedBranch) {
+            selectedBranch = matchedBranch;
+            selectedBranchName = matchedBranch.name;
+            console.log("✅ Using branch from profile:", selectedBranchName);
+          } else {
+            // If branch not in list, use the profile branch name
+            selectedBranchName = profileBranchName;
+            selectedBranch = branchList[0];
+            console.log("📌 Using profile branch name (not in list):", selectedBranchName);
+          }
+        }
+        
+        // SECOND: Try by user's branch ID from auth
+        if (!selectedBranch) {
+          const userBranchId = (user as any)?.branch?.id;
+          if (userBranchId) {
+            const branchById = branchList.find((b: any) => b.id === userBranchId);
+            if (branchById) {
+              selectedBranch = branchById;
+              selectedBranchName = branchById.name;
+              console.log("✅ Using branch from user ID:", selectedBranchName);
+            }
+          }
+        }
+        
+        // THIRD: Try by user's branch name from auth
+        if (!selectedBranch) {
+          const userBranchName = (user as any)?.branch?.name;
+          if (userBranchName) {
+            const branchByName = branchList.find((b: any) => 
+              b.name?.toLowerCase() === userBranchName.toLowerCase()
+            );
+            if (branchByName) {
+              selectedBranch = branchByName;
+              selectedBranchName = branchByName.name;
+              console.log("✅ Using branch from user name:", selectedBranchName);
+            }
+          }
+        }
+        
+        // FINAL: Fallback to first branch
+        if (!selectedBranch && branchList.length > 0) {
+          selectedBranch = branchList[0];
+          selectedBranchName = selectedBranch.name || "Default Branch";
+          console.log("📌 Using first available branch as fallback:", selectedBranchName);
+        }
+        
+        if (selectedBranch) {
+          setValidBranchId(selectedBranch.id);
+          setBranchName(selectedBranchName);
+          setIsBranchValidated(true);
+          console.log("✅ Final branch:", selectedBranchName);
+          
+          // Auto-set branch in form
+          setFormData(prev => ({
+            ...prev,
+            branch: selectedBranch.id.toString()
+          }));
+        } else {
+          setActionMsg({ type: 'error', text: 'No valid branch found' });
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("❌ Failed to validate branch:", error);
+        setActionMsg({ type: 'error', text: 'Failed to load branch data' });
+        setLoading(false);
+      }
+    };
+
+    if (!authLoading && user) {
+      fetchUserProfileAndValidate();
+    }
+  }, [authLoading, user]);
+
+  // ─── Fetch products and availabilities after branch is validated ──────────
+  useEffect(() => {
+    if (isBranchValidated && validBranchId !== null) {
+      fetchData();
+    }
+  }, [isBranchValidated, validBranchId]);
+
+  // ─── Fetch products ──────────────────────────────────────────────────────
+  const loadProducts = async () => {
     try {
-      const [branchesData, productsData] = await Promise.all([
-        getBranches(),
-        getProducts()
-      ]);
-      
-      // Ensure we have arrays
-      const branchesArray = Array.isArray(branchesData) ? branchesData : 
-                           branchesData?.results ? branchesData.results : [];
+      const productsData = await getProducts();
       const productsArray = Array.isArray(productsData) ? productsData : 
                            productsData?.results ? productsData.results : [];
-      
-      setBranches(branchesArray);
       setProducts(productsArray);
     } catch (error) {
-      console.error('Error loading branches/products:', error);
-      setActionMsg({ type: 'error', text: 'Failed to load branches or products.' });
-      // Set empty arrays on error
-      setBranches([]);
+      console.error('Error loading products:', error);
+      setActionMsg({ type: 'error', text: 'Failed to load products.' });
       setProducts([]);
     }
   };
 
-  // Fetch data
+  // ─── Fetch data ──────────────────────────────────────────────────────────
   const fetchData = async () => {
     setLoading(true);
     try {
       const availabilityData = await getProductAvailabilities();
-      // Ensure availability data is an array
       const availabilityArray = Array.isArray(availabilityData) ? availabilityData : 
                                availabilityData?.results ? availabilityData.results : [];
       setAvailabilities(availabilityArray);
-      await loadBranchesAndProducts();
+      await loadProducts();
     } catch (error: any) {
       setActionMsg({ type: 'error', text: error?.detail || 'Failed to load data' });
       console.error('Error fetching data:', error);
@@ -84,16 +216,10 @@ const ProductAvailabilityManagement: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      fetchData();
-    }
-  }, [authLoading, user]);
-
   // Reset form
   const resetForm = () => {
     setFormData({
-      branch: "",
+      branch: validBranchId ? validBranchId.toString() : "",
       product: "",
       is_available: true,
     });
@@ -120,7 +246,7 @@ const ProductAvailabilityManagement: React.FC = () => {
     try {
       const fullRecord = await getProductAvailability(record.id);
       setFormData({
-        branch: typeof fullRecord.branch === 'object' ? fullRecord.branch.id.toString() : fullRecord.branch.toString(),
+        branch: validBranchId ? validBranchId.toString() : "",
         product: typeof fullRecord.product === 'object' ? fullRecord.product.id.toString() : fullRecord.product.toString(),
         is_available: fullRecord.is_available,
       });
@@ -252,7 +378,7 @@ const ProductAvailabilityManagement: React.FC = () => {
   };
 
   // Show loading while checking auth
-  if (authLoading) {
+  if (authLoading || loading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
         <div className="text-center">
@@ -278,6 +404,11 @@ const ProductAvailabilityManagement: React.FC = () => {
             {userRole && (
               <span className="ml-2 text-xs bg-background px-2 py-1 rounded-lg border border-border">
                 Role: {userRole.replace('_', ' ').toUpperCase()}
+              </span>
+            )}
+            {branchName && (
+              <span className="ml-2 text-xs bg-background px-2 py-1 rounded-lg border border-border text-orange-400">
+                🏢 {branchName}
               </span>
             )}
           </p>
@@ -317,138 +448,131 @@ const ProductAvailabilityManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Loading */}
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <span className="w-8 h-8 rounded-full border-4 border-orange-500/30 border-t-orange-500 animate-spin" />
-        </div>
-      ) : (
-        /* Availability Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredData.length === 0 ? (
-            <div className="col-span-full py-10 text-center text-muted-foreground bg-muted/30 border border-border rounded-2xl">
-              {searchTerm ? 'No availability entries found matching your search.' : 'No availability entries. Add your first entry!'}
-            </div>
-          ) : (
-            filteredData.map((item) => {
-              const productName = getProductName(item.product);
-              const branchName = getBranchName(item.branch);
-              
-              return (
-                <div 
-                  key={item.id} 
-                  className="p-5 rounded-2xl border border-border bg-muted/30 backdrop-blur-md flex flex-col hover:border-orange-500/30 hover:bg-muted/30 transition-colors group"
-                >
-                  <div>
-                    {/* Status Badge with Toggle Button */}
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border rounded-lg ${
-                          item.is_available
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                            : 'bg-red-500/10 text-red-400 border-red-500/20'
-                        }`}>
-                          {item.is_available ? 'Available' : 'Unavailable'}
-                        </span>
-                        
-                        {/* Toggle Button */}
-                        {canManage && (
-                          <button
-                            onClick={() => handleToggleAvailability(
-                              item.id, 
-                              item.is_available, 
-                              productName, 
-                              branchName
-                            )}
-                            disabled={togglingId === item.id}
-                            className={cn(
-                              "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all",
-                              item.is_available
-                                ? "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
-                                : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20",
-                              togglingId === item.id && "opacity-50 cursor-not-allowed"
-                            )}
-                            title={item.is_available ? "Mark as Unavailable" : "Mark as Available"}
-                          >
-                            {togglingId === item.id ? (
-                              <>
-                                <RefreshCw className="h-3 w-3 animate-spin" />
-                                Updating...
-                              </>
-                            ) : (
-                              <>
-                                {item.is_available ? (
-                                  <>
-                                    <XCircle className="h-3 w-3" />
-                                    Set Unavailable
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="h-3 w-3" />
-                                    Set Available
-                                  </>
-                                )}
-                              </>
-                            )}
-                          </button>
-                        )}
-                      </div>
+      {/* Availability Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {filteredData.length === 0 ? (
+          <div className="col-span-full py-10 text-center text-muted-foreground bg-muted/30 border border-border rounded-2xl">
+            {searchTerm ? 'No availability entries found matching your search.' : 'No availability entries. Add your first entry!'}
+          </div>
+        ) : (
+          filteredData.map((item) => {
+            const productName = getProductName(item.product);
+            const branchName = getBranchName(item.branch);
+            
+            return (
+              <div 
+                key={item.id} 
+                className="p-5 rounded-2xl border border-border bg-muted/30 backdrop-blur-md flex flex-col hover:border-orange-500/30 hover:bg-muted/30 transition-colors group"
+              >
+                <div>
+                  {/* Status Badge with Toggle Button */}
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border rounded-lg ${
+                        item.is_available
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          : 'bg-red-500/10 text-red-400 border-red-500/20'
+                      }`}>
+                        {item.is_available ? 'Available' : 'Unavailable'}
+                      </span>
                       
-                      {/* Edit/Delete Actions */}
+                      {/* Toggle Button */}
                       {canManage && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button 
-                            onClick={() => openEditModal(item)}
-                            className="p-1.5 text-muted-foreground hover:text-blue-400 transition-colors rounded-lg hover:bg-background"
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(item.id, productName, branchName)}
-                            className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors rounded-lg hover:bg-background"
-                            title="Delete"
-                          >
-                            🗑️
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleToggleAvailability(
+                            item.id, 
+                            item.is_available, 
+                            productName, 
+                            branchName
+                          )}
+                          disabled={togglingId === item.id}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all",
+                            item.is_available
+                              ? "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
+                              : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20",
+                            togglingId === item.id && "opacity-50 cursor-not-allowed"
+                          )}
+                          title={item.is_available ? "Mark as Unavailable" : "Mark as Available"}
+                        >
+                          {togglingId === item.id ? (
+                            <>
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                              Updating...
+                            </>
+                          ) : (
+                            <>
+                              {item.is_available ? (
+                                <>
+                                  <XCircle className="h-3 w-3" />
+                                  Set Unavailable
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="h-3 w-3" />
+                                  Set Available
+                                </>
+                              )}
+                            </>
+                          )}
+                        </button>
                       )}
                     </div>
                     
-                    {/* Product & Branch Info */}
-                    <h3 className="text-xl font-bold text-foreground">{productName}</h3>
-                    
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="px-2 py-1 text-[10px] bg-background rounded-lg text-muted-foreground border border-border">
-                        🏢 {branchName}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Status Details */}
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Status</p>
-                      <div className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                        item.is_available
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : 'bg-red-500/20 text-red-400'
-                      }`}>
-                        {item.is_available ? '✅ In Stock' : '❌ Out of Stock'}
+                    {/* Edit/Delete Actions */}
+                    {canManage && (
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => openEditModal(item)}
+                          className="p-1.5 text-muted-foreground hover:text-blue-400 transition-colors rounded-lg hover:bg-background"
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(item.id, productName, branchName)}
+                          className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors rounded-lg hover:bg-background"
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
                       </div>
-                    </div>
-                    {item.updated_at && (
-                      <p className="text-[10px] text-muted-foreground mt-2">
-                        Updated: {new Date(item.updated_at).toLocaleDateString()}
-                      </p>
                     )}
                   </div>
+                  
+                  {/* Product & Branch Info */}
+                  <h3 className="text-xl font-bold text-foreground">{productName}</h3>
+                  
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="px-2 py-1 text-[10px] bg-background rounded-lg text-muted-foreground border border-border">
+                      🏢 {branchName}
+                    </span>
+                  </div>
                 </div>
-              );
-            })
-          )}
-        </div>
-      )}
+                
+                {/* Status Details */}
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Status</p>
+                    <div className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                      item.is_available
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {item.is_available ? '✅ In Stock' : '❌ Out of Stock'}
+                    </div>
+                  </div>
+                  {item.updated_at && (
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Updated: {new Date(item.updated_at).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
 
       {/* Create/Edit Modal */}
       {showModal && canManage && (
@@ -469,25 +593,23 @@ const ProductAvailabilityManagement: React.FC = () => {
               {editingId ? 'Edit Availability' : 'Add New Availability'}
             </h2>
             
+            {/* ─── Branch Display (Read-only) ─── */}
+            {branchName && (
+              <div className="mb-5 px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center gap-2">
+                <span className="text-orange-400">🏢</span>
+                <span className="text-sm text-muted-foreground">Branch:</span>
+                <span className="text-sm font-semibold text-orange-400">{branchName}</span>
+                <span className="text-xs text-muted-foreground ml-auto">(Auto-assigned)</span>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 gap-5">
-                {/* Branch */}
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Branch *</label>
-                  <select
-                    required
-                    value={formData.branch}
-                    onChange={(e) => setFormData({...formData, branch: e.target.value})}
-                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all appearance-none"
-                  >
-                    <option value="" className="text-black">Select a branch</option>
-                    {Array.isArray(branches) && branches.map((branch) => (
-                      <option key={branch.id} value={branch.id} className="text-black">
-                        {branch.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Hidden Branch Field */}
+                <input
+                  type="hidden"
+                  value={formData.branch}
+                />
                 
                 {/* Product */}
                 <div>

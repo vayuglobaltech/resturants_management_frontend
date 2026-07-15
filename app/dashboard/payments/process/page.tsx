@@ -226,7 +226,7 @@ export default function ProcessPaymentPage() {
                               size="sm"
                               variant="success"
                               onClick={() => handleStatusClick(payment.id, "COMPLETED")}
-                              className="gap-1"
+                              className="gap-1 bg-green-900 hover:bg-green-600"
                             >
                               <CheckCircle className="h-3 w-3" />
                               Complete
@@ -293,7 +293,7 @@ export default function ProcessPaymentPage() {
                         size="sm"
                         variant="success"
                         onClick={() => handleStatusClick(payment.id, "COMPLETED")}
-                        className="flex-1 gap-1"
+                        className="flex-1 gap-1 bg-green-900 hover:bg-green-600"
                       >
                         <CheckCircle className="h-3 w-3" />
                         Complete

@@ -76,7 +76,7 @@ function TableCard({ table, onClick }: TableCardProps) {
       {...listeners}
       onClick={() => onClick?.(table.id)}
       className={cn(
-        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none select-none"
+        "group p-4 rounded-xl  border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none select-none"
       )}
     >
       <div className="flex items-center justify-between">

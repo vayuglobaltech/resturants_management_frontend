@@ -4,12 +4,11 @@ import { useState, useEffect, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createTable } from "@/lib/tableApi";
-import { getBranches } from "@/lib/api"; // Import getBranches
-import { ArrowLeft, Plus, Users, MapPin, Hash, ChevronRight, Store } from "lucide-react";
+import { getBranches, apiFetch } from "@/lib/api";
+import { ArrowLeft, Plus, Users, MapPin, Hash, ChevronRight, Store, CheckCircle, Loader2 } from "lucide-react";
 import { useCanManage } from "@/hooks/useCanManage";
-
-// In your AddTablePage, update the TABLE_STATUSES to match exactly
-// Make sure the values match the choices in your Django model
+import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 const TABLE_STATUSES = [
   { value: "AVAILABLE", label: "Available" },
@@ -63,7 +62,7 @@ interface Branch {
 // Custom Input component
 const Input = ({ className = "", ...props }: InputProps) => (
   <input
-    className={`w-full px-4 py-2 rounded-lg bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ${className}`}
+    className={`w-full px-4 py-2 rounded-lg bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 focus:border-transparent transition ${className}`}
     {...props}
   />
 );
@@ -75,7 +74,7 @@ const Label = ({ className = "", children, ...props }: LabelProps) => (
   </label>
 );
 
-// Custom Select components
+// Custom Select components (only for status)
 const Select = ({ value, onValueChange, options, placeholder = "Select an option" }: SelectProps) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   
@@ -93,7 +92,7 @@ const Select = ({ value, onValueChange, options, placeholder = "Select an option
         </svg>
       </div>
       {isOpen && options && (
-        <div className="absolute z-50 w-full mt-1 rounded-lg bg-slate-800 border border-border shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 rounded-lg bg-background border border-border shadow-lg overflow-hidden max-h-60 overflow-y-auto">
           {options.map((option) => (
             <div
               key={option.value}
@@ -149,7 +148,7 @@ const Button = ({
 }: ButtonProps) => {
   const baseStyles = "px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2";
   const variants = {
-    default: "bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed",
+    default: "bg-[var(--primary)] hover:bg-[color:var(--primary)]/80 text-[var(--primary-foreground)] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[var(--primary)]/25",
     outline: "border border-border hover:bg-muted/30 text-foreground",
     ghost: "hover:bg-muted/30 text-foreground",
   };
@@ -169,10 +168,13 @@ const Button = ({
 
 export default function AddTablePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingBranches, setLoadingBranches] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [userBranchName, setUserBranchName] = useState<string>("");
+  const [userBranchId, setUserBranchId] = useState<number | null>(null);
   const [formData, setFormData] = useState<FormData>({
     table_number: "",
     capacity: "",
@@ -181,16 +183,73 @@ export default function AddTablePage() {
     branch: "",
   });
 
-  // Fetch branches on component mount
+  // Fetch branches and auto-select user's branch
   useEffect(() => {
-    const fetchBranches = async () => {
+    const fetchBranchesAndAutoSelect = async () => {
       try {
-        const data = await getBranches();
-        setBranches(data.results || data || []);
-        // Set default branch if available
-        if (data.results && data.results.length > 0) {
-          setFormData(prev => ({ ...prev, branch: String(data.results[0].id) }));
+        setLoadingBranches(true);
+        
+        // Fetch user profile to get branch
+        let branchId = null;
+        let branchName = "";
+        
+        try {
+          const res = await apiFetch('/api/users/profile/', {}, true);
+          if (res.ok) {
+            const profile = await res.json();
+            if (profile.branch?.id) {
+              branchId = profile.branch.id;
+              branchName = profile.branch.name;
+            } else if (profile.branch) {
+              branchId = profile.branch;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch user profile:", err);
         }
+        
+        if (!branchId && (user as any)?.branch?.id) {
+          branchId = (user as any).branch.id;
+          branchName = (user as any).branch.name;
+        }
+        
+        const data = await getBranches();
+        const branchList = data.results || data || [];
+        setBranches(branchList);
+        
+        let selectedBranchId = null;
+        let selectedBranchName = "";
+        
+        if (branchId) {
+          const matchedBranch = branchList.find((b: any) => b.id === branchId);
+          if (matchedBranch) {
+            selectedBranchId = matchedBranch.id;
+            selectedBranchName = matchedBranch.name;
+          } else if (branchName) {
+            const branchByName = branchList.find((b: any) => 
+              b.name?.toLowerCase() === branchName.toLowerCase()
+            );
+            if (branchByName) {
+              selectedBranchId = branchByName.id;
+              selectedBranchName = branchByName.name;
+            }
+          }
+        }
+        
+        if (!selectedBranchId && branchList.length > 0) {
+          selectedBranchId = branchList[0].id;
+          selectedBranchName = branchList[0].name;
+        }
+        
+        if (selectedBranchId) {
+          setUserBranchId(selectedBranchId);
+          setUserBranchName(selectedBranchName);
+          setFormData(prev => ({ 
+            ...prev, 
+            branch: String(selectedBranchId) 
+          }));
+        }
+        
       } catch (err) {
         console.error("Failed to fetch branches:", err);
         setError("Failed to load branches. Please refresh and try again.");
@@ -198,32 +257,32 @@ export default function AddTablePage() {
         setLoadingBranches(false);
       }
     };
-    fetchBranches();
-  }, []);
+    
+    fetchBranchesAndAutoSelect();
+  }, [user]);
+
   const canManage = useCanManage();
+  
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // Validate branch is selected
     if (!formData.branch) {
-      setError("Please select a branch");
+      setError("No branch assigned to your account. Please contact admin.");
       setLoading(false);
       return;
     }
 
     try {
       const data = {
-        table_number: parseInt(formData.table_number), // Convert to number
+        table_number: parseInt(formData.table_number),
         capacity: parseInt(formData.capacity),
         area: formData.area || undefined,
         status: formData.status,
-        branch: parseInt(formData.branch), // Branch is required
+        branch: parseInt(formData.branch),
       };
 
-      console.log("Creating table with data:", data);
-      
       await createTable(data);
       router.push("/dashboard/tables");
       router.refresh();
@@ -255,7 +314,7 @@ export default function AddTablePage() {
       <Card className="border-border bg-muted/30">
         <CardHeader className="pb-4 border-b border-border">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Plus className="h-5 w-5 text-indigo-400" />
+            <Plus className="h-5 w-5 text-[var(--primary)]" />
             Create New Table
           </CardTitle>
         </CardHeader>
@@ -268,26 +327,42 @@ export default function AddTablePage() {
             )}
 
             <div className="space-y-4">
-              {/* Branch Selection - Required */}
+              {/* Branch - Auto-filled, no dropdown */}
               <div>
-                <Label htmlFor="branch" className="text-muted-foreground">
+                <Label htmlFor="branch" className="text-muted-foreground flex items-center gap-2">
                   Branch *
+                  {loadingBranches ? (
+                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                  ) : userBranchName && (
+                    <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" />
+                      Auto-assigned
+                    </span>
+                  )}
                 </Label>
                 <div className="relative mt-1">
                   <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                   {loadingBranches ? (
                     <div className="w-full px-4 py-2 rounded-lg bg-muted/30 border border-border text-muted-foreground pl-10">
-                      Loading branches...
+                      Loading branch...
+                    </div>
+                  ) : userBranchName ? (
+                    <div className="w-full px-4 py-2 rounded-lg bg-muted/30 border border-[var(--primary)]/30 text-foreground pl-10 flex items-center justify-between">
+                      <span>{userBranchName}</span>
+                      <CheckCircle className="h-4 w-4 text-emerald-400" />
                     </div>
                   ) : (
-                    <Select
-                      value={formData.branch}
-                      onValueChange={(value) => handleChange("branch", value)}
-                      options={branches.map(b => ({ value: b.id, label: b.name }))}
-                      placeholder="Select a branch"
-                    />
+                    <div className="w-full px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 pl-10">
+                      No branch assigned to your account
+                    </div>
                   )}
                 </div>
+               
+                <input
+                  type="hidden"
+                  name="branch"
+                  value={formData.branch}
+                />
               </div>
 
               <div>
@@ -366,10 +441,14 @@ export default function AddTablePage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1" disabled={loading || loadingBranches || !formData.branch}>
+              <Button 
+                type="submit" 
+                className="flex-1" 
+                disabled={loading || loadingBranches || !formData.branch}
+              >
                 {loading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Creating...
                   </>
                 ) : (
@@ -388,4 +467,4 @@ export default function AddTablePage() {
 )}
     </div>
   );
-};
+}

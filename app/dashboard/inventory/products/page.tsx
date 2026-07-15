@@ -6,6 +6,7 @@ import {
   deleteProduct,
   getCategories,
 } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 type Product = {
   id: number | string;
@@ -77,7 +78,6 @@ export default function ProductsPage() {
     } catch (err: any) {
       console.error("Product creation error:", err);
       if (err && typeof err === "object") {
-        // Flatten all field error messages
         const messages = Object.values(err).flat().join(" ");
         setActionMsg({
           type: "error",
@@ -104,19 +104,24 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="animate-fadeUp">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div className="space-y-6 px-2 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Products
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
+          <p className="text-sm text-muted-foreground mt-1">
             Manage end-products sold to customers.
           </p>
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className={`px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all ${showAdd ? "bg-slate-700 hover:bg-slate-600" : "bg-orange-600 hover:bg-orange-700"}`}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg",
+            showAdd 
+              ? "bg-muted hover:bg-muted/80 text-foreground shadow-none" 
+              : "bg-[var(--primary)] hover:bg-[color:var(--primary)]/80 text-[var(--primary-foreground)] shadow-[var(--primary)]/25"
+          )}
         >
           {showAdd ? "Cancel" : "+ Add Product"}
         </button>
@@ -124,10 +129,10 @@ export default function ProductsPage() {
 
       {actionMsg && (
         <div
-          className={`mb-6 px-4 py-3 rounded-xl border text-sm animate-fadeDown flex justify-between items-center ${
+          className={`px-4 py-3 rounded-xl border text-sm flex justify-between items-center ${
             actionMsg.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-              : "bg-red-500/10 border-red-500/25 text-red-400"
+              ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400"
+              : "bg-red-500/10 border-red-500/25 text-red-600 dark:text-red-400"
           }`}
         >
           <span>
@@ -145,70 +150,67 @@ export default function ProductsPage() {
       {showAdd && (
         <form
           onSubmit={handleCreate}
-          className="mb-8 p-6 rounded-2xl bg-muted/30 border border-border backdrop-blur-md animate-fadeDown"
+          className="p-6 rounded-2xl bg-muted/30 border border-border backdrop-blur-md"
         >
           <h2 className="text-lg font-semibold text-foreground mb-4">
             New Product Details
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                Name
+                Name <span className="text-red-400">*</span>
               </label>
               <input
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/30 transition-all"
               />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                SKU
+                SKU <span className="text-red-400">*</span>
               </label>
               <input
                 required
                 value={form.sku}
                 onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/30 transition-all"
               />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                Category
+                Category <span className="text-red-400">*</span>
               </label>
               <select
                 required
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50 appearance-none"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/30 transition-all"
               >
-                <option value="" className="text-black">
-                  Select...
-                </option>
+                <option value="">Select...</option>
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id} className="text-black">
+                  <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
               </select>
             </div>
 
-              {/* Description */}
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Description</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Description
+              </label>
               <input
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-indigo-500/50"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/30 transition-all"
               />
             </div>
 
-
-
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                Selling Price
+                Selling Price <span className="text-red-400">*</span>
               </label>
               <input
                 required
@@ -216,12 +218,12 @@ export default function ProductsPage() {
                 step="0.01"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/30 transition-all"
               />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                Cost Price
+                Cost Price <span className="text-red-400">*</span>
               </label>
               <input
                 required
@@ -231,7 +233,7 @@ export default function ProductsPage() {
                 onChange={(e) =>
                   setForm({ ...form, cost_price: e.target.value })
                 }
-                className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/30 transition-all"
               />
             </div>
             <div>
@@ -243,6 +245,7 @@ export default function ProductsPage() {
                 onChange={(e) =>
                   setForm({ ...form, product_type: e.target.value })
                 }
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/30 transition-all"
               >
                 <option value="menu_item">Menu Item</option>
                 <option value="raw_ingredient">Raw Ingredient</option>
@@ -252,7 +255,7 @@ export default function ProductsPage() {
           </div>
           <button
             type="submit"
-            className="px-6 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-emerald-600 hover:bg-emerald-700 transition-all"
+            className="px-6 py-2.5 rounded-xl font-semibold text-sm text-[var(--primary-foreground)] bg-[var(--primary)] hover:bg-[color:var(--primary)]/80 shadow-lg shadow-[var(--primary)]/25 transition-all"
           >
             Save Product
           </button>
@@ -261,29 +264,29 @@ export default function ProductsPage() {
 
       {loading ? (
         <div className="flex py-10 justify-center">
-          <span className="w-8 h-8 rounded-full border-4 border-orange-500/30 border-t-orange-500 animate-spin" />
+          <span className="w-8 h-8 rounded-full border-4 border-[var(--primary)]/30 border-t-[var(--primary)] animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map((p) => (
             <div
               key={p.id}
-              className="p-5 rounded-2xl border border-border bg-muted/30 backdrop-blur-md flex flex-col justify-between hover:border-orange-500/30 transition-colors group"
+              className="p-5 rounded-2xl border border-border bg-muted/30 backdrop-blur-md flex flex-col justify-between hover:border-[var(--primary)]/30 transition-colors group"
             >
               <div>
                 <div className="flex justify-between items-start mb-3">
-                  <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-lg">
+                  <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 rounded-lg">
                     {p.product_type}
                   </span>
                   <button
                     onClick={() => handleDelete(p.id)}
-                    className="text-muted-foreground hover:text-red-400 transition-colors"
+                    className="text-muted-foreground hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-muted/50"
                   >
                     🗑️
                   </button>
                 </div>
                 <h3 className="text-xl font-bold text-foreground">{p.name}</h3>
-                <p className="text-muted-foreground text-xs mt-1">SKU: {p.sku}</p>
+                <p className="text-muted-foreground text-xs mt-1 font-mono">SKU: {p.sku}</p>
               </div>
               <div className="mt-6 pt-4 border-t border-border flex justify-between items-end">
                 <div>
@@ -298,7 +301,7 @@ export default function ProductsPage() {
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
                     Price
                   </p>
-                  <p className="text-lg font-bold text-emerald-400">
+                  <p className="text-lg font-bold text-[var(--primary)]">
                     ${parseFloat(p.price).toFixed(2)}
                   </p>
                 </div>

@@ -393,6 +393,9 @@ export default function OrdersPage() {
     };
   }, [orders, previousStats]);
 
+  // ─── Check if table filter is active ──────────────────────────────────
+  const isTableFiltered = !!tableId;
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -418,11 +421,13 @@ export default function OrdersPage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Orders</h1>
             <span className="rounded-full bg-primary/10 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-primary">
-              {stats.total} Active
+              {isTableFiltered ? filteredOrders.length : stats.total} Active
             </span>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Track, manage, and optimize your restaurant orders in real-time
+            {isTableFiltered 
+              ? `Showing orders for ${activeTableName || `Table #${tableId}`}` 
+              : "Track, manage, and optimize your restaurant orders in real-time"}
           </p>
         </div>
 
@@ -553,70 +558,80 @@ export default function OrdersPage() {
         )}
       </AnimatePresence>
 
-      {/* ─── KPI Cards - 2 columns on mobile ────────────────────────────── */}
-      <div className={cn(
-        "grid grid-cols-2 gap-2 sm:gap-4",
-        isManager 
-          ? "sm:grid-cols-2 xl:grid-cols-6" 
-          : "sm:grid-cols-2 xl:grid-cols-4"
-      )}>
-        <StatCard
-          title="Total Orders"
-          value={stats.total}
-          icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5" />}
-          color="text-blue-400"
-          subtitle="Active orders"
-          trend={stats.growth.total}
-          trendLabel="vs previous"
-        />
-        <StatCard
-          title="Pending"
-          value={stats.pending}
-          icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5" />}
-          color="text-amber-400"
-          subtitle="Awaiting processing"
-          trend={stats.growth.pending}
-          trendLabel="vs previous"
-        />
-        <StatCard
-          title="Preparing"
-          value={stats.preparing}
-          icon={<CookingPot className="h-4 w-4 sm:h-5 sm:w-5" />}
-          color="text-purple-400"
-          subtitle="In kitchen"
-          trend={stats.growth.preparing}
-          trendLabel="vs previous"
-        />
-        <StatCard
-          title="Ready"
-          value={stats.ready}
-          icon={<CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />}
-          color="text-emerald-400"
-          subtitle="Ready to serve"
-          trend={stats.growth.ready}
-          trendLabel="vs previous"
-        />
-        {isManager && (
-          <>
+      {/* ─── KPI Cards - Hidden when table is filtered ──────────────────── */}
+      <AnimatePresence>
+        {!isTableFiltered && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className={cn(
+              "grid grid-cols-2 gap-2 sm:gap-4",
+              isManager 
+                ? "sm:grid-cols-2 xl:grid-cols-6" 
+                : "sm:grid-cols-2 xl:grid-cols-4"
+            )}
+          >
             <StatCard
-              title="Revenue"
-              value={`$${stats.revenue}`}
-              icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
-              color="text-green-400"
-              subtitle="Total sales"
-              trend={stats.growth.revenue}
+              title="Total Orders"
+              value={stats.total}
+              icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5" />}
+              color="text-blue-400"
+              subtitle="Active orders"
+              trend={stats.growth.total}
               trendLabel="vs previous"
             />
             <StatCard
-              title="Avg Time"
-              value={stats.avgTime}
-              icon={<Timer className="h-4 w-4 sm:h-5 sm:w-5" />}
-              color="text-cyan-400"
-              subtitle="To completion"
+              title="Pending"
+              value={stats.pending}
+              icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5" />}
+              color="text-amber-400"
+              subtitle="Awaiting processing"
+              trend={stats.growth.pending}
+              trendLabel="vs previous"
             />
-          </>
+            <StatCard
+              title="Preparing"
+              value={stats.preparing}
+              icon={<CookingPot className="h-4 w-4 sm:h-5 sm:w-5" />}
+              color="text-purple-400"
+              subtitle="In kitchen"
+              trend={stats.growth.preparing}
+              trendLabel="vs previous"
+            />
+            <StatCard
+              title="Ready"
+              value={stats.ready}
+              icon={<CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />}
+              color="text-emerald-400"
+              subtitle="Ready to serve"
+              trend={stats.growth.ready}
+              trendLabel="vs previous"
+            />
+            {isManager && (
+              <>
+                <StatCard
+                  title="Revenue"
+                  value={`$${stats.revenue}`}
+                  icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
+                  color="text-green-400"
+                  subtitle="Total sales"
+                  trend={stats.growth.revenue}
+                  trendLabel="vs previous"
+                />
+                <StatCard
+                  title="Avg Time"
+                  value={stats.avgTime}
+                  icon={<Timer className="h-4 w-4 sm:h-5 sm:w-5" />}
+                  color="text-cyan-400"
+                  subtitle="To completion"
+                />
+              </>
+            )}
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
 
       {/* ─── Controls ────────────────────────────────────────────────────── */}
       <div className="rounded-xl sm:rounded-2xl border border-border bg-muted/30 p-3 sm:p-4 shadow-sm transition-all hover:shadow-md">
@@ -735,14 +750,14 @@ export default function OrdersPage() {
                     className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 rounded-xl border border-border bg-background/80 p-3 sm:p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/20"
                   >
                     <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 w-full sm:w-auto">
-                      <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs sm:text-sm">
+                      <div className="flex h-10 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs sm:text-xs">
                         #{order.order_number.split('-')[1] || order.id}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-foreground truncate text-sm sm:text-base">
+                      <div className="min-w-0 flex-1 ">
+                        <p className="font-medium text-foreground truncate text-sm sm:text-base mb-5">
                           Order #{order.order_number}
                         </p>
-                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-3  text-[10px] sm:text-xs  text-muted-foreground">
                           <span>Table {order.table_number_display || order.table || '—'}</span>
                           <span className="hidden xs:inline">•</span>
                           <span className="xs:hidden">|</span>
@@ -768,7 +783,7 @@ export default function OrdersPage() {
                       </span>
                       <button
                         onClick={() => router.push(`/dashboard/orders/${order.id}`)}
-                        className="rounded-xl px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition"
+                        className="rounded-xl px-2.5 flex  sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition"
                       >
                         View
                       </button>
