@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -21,9 +21,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { listTables, updateTable } from "@/lib/tableApi";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Table as TableIcon } from "lucide-react";
+import { Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -43,8 +42,37 @@ const STATUS_LABELS: Record<string, string> = {
   OUT_OF_SERVICE: "Out of Service",
 };
 
-// ─── Table Card ─────────────────────────────────────────────────────────
+// ─── Overlay Table Card ──────────────────────────────────────────────
+function OverlayTableCard({ table }: { table: any }) {
+  const statusColor = STATUS_COLORS[table.status] || "bg-slate-500/20 text-muted-foreground";
+  return (
+    <div className="p-4 rounded-xl border-2 border-indigo-500/50 bg-card shadow-2xl shadow-indigo-500/30 rotate-1 scale-105 w-[280px] pointer-events-none">
+      <div className="flex items-center justify-between">
+        <h4 className="text-foreground font-medium text-sm">Table {table.table_number}</h4>
+        <Badge className={cn("text-xs", statusColor)}>
+          {STATUS_LABELS[table.status] || table.status}
+        </Badge>
+      </div>
+      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+        <Users className="h-3 w-3" />
+        <span>Capacity: {table.capacity}</span>
+        {table.area && (
+          <>
+            <span className="text-muted-foreground">•</span>
+            <span>{table.area}</span>
+          </>
+        )}
+      </div>
+      {table.server && (
+        <div className="mt-1 text-xs text-muted-foreground">
+          Server: {table.server.username}
+        </div>
+      )}
+    </div>
+  );
+}
 
+// ─── Table Card ──────────────────────────────────────────────────────
 interface TableCardProps {
   table: any;
   onClick?: (id: number) => void;
@@ -57,13 +85,13 @@ function TableCard({ table, onClick }: TableCardProps) {
     setNodeRef,
     transform,
     transition,
-    isDragging: isSortableDragging,
+    isDragging,
   } = useSortable({ id: table.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isSortableDragging ? 0.3 : 1,
+    opacity: isDragging ? 0.3 : 1,
   };
 
   const statusColor = STATUS_COLORS[table.status] || "bg-slate-500/20 text-muted-foreground";
@@ -76,13 +104,11 @@ function TableCard({ table, onClick }: TableCardProps) {
       {...listeners}
       onClick={() => onClick?.(table.id)}
       className={cn(
-        "group p-4 rounded-xl  border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none select-none"
+        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none select-none will-change-transform"
       )}
     >
       <div className="flex items-center justify-between">
-        <h4 className="text-foreground font-medium text-sm">
-          Table {table.table_number}
-        </h4>
+        <h4 className="text-foreground font-medium text-sm">Table {table.table_number}</h4>
         <Badge className={cn("text-xs", statusColor)}>
           {STATUS_LABELS[table.status] || table.status}
         </Badge>
@@ -109,42 +135,7 @@ function TableCard({ table, onClick }: TableCardProps) {
   );
 }
 
-// ─── Overlay Card (floating during drag) ──────────────────────────────
-
-function OverlayTableCard({ table }: { table: any }) {
-  const statusColor = STATUS_COLORS[table.status] || "bg-slate-500/20 text-muted-foreground";
-
-  return (
-    <div className="p-4 rounded-xl border-2 border-indigo-500/50 bg-card shadow-2xl shadow-indigo-500/30 rotate-1 scale-105 w-[280px] pointer-events-none">
-      <div className="flex items-center justify-between">
-        <h4 className="text-foreground font-medium text-sm">
-          Table {table.table_number}
-        </h4>
-        <Badge className={cn("text-xs", statusColor)}>
-          {STATUS_LABELS[table.status] || table.status}
-        </Badge>
-      </div>
-      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-        <Users className="h-3 w-3" />
-        <span>Capacity: {table.capacity}</span>
-        {table.area && (
-          <>
-            <span className="text-muted-foreground">•</span>
-            <span>{table.area}</span>
-          </>
-        )}
-      </div>
-      {table.server && (
-        <div className="mt-1 text-xs text-muted-foreground">
-          Server: {table.server.username}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Kanban Column ─────────────────────────────────────────────────────
-
+// ─── Kanban Column ──────────────────────────────────────────────────
 interface KanbanColumnProps {
   status: string;
   tables: any[];
@@ -164,9 +155,7 @@ function KanbanColumn({ status, tables, onCardClick }: KanbanColumnProps) {
       style={{ minHeight: "300px" }}
     >
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground">
-          {STATUS_LABELS[status] || status}
-        </h3>
+        <h3 className="text-sm font-semibold text-foreground">{STATUS_LABELS[status] || status}</h3>
         <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
           {tables.length}
         </span>
@@ -190,8 +179,7 @@ function KanbanColumn({ status, tables, onCardClick }: KanbanColumnProps) {
   );
 }
 
-// ─── Main Board ─────────────────────────────────────────────────────────
-
+// ─── Main Board ──────────────────────────────────────────────────────
 interface TablesKanbanProps {
   onTableUpdate?: () => void;
 }
@@ -200,63 +188,70 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
   const router = useRouter();
   const [tables, setTables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updatingTableId, setUpdatingTableId] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [activeTable, setActiveTable] = useState<any>(null);
+  const isMounted = useRef(true);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
+      activationConstraint: { distance: 10 },
     }),
     useSensor(TouchSensor, {
-      activationConstraint: { delay: 200, tolerance: 5 },
+      activationConstraint: { delay: 500, tolerance: 5 },
     }),
     useSensor(KeyboardSensor)
   );
 
-  const fetchTables = async () => {
+  const fetchTables = useCallback(async () => {
     try {
       const data = await listTables();
       const allTables = data.results || data || [];
-      setTables(allTables);
+      if (isMounted.current) setTables(allTables);
     } catch (error) {
-      console.error("Failed to fetch tables:", error);
-      toast.error("Failed to load tables.");
+      if (isMounted.current) {
+        console.error("Failed to fetch tables:", error);
+        toast.error("Failed to load tables.");
+      }
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchTables();
   }, []);
 
-  const groupedTables = TABLE_STATUSES.reduce((acc, status) => {
-    acc[status] = tables.filter((t) => t.status === status);
-    return acc;
-  }, {} as Record<string, any[]>);
+  useEffect(() => {
+    isMounted.current = true;
+    fetchTables();
+    return () => { isMounted.current = false; };
+  }, [fetchTables]);
 
-  const handleDragStart = (event: any) => {
+  const groupedTables = useMemo(() => {
+    return TABLE_STATUSES.reduce((acc, status) => {
+      acc[status] = tables.filter((t) => t.status === status);
+      return acc;
+    }, {} as Record<string, any[]>);
+  }, [tables]);
+
+  const handleDragStart = useCallback((event: any) => {
     const table = tables.find((t) => t.id === event.active.id);
     if (table) {
       setActiveTable(table);
+      setActiveId(event.active.id);
     }
-    setActiveId(event.active.id);
-  };
+  }, [tables]);
 
-  const handleDragCancel = () => {
+  const handleDragCancel = useCallback(() => {
     setActiveTable(null);
     setActiveId(null);
-  };
+  }, []);
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    setActiveTable(null);
-    setActiveId(null);
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { over } = event;
+    if (!over) {
+      setActiveTable(null);
+      setActiveId(null);
+      return;
+    }
 
-    const { active, over } = event;
-    if (!over) return;
-
-    const tableId = active.id as number;
+    const tableId = event.active.id as number;
     let newStatus: string | null = null;
 
     if (TABLE_STATUSES.includes(over.id as any)) {
@@ -266,10 +261,18 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
       if (targetTable) newStatus = targetTable.status;
     }
 
-    if (!newStatus) return;
+    if (!newStatus) {
+      setActiveTable(null);
+      setActiveId(null);
+      return;
+    }
 
     const table = tables.find((t) => t.id === tableId);
-    if (!table || table.status === newStatus) return;
+    if (!table || table.status === newStatus) {
+      setActiveTable(null);
+      setActiveId(null);
+      return;
+    }
 
     // Optimistic update
     setTables((prev) =>
@@ -278,11 +281,10 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
       )
     );
 
-    setUpdatingTableId(tableId);
     try {
       await updateTable(tableId, { status: newStatus });
       toast.success(`Table moved to ${STATUS_LABELS[newStatus]}`);
-      await fetchTables(); // Re‑fetch to sync
+      await fetchTables();
       onTableUpdate?.();
     } catch (error: any) {
       // Rollback
@@ -293,13 +295,14 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
       );
       toast.error(error?.detail || "Failed to update table status.");
     } finally {
-      setUpdatingTableId(null);
+      setActiveTable(null);
+      setActiveId(null);
     }
-  };
+  }, [tables, fetchTables, onTableUpdate]);
 
-  const handleCardClick = (tableId: number) => {
+  const handleCardClick = useCallback((tableId: number) => {
     router.push(`/dashboard/tables/${tableId}`);
-  };
+  }, [router]);
 
   if (loading) {
     return (
@@ -329,11 +332,8 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
         ))}
       </div>
 
-      {/* ─── Drag Overlay ────────────────────────────────────────────── */}
       <DragOverlay>
-        {activeId && activeTable ? (
-          <OverlayTableCard table={activeTable} />
-        ) : null}
+        {activeId && activeTable ? <OverlayTableCard table={activeTable} /> : null}
       </DragOverlay>
     </DndContext>
   );

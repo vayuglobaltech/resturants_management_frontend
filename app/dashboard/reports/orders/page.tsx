@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
+import { listMenuItems } from "@/lib/menuApi";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ import {
 
 type Period = "today" | "week" | "month" | "custom";
 type Order = {
+  table: number | undefined;
   id: number;
   order_number: string;
   status: string;
@@ -62,20 +64,28 @@ type Order = {
   ready_at: string | null;
   delivered_at: string | null;
   items_count: number;
+  items?: Array<{
+    id: number;
+    product: number;
+    product_name: string;
+    quantity: number;
+    price_at_order: string;
+    status: string;
+    prep_time_minutes?: number;
+  }>;
 };
 
 type OrderStats = {
   totalOrders: number;
-  completedOrders: number; // DELIVERED or PAID
-  activeOrders: number;    // not CANCELLED and not PAID/DELIVERED
+  completedOrders: number;
+  activeOrders: number;
   cancelledOrders: number;
-  delayedOrders: number;   // orders that took > 30 min from created to delivered/ready
-  averagePrepTime: number; // average time from confirmed to delivered (or ready)
+  delayedOrders: number;
+  averagePrepTime: number;
 };
 
 type OrdersByStatus = { status: string; count: number }[];
 type OrdersByHour = { hour: string; count: number }[];
-type OrdersByType = { type: string; count: number }[]; // if you have order_type field, else skip
 
 export default function OrderReportPage() {
   const { user } = useAuth();
@@ -89,6 +99,8 @@ export default function OrderReportPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<keyof Order>("created_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  const [menuItemsMap, setMenuItemsMap] = useState<Map<number, any>>(new Map());
 
   // ─── Date range helpers ──────────────────────────────────────────────
   const getDateRange = useCallback((period: Period) => {
@@ -106,6 +118,29 @@ export default function OrderReportPage() {
     }
   }, []);
 
+  // ─── Get default prep time by category ──────────────────────────────
+  const getDefaultPrepTime = (categoryName: string) => {
+    const defaults: Record<string, number> = {
+      'Appetizers': 10,
+      'Starters': 10,
+      'Main Course': 20,
+      'Entrees': 20,
+      'Pizza': 15,
+      'Pasta': 15,
+      'Salads': 10,
+      'Soups': 12,
+      'Seafood': 18,
+      'Grill': 25,
+      'Desserts': 8,
+      'Dessert': 8,
+      'Beverages': 3,
+      'Drinks': 3,
+      'Special': 15,
+      'Popular': 15,
+    };
+    return defaults[categoryName] || 15;
+  };
+
   // ─── Fetch orders ──────────────────────────────────────────────────
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -114,25 +149,59 @@ export default function OrderReportPage() {
       const startStr = format(start, "yyyy-MM-dd");
       const endStr = format(end, "yyyy-MM-dd");
 
-      const res = await apiFetch(
-        `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true
-      );
-      const data = await res.json();
-      let ordersData = data.results || data || [];
-      if (!Array.isArray(ordersData)) ordersData = [];
+      // Fetch orders and menu items in parallel
+      const [ordersRes, menuData] = await Promise.all([
+        apiFetch(
+          `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+          {},
+          true
+        ),
+        listMenuItems({ page: 1 })
+      ]);
 
-      // Enrich with items count (optional, if not already)
-      const enriched = ordersData.map((o: any) => ({
-        ...o,
-        items_count: o.items?.length || 0,
-        table_number_display: o.table?.table_number || o.table_number,
-      }));
+      const ordersData = await ordersRes.json();
+      let ordersList = ordersData.results || ordersData || [];
+      if (!Array.isArray(ordersList)) ordersList = [];
+
+      // Create menu items map
+      const menuItems = menuData.results || menuData || [];
+      
+      // 🔍 DEBUG: Log menu data structure
+      const menuMap = new Map();
+      menuItems.forEach((item: any) => {
+        menuMap.set(item.id, item);
+      });
+      setMenuItemsMap(menuMap);
+
+      // 🔍 DEBUG: Check order items
+
+      // Enrich orders with menu prep times
+      const enriched = ordersList.map((o: any) => {
+        // Enrich items with prep_time from menu
+        const enrichedItems = o.items?.map((item: any) => {
+          const menuItem = menuMap.get(item.product);
+          // Try different possible field names, fallback to default by category
+          const prepTime = menuItem?.prep_time_minutes || 
+                          menuItem?.prep_time || 
+                          menuItem?.preparation_time || 
+                          getDefaultPrepTime(menuItem?.category_name) ||
+                          0;
+          return {
+            ...item,
+            prep_time_minutes: prepTime
+          };
+        }) || [];
+
+        return {
+          ...o,
+          items_count: o.items?.length || 0,
+          table_number_display: o.table?.table_number || o.table_number || o.table,
+          items: enrichedItems
+        };
+      });
 
       setOrders(enriched);
     } catch (error) {
-      console.error("Failed to fetch orders:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -142,6 +211,16 @@ export default function OrderReportPage() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  // ─── Get prep time from menu ──────────────────────────────────────
+  const getPrepTime = (order: Order) => {
+    if (order.items && order.items.length > 0) {
+      // Get prep time from first item
+      const prepTime = order.items[0]?.prep_time_minutes;
+      return prepTime || null;
+    }
+    return null;
+  };
 
   // ─── Statistics ──────────────────────────────────────────────────────
   const stats = useMemo<OrderStats>(() => {
@@ -153,20 +232,28 @@ export default function OrderReportPage() {
       const created = new Date(o.created_at);
       const endTime = o.delivered_at || o.ready_at || o.created_at;
       const minutes = differenceInMinutes(new Date(endTime), created);
-      return minutes > 30; // 30 minutes threshold
+      return minutes > 30;
     }).length;
 
-    // Average preparation time: from confirmed to delivered (or ready if not delivered)
+    // Average preparation time from menu
     const prepTimes = orders
       .map(o => {
-        if (!o.confirmed_at) return null;
-        const end = o.delivered_at || o.ready_at || o.confirmed_at;
-        return differenceInMinutes(new Date(end), new Date(o.confirmed_at));
+        if (o.items && o.items.length > 0) {
+          return o.items[0]?.prep_time_minutes || null;
+        }
+        return null;
       })
       .filter((t): t is number => t !== null && t > 0);
-    const avgPrep = prepTimes.length ? prepTimes.reduce((a, b) => a + b, 0) / prepTimes.length : 0;
+    const avgPrep = prepTimes.length ? Math.round(prepTimes.reduce((a, b) => a + b, 0) / prepTimes.length) : 0;
 
-    return { totalOrders: total, completedOrders: completed, activeOrders: active, cancelledOrders: cancelled, delayedOrders: delayed, averagePrepTime: avgPrep };
+    return { 
+      totalOrders: total, 
+      completedOrders: completed, 
+      activeOrders: active, 
+      cancelledOrders: cancelled, 
+      delayedOrders: delayed, 
+      averagePrepTime: avgPrep 
+    };
   }, [orders]);
 
   // ─── Orders by status ──────────────────────────────────────────────
@@ -211,7 +298,7 @@ export default function OrderReportPage() {
       result = result.filter(o =>
         o.order_number?.toLowerCase().includes(term) ||
         o.user_name?.toLowerCase().includes(term) ||
-        String(o.table_number_display || o.table_number || "").includes(term)
+        String(o.table_number_display || o.table_number || o.table || "").includes(term)
       );
     }
     // Sort
@@ -548,11 +635,9 @@ export default function OrderReportPage() {
                   </tr>
                 ) : (
                   filteredAndSorted.map((order) => {
-                    const prepTime = (() => {
-                      if (!order.confirmed_at) return null;
-                      const end = order.delivered_at || order.ready_at || order.confirmed_at;
-                      return differenceInMinutes(new Date(end), new Date(order.confirmed_at));
-                    })();
+                    // Get prep time from menu
+                    const prepTime = getPrepTime(order);
+                    
                     return (
                       <tr key={order.id} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3 font-medium text-foreground">
@@ -560,7 +645,7 @@ export default function OrderReportPage() {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">Dine‑in</td>
                         <td className="px-4 py-3">
-                          {order.table_number_display || order.table_number || "—"}
+                          {order.table_number_display || order.table_number || order.table || "—"}
                         </td>
                         <td className="px-4 py-3">{order.user_name || "—"}</td>
                         <td className="px-4 py-3 text-right font-medium">
@@ -583,7 +668,7 @@ export default function OrderReportPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {prepTime !== null ? formatPrepTime(prepTime) : "—"}
+                          {prepTime !== null && prepTime > 0 ? formatPrepTime(prepTime) : "—"}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {format(new Date(order.created_at), "MMM dd, hh:mm a")}

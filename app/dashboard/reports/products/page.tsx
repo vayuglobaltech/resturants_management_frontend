@@ -112,7 +112,7 @@ export default function ProductPerformancePage() {
       const result: ProductMetric[] = allProducts.map((product: any) => {
         const metric = metricsMap[product.id] || { qty: 0, orders: new Set() };
         const net_sales = product.price * metric.qty;
-        const cost = product.cost || product.price * 0.6; // placeholder
+        const cost = product.cost_price || product.price * 0.6;  // placeholder
         const product_cost = cost * metric.qty;
         const gross_profit = net_sales - product_cost;
         const profit_margin = net_sales > 0 ? (gross_profit / net_sales) * 100 : 0;

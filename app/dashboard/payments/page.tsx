@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
 import Link from "next/link";
+import { Modal } from "@/components/ui/Modal";
 
 type Payment = {
   id: string;
@@ -43,6 +44,7 @@ type Payment = {
   payment_method: string;
   status: "COMPLETED" | "PENDING" | "FAILED" | string;
   created_at: string;
+  cashier_name?: string;
 };
 
 type FilterState = {
@@ -110,6 +112,34 @@ export default function PaymentsPage() {
     count: 0,
   });
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+  const [refundTarget, setRefundTarget] = useState<any>(null);
+  const [refunding, setRefunding] = useState(false);
+
+  const handleRefund = async () => {
+    if (!refundTarget) return;
+    setRefunding(true);
+    try {
+      const res = await apiFetch(
+        `/api/orders/payments/${refundTarget.id}/refund/`,
+        {
+          method: "POST",
+          body: JSON.stringify({}), // empty payload = full refund
+        },
+        true,
+      );
+      if (!res.ok) {
+        const error = await res.json();
+        throw error;
+      }
+      toast.success("Payment refunded successfully!");
+      setRefundTarget(null);
+      fetchPayments(); // refresh list
+    } catch (error: any) {
+      toast.error(error?.detail || "Failed to process refund.");
+    } finally {
+      setRefunding(false);
+    }
+  };
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(searchTerm), 300);
@@ -142,9 +172,16 @@ export default function PaymentsPage() {
         setTotalPages(Math.ceil((json.count || data.length) / 10));
         if (resetPage) setPage(1);
 
-        const totalAmount = data.reduce((sum: number, p: Payment) => sum + Number(p.amount || 0), 0);
-        const completed = data.filter((p: Payment) => p.status === "COMPLETED").length;
-        const pending = data.filter((p: Payment) => p.status === "PENDING").length;
+        const totalAmount = data.reduce(
+          (sum: number, p: Payment) => sum + Number(p.amount || 0),
+          0,
+        );
+        const completed = data.filter(
+          (p: Payment) => p.status === "COMPLETED",
+        ).length;
+        const pending = data.filter(
+          (p: Payment) => p.status === "PENDING",
+        ).length;
         setSummaryStats({
           totalAmount,
           completed,
@@ -214,11 +251,19 @@ export default function PaymentsPage() {
           icon: XCircle,
           className: "bg-red-500/10 text-red-400 border-red-500/20",
         };
+
+      case "REFUNDED":
+        return {
+          label: "Refunded",
+          icon: XCircle,
+          className: "bg-amber-500/20 text-amber-400",
+        };
       default:
         return {
           label: status || "Unknown",
           icon: AlertCircle,
-          className: "bg-slate-500/10 text-muted-foreground border-slate-500/20",
+          className:
+            "bg-slate-500/10 text-muted-foreground border-slate-500/20",
         };
     }
   };
@@ -263,7 +308,9 @@ export default function PaymentsPage() {
             disabled={isRefreshing}
             className="gap-1"
           >
-            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            <RefreshCw
+              className={cn("h-4 w-4", isRefreshing && "animate-spin")}
+            />
             {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
           <div className="flex gap-1 border border-border rounded-md p-1 bg-background ml-2">
@@ -295,8 +342,12 @@ export default function PaymentsPage() {
               <DollarSign className="h-4 w-4 text-indigo-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">Total Amount</p>
-              <p className="text-lg font-bold">${summaryStats.totalAmount.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                Total Amount
+              </p>
+              <p className="text-lg font-bold">
+                ${summaryStats.totalAmount.toFixed(2)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -306,7 +357,9 @@ export default function PaymentsPage() {
               <CheckCircle className="h-4 w-4 text-emerald-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">Completed</p>
+              <p className="text-xs text-muted-foreground truncate">
+                Completed
+              </p>
               <p className="text-lg font-bold">{summaryStats.completed}</p>
             </div>
           </CardContent>
@@ -328,7 +381,9 @@ export default function PaymentsPage() {
               <Receipt className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">Transactions</p>
+              <p className="text-xs text-muted-foreground truncate">
+                Transactions
+              </p>
               <p className="text-lg font-bold">{summaryStats.count}</p>
             </div>
           </CardContent>
@@ -426,9 +481,14 @@ export default function PaymentsPage() {
                           <th className="px-4 py-3 text-left">Order</th>
                           <th className="px-4 py-3 text-left">Amount</th>
                           <th className="px-4 py-3 text-left">Method</th>
+                          <th className="px-4 py-3 text-left">Cashier</th>
                           <th className="px-4 py-3 text-left">Status</th>
-                          <th className="px-4 py-3 text-left hidden sm:table-cell">Date</th>
-                          <th className="px-4 py-3 text-left hidden sm:table-cell">Time</th>
+                          <th className="px-4 py-3 text-left hidden sm:table-cell">
+                            Date
+                          </th>
+                          <th className="px-4 py-3 text-left hidden sm:table-cell">
+                            Time
+                          </th>
                           <th className="px-4 py-3 text-right">Actions</th>
                         </tr>
                       </thead>
@@ -437,7 +497,10 @@ export default function PaymentsPage() {
                           const statusConfig = getStatusConfig(payment.status);
                           const StatusIcon = statusConfig.icon;
                           return (
-                            <tr key={payment.id} className="hover:bg-muted/30 transition-colors">
+                            <tr
+                              key={payment.id}
+                              className="hover:bg-muted/30 transition-colors"
+                            >
                               <td className="px-4 py-3 font-medium text-foreground">
                                 {(page - 1) * 10 + index + 1}
                               </td>
@@ -451,30 +514,59 @@ export default function PaymentsPage() {
                                 {payment.payment_method.toLowerCase() || "—"}
                               </td>
                               <td className="px-4 py-3">
-                                <span className={cn(
-                                  "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border",
-                                  statusConfig.className,
-                                )}>
+            {payment.cashier_name || "—"}  {/* ✅ new */}
+          </td>
+                              <td className="px-4 py-3">
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border",
+                                    statusConfig.className,
+                                  )}
+                                >
                                   <StatusIcon className="h-3 w-3" />
                                   {statusConfig.label}
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                                 {payment.created_at
-                                  ? format(new Date(payment.created_at), "MMM dd, yyyy")
+                                  ? format(
+                                      new Date(payment.created_at),
+                                      "MMM dd, yyyy",
+                                    )
                                   : "—"}
                               </td>
                               <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                                 {payment.created_at
-                                  ? format(new Date(payment.created_at), "hh:mm a")
+                                  ? format(
+                                      new Date(payment.created_at),
+                                      "hh:mm a",
+                                    )
                                   : "—"}
                               </td>
                               <td className="px-4 py-3 text-right">
-                                <Link href={`/dashboard/payments/${payment.id}`}>
-                                  <Button size="sm" variant="ghost" className="gap-1">
+                                <Link
+                                  href={`/dashboard/payments/${payment.id}`}
+                                >
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="gap-1"
+                                  >
                                     <Receipt className="h-3 w-3" /> View
                                   </Button>
                                 </Link>
+                              </td>
+                              <td className="px-4 py-3">
+                                {(payment.status === "COMPLETED" ||
+                                  payment.status === "PARTIALLY_REFUNDED") && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setRefundTarget(payment)}
+                                  >
+                                    Refund
+                                  </Button>
+                                )}
                               </td>
                             </tr>
                           );
@@ -503,15 +595,24 @@ export default function PaymentsPage() {
                             #{payment.order_number}
                           </h4>
                           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                            <span>{format(new Date(payment.created_at), "MMM dd, yyyy")}</span>
+                            <span>
+                              {format(
+                                new Date(payment.created_at),
+                                "MMM dd, yyyy",
+                              )}
+                            </span>
                             <span>•</span>
-                            <span>{format(new Date(payment.created_at), "hh:mm a")}</span>
+                            <span>
+                              {format(new Date(payment.created_at), "hh:mm a")}
+                            </span>
                           </div>
                         </div>
-                        <span className={cn(
-                          "inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border shrink-0",
-                          statusConfig.className,
-                        )}>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border shrink-0",
+                            statusConfig.className,
+                          )}
+                        >
                           <StatusIcon className="h-3 w-3" />
                           {statusConfig.label}
                         </span>
@@ -526,15 +627,40 @@ export default function PaymentsPage() {
 
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Method</span>
-                        <span className="capitalize">{payment.payment_method.toLowerCase()}</span>
+                        <span className="capitalize">
+                          {payment.payment_method.toLowerCase()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Cashier</span>
+                        <span className="capitalize">
+                          {payment.cashier_name || "—"}
+                        </span>
                       </div>
 
                       <div className="pt-2 border-t border-border/50">
                         <Link href={`/dashboard/payments/${payment.id}`}>
-                          <Button variant="outline" size="sm" className="w-full gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-1"
+                          >
                             <Receipt className="h-4 w-4" /> View Receipt
                           </Button>
                         </Link>
+                      </div>
+                      <div className="pt-2 border-t border-border/50">
+                        {(payment.status === "COMPLETED" ||
+                                  payment.status === "PARTIALLY_REFUNDED") && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setRefundTarget(payment)}
+                                    className="w-full gap-1"
+                                  >
+                                    Refund
+                                  </Button>
+                                )}
                       </div>
                     </CardContent>
                   </Card>
@@ -546,7 +672,8 @@ export default function PaymentsPage() {
           {/* ─── Pagination ──────────────────────────────────────── */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border pt-4">
             <span className="text-sm text-muted-foreground">
-              Showing {((page - 1) * 10) + 1}–{Math.min(page * 10, totalCount)} of {totalCount} records
+              Showing {(page - 1) * 10 + 1}–{Math.min(page * 10, totalCount)} of{" "}
+              {totalCount} records
             </span>
             <div className="flex gap-2">
               <Button
@@ -571,6 +698,53 @@ export default function PaymentsPage() {
           </div>
         </>
       )}
+      <Modal
+        isOpen={!!refundTarget}
+        onClose={() => setRefundTarget(null)}
+        title="Confirm Refund"
+        icon={<DollarSign className="h-8 w-8 text-amber-500" />}
+        description={
+          <div className="space-y-3">
+            <p>
+              You are about to refund payment{" "}
+              <strong>#{refundTarget?.order_number}</strong>.
+            </p>
+            <div className="bg-muted/30 p-3 rounded-lg text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Payment Amount</span>
+                <span className="font-medium">
+                  ${Number(refundTarget?.amount || 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Already Refunded</span>
+                <span className="font-medium">
+                  ${Number(refundTarget?.refunded_amount || 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-border pt-1 mt-1">
+                <span className="text-muted-foreground">To be Refunded</span>
+                <span className="font-bold text-emerald-400">
+                  $
+                  {(
+                    Number(refundTarget?.amount || 0) -
+                    Number(refundTarget?.refunded_amount || 0)
+                  ).toFixed(2)}
+                </span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              This action cannot be undone.
+            </p>
+          </div>
+        }
+        confirmText={refunding ? "Processing..." : "Confirm Refund"}
+        cancelText="Cancel"
+        onConfirm={handleRefund}
+        onCancel={() => setRefundTarget(null)}
+        variant="warning"
+        confirmDisabled={refunding}
+      />
     </div>
   );
 }

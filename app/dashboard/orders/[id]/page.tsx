@@ -85,12 +85,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       const data = await getOrder(id);
       setOrder(data);
       setSelectedStatus(data.status);
-      // If order already has a discount, pre‑select it
-      if (data.discounts && data.discounts.length > 0) {
-        setSelectedDiscountId(String(data.discounts[0].discount));
-      } else {
-        setSelectedDiscountId("");
-      }
+      // Always reset the dropdown so the user can pick a NEW discount to add
+      setSelectedDiscountId("");
+      setPromoCode("");
     } catch (error) {
       console.error("Failed to fetch order details:", error);
       toast.error("Order not found.");
@@ -169,24 +166,36 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
 
   // ─── Handle apply discount ──────────────────────────────────────────
   const handleApplyDiscount = async () => {
+    if (!selectedDiscountId) return;
     setUpdatingDiscount(true);
     try {
       await updateOrder(id, { 
-        discount_id: selectedDiscountId ? parseInt(selectedDiscountId) : null,
+        discount_id: parseInt(selectedDiscountId),
         promo_code: promoCode || null
       });
-      toast.success("Discount updated");
+      toast.success("Discount applied!");
+      setSelectedDiscountId("");
+      setPromoCode("");
       fetchOrder(); // refresh order details
     } catch (error: any) {
-      const msg = error?.detail || error?.promo_code || error?.message || "Failed to update discount.";
+      const msg = error?.discount || error?.detail || error?.promo_code || error?.message || "Failed to apply discount.";
       toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
-      // revert selection
-      if (order?.discounts?.length > 0) {
-        setSelectedDiscountId(String(order.discounts[0].discount));
-      } else {
-        setSelectedDiscountId("");
-      }
+    } finally {
+      setUpdatingDiscount(false);
+    }
+  };
+
+  // ─── Handle remove a single discount ─────────────────────────────────
+  const handleRemoveAllDiscounts = async () => {
+    setUpdatingDiscount(true);
+    try {
+      await updateOrder(id, { discount_id: null });
+      toast.success("All discounts removed");
+      setSelectedDiscountId("");
       setPromoCode("");
+      fetchOrder();
+    } catch (error: any) {
+      toast.error("Failed to remove discounts.");
     } finally {
       setUpdatingDiscount(false);
     }
@@ -300,8 +309,26 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
   // ─── Compute discount total ──────────────────────────────────
   const totalDiscount = order.discounts?.reduce((sum: number, d: any) => sum + parseFloat(d.amount), 0) || 0;
 
+  // ─── IDs of discounts already applied to this order ─────────
+  const appliedDiscountIds = new Set(
+    (order.discounts || []).map((d: any) => String(d.discount))
+  );
+
+  // ─── Available discounts = active discounts minus already applied ──
+  const availableDiscounts = discounts.filter(
+    (d: any) => !appliedDiscountIds.has(String(d.id))
+  );
+
+  // ─── Raw subtotal (items total before discounts) ────────────
+  const rawSubtotal = order.items?.reduce(
+    (sum: number, item: any) => sum + parseFloat(item.price_at_order) * item.quantity, 0
+  ) || 0;
+
   // ─── Check if the current user can apply discounts ────────────────
-  const canApplyDiscountHere = user && ["admin", "branch_manager", "cashier"].includes(user.role?.name);
+  const canApplyDiscountHere = user &&
+  ["admin", "branch_manager", "cashier"].includes(user.role?.name) &&
+  order?.status !== "PAID" &&
+  order?.status !== "CANCELLED";
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -556,12 +583,20 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
         <span className="text-foreground">{order.priority}</span>
       </div>
 
+      {/* ─── Subtotal (items before discounts) ─── */}
+      {totalDiscount > 0 && (
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-muted-foreground">Subtotal (items)</span>
+          <span className="text-foreground">${rawSubtotal.toFixed(2)}</span>
+        </div>
+      )}
+
       {/* ─── Discounts Applied ─── */}
       {order.discounts && order.discounts.length > 0 && (
         <div className="pt-2 border-t border-border">
-          <h4 className="text-sm font-medium text-muted-foreground mb-1">Discounts Applied</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-2">Discounts Applied</h4>
           {order.discounts.map((disc: any) => (
-            <div key={disc.id} className="flex justify-between text-sm">
+            <div key={disc.id} className="flex justify-between items-center text-sm mb-1">
               <span className="text-muted-foreground">{disc.discount_name}</span>
               <span className="text-emerald-400">-${parseFloat(disc.amount).toFixed(2)}</span>
             </div>
@@ -570,6 +605,16 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
             <span className="text-muted-foreground">Total Discount</span>
             <span className="text-emerald-400">-${totalDiscount.toFixed(2)}</span>
           </div>
+          {/* Remove all discounts button (only for editable orders) */}
+          {canApplyDiscountHere && order.discounts.length > 0 && (
+            <button
+              onClick={handleRemoveAllDiscounts}
+              disabled={updatingDiscount}
+              className="mt-2 text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+            >
+              <X className="h-3 w-3" /> Remove all discounts
+            </button>
+          )}
         </div>
       )}
 
@@ -577,55 +622,32 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
       {/* ─── Apply Discount (Cashier/Manager/Admin only) ─── */}
 {canApplyDiscountHere && (
   <div className="pt-2 border-t border-border">
-    <div className="flex items-center gap-2">
-      <div className="flex-1">
-        <label className="block text-sm font-medium text-muted-foreground mb-1">
-          Apply Discount
-        </label>
-        <select
-          value={selectedDiscountId}
-          onChange={(e) => setSelectedDiscountId(e.target.value)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          disabled={updatingDiscount}
-        >
-          <option value="">No discount</option>
-          {discounts.map((d) => (
-            <option key={d.id} value={String(d.id)}>
-              {d.name} ({d.type === "percentage" ? `${d.value}%` : `$${d.value}`})
-              {d.requires_code ? " 🔑" : ""}
-            </option>
-          ))}
-        </select>
-        {updatingDiscount && <p className="text-xs text-muted-foreground mt-1">Updating...</p>}
-      </div>
-
-      {/* ─── Remove discount button ─── */}
-      {selectedDiscountId && (
-        <button
-          onClick={async () => {
-             setUpdatingDiscount(true);
-             try {
-                await updateOrder(id, { discount_id: null });
-                toast.success("Discount removed");
-                fetchOrder();
-                setPromoCode("");
-             } catch(error: any) {
-                toast.error("Failed to remove discount.");
-             } finally {
-                setUpdatingDiscount(false);
-             }
-          }}
-          disabled={updatingDiscount}
-          className="mt-5 p-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-          title="Remove discount"
-        >
-          <X className="h-4 w-4" />
-        </button>
+    <div className="flex-1">
+      <label className="block text-sm font-medium text-muted-foreground mb-1">
+        Apply Discount
+      </label>
+      <select
+        value={selectedDiscountId}
+        onChange={(e) => setSelectedDiscountId(e.target.value)}
+        className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        disabled={updatingDiscount}
+      >
+        <option value="">Select a discount…</option>
+        {availableDiscounts.map((d: any) => (
+          <option key={d.id} value={String(d.id)}>
+            {d.name} ({d.type === "percentage" ? `${d.value}%` : `$${d.value}`})
+            {d.requires_code ? " 🔑" : ""}
+          </option>
+        ))}
+      </select>
+      {availableDiscounts.length === 0 && (
+        <p className="text-xs text-muted-foreground mt-1">All available discounts have been applied.</p>
       )}
+      {updatingDiscount && <p className="text-xs text-muted-foreground mt-1">Updating...</p>}
     </div>
 
     {/* ─── Promo Code Input ─── */}
-    {selectedDiscountId && discounts.find(d => String(d.id) === selectedDiscountId)?.requires_code && (
+    {selectedDiscountId && discounts.find((d: any) => String(d.id) === selectedDiscountId)?.requires_code && (
       <div className="mt-2">
         <label className="block text-xs font-medium text-muted-foreground mb-1">
           Promo Code

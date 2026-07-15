@@ -583,13 +583,11 @@ export default function OrdersPage() {
               trendLabel="vs previous"
             />
             <StatCard
-              title="Pending"
-              value={stats.pending}
-              icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5" />}
-              color="text-amber-400"
-              subtitle="Awaiting processing"
-              trend={stats.growth.pending}
-              trendLabel="vs previous"
+              title="Avg Time"
+              value={stats.avgTime}
+              icon={<Timer className="h-4 w-4 sm:h-5 sm:w-5" />}
+              color="text-cyan-400"
+              subtitle="To completion"
             />
             <StatCard
               title="Preparing"

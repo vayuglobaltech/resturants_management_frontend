@@ -39,7 +39,7 @@ type CashierStats = {
   transactions_processed: number;
   total_collection: number;
   refunds: number;
-  cash_shortage_excess: number;
+  // cash_shortage_excess: number; // placeholder
 };
 
 type KitchenStats = {
@@ -168,7 +168,16 @@ export default function EmployeePerformancePage() {
         // Payments endpoint not available
       }
 
-      // ─── 5. Fetch COGS transactions ──────────────────────────────────
+      // ─── 4. Fetch refunded payments ──────────────────────────────
+      const refundedRes = await apiFetch(
+        `/api/orders/payments/?status=REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+        {},
+        true
+      );
+      const refundedData = await refundedRes.json();
+      const refundedPayments = refundedData.results || refundedData || [];
+
+      // ─── 5. Fetch COGS transactions for kitchen staff ───────────────
       let cogsItems: any[] = [];
       let cogsAvailable = false;
       try {
@@ -227,31 +236,44 @@ export default function EmployeePerformancePage() {
       setWaiters(waiterArray);
 
       // ─── 7. Compute Cashier Stats ──────────────────────────────────
-      const cashierMap = new Map<number, CashierStats>();
-      const usersToUseForCashiers = cashierUsers.length > 0 ? cashierUsers : allUsers;
-      
-      usersToUseForCashiers.forEach((u: any) => {
-        cashierMap.set(u.id, {
-          user_id: u.id,
-          user_name: u.username,
-          transactions_processed: 0,
-          total_collection: 0,
-          refunds: 0,
-          cash_shortage_excess: 0,
-        });
-      });
+const cashierMap = new Map<number, CashierStats>();
 
-      payments.forEach((p: any) => {
-        const cashierId = p.cashier || p.user || p.processed_by;
-        if (!cashierId || !cashierMap.has(cashierId)) return;
-        
-        const stat = cashierMap.get(cashierId)!;
-        stat.transactions_processed += 1;
-        stat.total_collection += Number(p.amount || 0);
-      });
-      
-      const cashierArray = Array.from(cashierMap.values());
-      setCashiers(cashierArray);
+// Pre‑populate with all cashier users (so they appear even with 0 transactions)
+const cashierUsers = allUsers.filter((u: any) => u.role?.name === "cashier");
+cashierUsers.forEach((u: any) => {
+  cashierMap.set(u.id, {
+    user_id: u.id,
+    user_name: u.username,
+    transactions_processed: 0,
+    total_collection: 0,
+    refunds: 0,
+  });
+});
+
+// Completed payments → add to map
+payments.forEach((p: any) => {
+  const cashierId = p.cashier;
+  if (!cashierId) return;
+  // If the cashier is not in the map (shouldn't happen), skip
+  if (!cashierMap.has(cashierId)) return;
+  const stat = cashierMap.get(cashierId)!;
+  stat.transactions_processed += 1;
+  stat.total_collection += Number(p.amount || 0);
+});
+
+// Refunded payments → add refunds
+refundedPayments.forEach((p: any) => {
+  // Use refunded_by_id (the user ID) to attribute the refund
+  const refundedById = p.refunded_by_id;
+  if (!refundedById) return;
+  // Only attribute to a cashier if that user is in the map
+  if (!cashierMap.has(refundedById)) return;
+  const stat = cashierMap.get(refundedById)!;
+  stat.refunds += Number(p.refunded_amount || 0);
+});
+
+// Convert map to array and set state
+setCashiers(Array.from(cashierMap.values()));
 
       // ─── 8. Compute Kitchen Stats ──────────────────────────────────
       const kitchenMap = new Map<number, KitchenStats>();
@@ -577,33 +599,17 @@ export default function EmployeePerformancePage() {
                         <th className="px-4 py-3 text-right">Transactions</th>
                         <th className="px-4 py-3 text-right">Total Collection</th>
                         <th className="px-4 py-3 text-right">Refunds</th>
-                        <th className="px-4 py-3 text-right">Cash Δ</th>
+                        {/* <th className="px-4 py-3 text-right">Cash Δ</th> */}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {cashiers.map((c) => (
                         <tr key={c.user_id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-3 font-medium text-foreground">{c.user_name}</td>
-                          <td className="px-4 py-3 text-right">
-                            {c.transactions_processed > 0 ? (
-                              c.transactions_processed
-                            ) : (
-                              <span className="text-muted-foreground">0</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right font-medium">
-                            {c.transactions_processed > 0 ? (
-                              formatCurrency(c.total_collection)
-                            ) : (
-                              <span className="text-muted-foreground">$0.00</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right text-red-400">
-                            {c.refunds > 0 ? formatCurrency(c.refunds) : <span className="text-muted-foreground">$0.00</span>}
-                          </td>
-                          <td className="px-4 py-3 text-right text-muted-foreground">
-                            {formatCurrency(c.cash_shortage_excess)}
-                          </td>
+                          <td className="px-4 py-3 text-right">{c.transactions_processed}</td>
+                          <td className="px-4 py-3 text-right font-medium">{formatCurrency(c.total_collection)}</td>
+                          <td className="px-4 py-3 text-right text-red-400">{formatCurrency(c.refunds)}</td>
+                          {/* <td className="px-4 py-3 text-right text-muted-foreground">{formatCurrency(c.cash_shortage_excess)}</td> */}
                         </tr>
                       ))}
                     </tbody>
