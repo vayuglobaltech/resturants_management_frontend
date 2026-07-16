@@ -139,12 +139,12 @@ export default function EmployeePerformancePage() {
         return ['waiter', 'waiters', 'server', 'servers', 'service', 'branch_manager'].some(r => role.includes(r));
       });
       
-      const cashierUsers = allUsers.filter((u: any) => {
-        const role = getUserRole(u).toLowerCase();
-        return role === 'cashier' || 
-               role === 'cashiers' || 
-               role.includes('cashier');
-      });
+      // const cashierUsers = allUsers.filter((u: any) => {
+      //   const role = getUserRole(u).toLowerCase();
+      //   return role === 'cashier' || 
+      //          role === 'cashiers' || 
+      //          role.includes('cashier');
+      // });
       
       const kitchenUsers = allUsers.filter((u: any) => {
         const role = getUserRole(u).toLowerCase();

@@ -302,7 +302,7 @@ export default function ProductsPage() {
                     Price
                   </p>
                   <p className="text-lg font-bold text-[var(--primary)]">
-                    ${parseFloat(p.price).toFixed(2)}
+                    Rs. {parseFloat(p.price).toFixed(2)}
                   </p>
                 </div>
               </div>

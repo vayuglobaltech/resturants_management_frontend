@@ -346,7 +346,7 @@ export default function PaymentsPage() {
                 Total Amount
               </p>
               <p className="text-lg font-bold">
-                ${summaryStats.totalAmount.toFixed(2)}
+                Rs .{summaryStats.totalAmount.toFixed(2)}
               </p>
             </div>
           </CardContent>
@@ -508,7 +508,7 @@ export default function PaymentsPage() {
                                 #{payment.order_number}
                               </td>
                               <td className="px-4 py-3 font-medium">
-                                ${Number(payment.amount).toFixed(2)}
+                                Rs. {Number(payment.amount).toFixed(2)}
                               </td>
                               <td className="px-4 py-3 capitalize">
                                 {payment.payment_method.toLowerCase() || "—"}

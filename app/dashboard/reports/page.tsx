@@ -150,7 +150,7 @@ export default function ReportsOverviewPage() {
   }, [period]);
 
   // ─── Helpers ──────────────────────────────────────────────────────────
-  const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
+  const formatCurrency = (value: number) => `Rs. ${value.toFixed(2)}`;
   const formatDate = (dateString: string) =>
     format(new Date(dateString), "MMM dd, hh:mm a");
 
@@ -371,7 +371,7 @@ export default function ReportsOverviewPage() {
                         #{tx.order_number}
                       </td>
                       <td className="px-4 py-3 font-medium">
-                        ${Number(tx.amount).toFixed(2)}
+                        Rs. {Number(tx.amount).toFixed(2)}
                       </td>
                       <td className="px-4 py-3 capitalize">{tx.payment_method.toLowerCase()}</td>
                       <td className="px-4 py-3">
