@@ -1,81 +1,71 @@
-// Service Worker for Restaurant Management PWA
-const CACHE_NAME = 'restaurant-pwa-v1';
-const STATIC_ASSETS = [
+﻿// Service Worker for Restaurant Management PWA
+const CACHE_NAME = 'restaurant-app-v1';
+const urlsToCache = [
   '/',
-  '/icon-192.png',
-  '/icon-512.png',
+  '/manifest.json',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
 ];
 
-// Install: pre-cache static assets
+// Install event - cache core assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('📦 Caching core assets');
+        return cache.addAll(urlsToCache);
+      })
+      .then(() => {
+        console.log('✅ Service Worker installed');
+        return self.skipWaiting();
+      })
   );
-  self.skipWaiting();
 });
 
-// Activate: clean up old caches
+// Activate event - clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      )
-    )
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('🗑️ Removing old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+    .then(() => {
+      console.log('✅ Service Worker activated');
+      return self.clients.claim();
+    })
   );
-  self.clients.claim();
 });
 
-// Fetch: Network-first strategy with cache fallback
+// Fetch event - serve from cache or network
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
-  if (event.request.method !== 'GET') return;
-
-  // Skip non-http(s) requests and Next.js internal requests
-  const url = new URL(event.request.url);
-  if (!url.protocol.startsWith('http')) return;
-  if (url.pathname.startsWith('/_next/')) return;
-  if (url.pathname.startsWith('/api/')) return;
-
   event.respondWith(
-    fetch(event.request)
+    caches.match(event.request)
       .then((response) => {
-        // Cache a clone of a valid response
-        if (response && response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+        // Return cached response if found
+        if (response) {
+          return response;
         }
-        return response;
-      })
-      .catch(() => {
-        // Network failed — serve from cache
-        return caches.match(event.request).then((cached) => {
-          return cached || caches.match('/');
-        });
+        // Otherwise fetch from network
+        return fetch(event.request)
+          .then((response) => {
+            // Don't cache if not a valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+            // Cache the fetched response
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            return response;
+          });
       })
   );
-});
-
-// Push notifications
-self.addEventListener('push', (event) => {
-  if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body,
-      icon: data.icon || '/icon-192.png',
-      badge: '/icon-192.png',
-      vibrate: [100, 50, 100],
-    };
-    event.waitUntil(self.registration.showNotification(data.title, options));
-  }
-});
-
-// Notification click
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(clients.openWindow('/'));
 });
