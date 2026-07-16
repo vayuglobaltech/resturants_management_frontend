@@ -81,20 +81,7 @@ export default function ReportsOverviewPage() {
     console.log(`📊 Fetching overview for period: ${period}`);
     console.log(`   Date range: ${gte} to ${lte}`);
 
-    // ─── 1. Completed payments (sales) ───────────────────────────────
-    const salesRes = await apiFetch(
-      `/api/orders/payments/?status=COMPLETED&created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
-      {},
-      true
-    );
-    const salesData = await salesRes.json();
-    const completedPayments = salesData.results || salesData || [];
-    const totalSales = completedPayments.reduce(
-      (sum: number, p: any) => sum + Number(p.amount || 0),
-      0
-    );
-
-    // ─── 2. All orders (for this period) ──────────────────────────────
+    // ─── 1. Fetch all orders ──────────────────────────────────────────
     const ordersRes = await apiFetch(
       `/api/orders/?created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
       {},
@@ -102,15 +89,112 @@ export default function ReportsOverviewPage() {
     );
     const ordersData = await ordersRes.json();
     const allOrders = ordersData.results || ordersData || [];
-    const totalOrders = allOrders.length;
+
+    // ─── 2. Completed payments ──────────────────────────────────────
+    const salesRes = await apiFetch(
+      `/api/orders/payments/?status=COMPLETED&created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
+      {},
+      true
+    );
+    const salesData = await salesRes.json();
+    const completedPayments = salesData.results || salesData || [];
+    const completedOrderIds = new Set(completedPayments.map(p => p.order));
+
+    // ─── 3. Refunded payments ──────────────────────────────────────
+    let refundedPayments: any[] = [];
+    let totalRefunds = 0;
+    try {
+      const refundRes = await apiFetch(
+        `/api/orders/payments/?status=REFUNDED&created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
+        {},
+        true
+      );
+      const refundData = await refundRes.json();
+      refundedPayments = refundData.results || refundData || [];
+      totalRefunds = refundedPayments.reduce(
+        (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
+        0
+      );
+    } catch (error) {
+      console.warn("Refunds endpoint not available, using 0");
+    }
+
+    const refundedOrderIds = new Set(refundedPayments.map(p => p.order));
+
+    // ─── 4. Total orders (completed + refunded) ──────────────────────
+    const allPaidOrderIds = new Set([...completedOrderIds, ...refundedOrderIds]);
+    const totalOrders = allPaidOrderIds.size;
+
+    // ─── 5. Gross Sales from order items (only completed) ──────────
+    let grossSales = 0;
+    allOrders.forEach((order: any) => {
+      if (!completedOrderIds.has(order.id)) return;
+      const subtotal = (order.items || []).reduce(
+        (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
+        0
+      );
+      grossSales += subtotal;
+    });
+
+    // ─── 6. Discounts (only completed orders) ──────────────────────
+    let totalDiscounts = 0;
+    allOrders.forEach((order: any) => {
+      if (!completedOrderIds.has(order.id)) return;
+      const discSum = (order.discounts || []).reduce(
+        (s: number, d: any) => s + Number(d.amount),
+        0
+      );
+      totalDiscounts += discSum;
+    });
+
+    // ─── 7. Cancelled orders ────────────────────────────────────────────
     const cancelledOrders = allOrders.filter(
       (o: any) => o.status === "CANCELLED"
     ).length;
 
-    // ─── 3. Average order value ──────────────────────────────────────
-    const averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+    // ─── 8. COGS ────────────────────────────────────────────────────────
+    let totalCogs = 0;
+    try {
+      const cogsRes = await apiFetch(
+        `/api/accounting/cogs-transactions/?created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
+        {},
+        true
+      );
+      const cogsData = await cogsRes.json();
+      const cogsItems = cogsData.results || cogsData || [];
+      totalCogs = cogsItems.reduce(
+        (sum: number, c: any) => sum + Number(c.total_cogs || 0),
+        0
+      );
+    } catch (error) {
+      console.warn("COGS endpoint not available, using 0");
+    }
 
-    // ─── 4. Recent transactions (last 5, regardless of period) ──────
+    // ─── 9. Expenses ──────────────────────────────────────────────────────
+    let totalExpenses = 0;
+    try {
+      const expRes = await apiFetch(
+        `/api/accounting/expenses/?expense_date__gte=${gte}&expense_date__lte=${lte}&page_size=1000`,
+        {},
+        true
+      );
+      const expData = await expRes.json();
+      const expenses = expData.results || expData || [];
+      totalExpenses = expenses.reduce(
+        (sum: number, e: any) => sum + Number(e.amount || 0),
+        0
+      );
+    } catch (error) {
+      console.warn("Expense endpoint not available, using 0");
+    }
+
+    // ─── 10. Derived metrics ──────────────────────────────────────────
+    const netSales = grossSales - totalDiscounts - totalRefunds;
+    const grossProfit = netSales - totalCogs;
+    const netProfit = grossProfit - totalExpenses;
+    const averageOrderValue = totalOrders > 0 ? netSales / totalOrders : 0;
+
+    // ─── 11. Recent transactions ──────────────────────────────────────
     const recentRes = await apiFetch(
       `/api/orders/payments/?ordering=-created_at&page_size=5`,
       {},
@@ -119,17 +203,8 @@ export default function ReportsOverviewPage() {
     const recentData = await recentRes.json();
     const recentTransactions = recentData.results || recentData || [];
 
-    // ─── 5. Gross profit (placeholder: 40% of sales) ────────────────
-    const grossProfit = totalSales * 0.4;
-
-    // ─── 6. Expenses (placeholder: 20% of sales) ──────────────────────
-    const totalExpenses = totalSales * 0.2;
-
-    // ─── 7. Net profit ──────────────────────────────────────────────────
-    const netProfit = grossProfit - totalExpenses;
-
     setStats({
-      totalSales,
+      totalSales: netSales,
       totalOrders,
       averageOrderValue,
       grossProfit,

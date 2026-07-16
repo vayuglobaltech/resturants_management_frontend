@@ -223,31 +223,88 @@ export default function GrossProfitReportPage() {
   }, [isBranchValidated, validBranchId, dateRange.start_date, dateRange.end_date, period]);
 
   const fetchReport = async () => {
-    if (!dateRange.start_date || !dateRange.end_date) {
-      toast.error("Please select both start and end dates");
-      return;
-    }
+  if (!dateRange.start_date || !dateRange.end_date) {
+    toast.error("Please select both start and end dates");
+    return;
+  }
 
-    if (validBranchId === null) {
-      toast.error("No valid branch found");
-      return;
-    }
+  if (validBranchId === null) {
+    toast.error("No valid branch found");
+    return;
+  }
 
-    try {
-      setLoading(true);
-      const data = await getGrossProfitReport(
-        dateRange.start_date, 
-        dateRange.end_date,
-        validBranchId // ← Always use the user's branch
+  try {
+    setLoading(true);
+    
+    // ─── 1. Fetch Gross Sales from completed payments ────────────────
+    const salesRes = await apiFetch(
+      `/api/orders/payments/?status=COMPLETED&created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
+      {},
+      true
+    );
+    const salesData = await salesRes.json();
+    const completedPayments = salesData.results || salesData || [];
+    const paidOrderIds = new Set(completedPayments.map(p => p.order));
+
+    let totalRevenue = 0;
+    if (paidOrderIds.size > 0) {
+      const ordersRes = await apiFetch(
+        `/api/orders/?created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
+        {},
+        true
       );
-      setReport(data);
-    } catch (error) {
-      console.error("Failed to fetch report:", error);
-      toast.error("Failed to load report");
-    } finally {
-      setLoading(false);
+      const ordersData = await ordersRes.json();
+      const allOrders = ordersData.results || ordersData || [];
+      
+      allOrders.forEach((order: any) => {
+        if (!paidOrderIds.has(order.id)) return;
+        const subtotal = (order.items || []).reduce(
+          (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
+          0
+        );
+        totalRevenue += subtotal;
+      });
     }
-  };
+
+    // ─── 2. Fetch COGS from accounting API ────────────────────────────
+    let totalCogs = 0;
+    let transactionCount = 0;
+    try {
+      // Use the existing getGrossProfitReport which returns COGS
+      const grossProfitData = await getGrossProfitReport(
+        dateRange.start_date,
+        dateRange.end_date,
+        validBranchId
+      );
+      if (grossProfitData) {
+        totalCogs = parseFloat(grossProfitData.total_cogs || '0');
+        transactionCount = grossProfitData.transaction_count || 0;
+      }
+    } catch (error) {
+      console.warn("COGS endpoint failed, using 0");
+    }
+
+    // ─── 3. Build report object ──────────────────────────────────────
+    const grossProfit = totalRevenue - totalCogs;
+    const margin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+
+    setReport({
+      period_start: dateRange.start_date,
+      period_end: dateRange.end_date,
+      total_revenue: totalRevenue,
+      total_cogs: totalCogs,
+      gross_profit: grossProfit,
+      gross_profit_margin_percentage: margin,
+      transaction_count: transactionCount,
+    });
+
+  } catch (error) {
+    console.error("Failed to fetch report:", error);
+    toast.error("Failed to load report");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handlePeriodChange = (newPeriod: string) => {
     setPeriod(newPeriod);

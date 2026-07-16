@@ -39,6 +39,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { apiFetch } from "@/lib/api";
 
 type Period = "today" | "week" | "month" | "custom";
 type SalesData = {
@@ -116,156 +117,156 @@ export default function SalesReportPage() {
   };
 
   const fetchSalesReport = async (period: Period) => {
-    setLoading(true);
-    setDebugInfo(null);
-    try {
-      const { start, end } = getDateRange(period);
-      const startStr = format(start, "yyyy-MM-dd");
-      const endStr = format(end, "yyyy-MM-dd");
-      const branchId = getBranchId();
+  setLoading(true);
+  setDebugInfo(null);
+  try {
+    const { start, end } = getDateRange(period);
+    const startStr = format(start, "yyyy-MM-dd");
+    const endStr = format(end, "yyyy-MM-dd");
+    const branchId = getBranchId();
 
-      console.log("📊 Fetching sales report from:", startStr, "to:", endStr);
-      console.log("🏢 Branch ID:", branchId);
-      console.log("👤 User:", user?.username);
+    console.log("📊 Fetching sales report from:", startStr, "to:", endStr);
 
-      // ─── 1. Get Sales Transactions from Accounting API ──────────────
-      let salesTransactions: any[] = [];
-      let totalRevenue = 0;
-      
-      try {
-        const salesData = await getSalesTransactions({
-          branch: branchId,
-          created_at__gte: startStr,
-          created_at__lte: endStr,
-        });
-        console.log("📊 Sales Transactions Response:", salesData);
-        
-        salesTransactions = salesData?.results || salesData || [];
-        console.log(`✅ Found ${salesTransactions.length} sales transactions`);
-        
-        // Calculate total revenue from sales transactions
-        salesTransactions.forEach((tx: any) => {
-          const amount = parseFloat(tx.revenue_amount || tx.amount || 0);
-          totalRevenue += amount;
-        });
-      } catch (error) {
-        console.error("❌ Failed to fetch sales transactions:", error);
-        toast.error("Failed to fetch sales data");
+    // ─── 1. Fetch ALL orders ──────────────────────────────────────────
+    const ordersRes = await apiFetch(
+      `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+      {},
+      true
+    );
+    const ordersData = await ordersRes.json();
+    const allOrders = ordersData.results || ordersData || [];
+
+    // ─── 2. Completed payments ──────────────────────────────────────
+    const completedRes = await apiFetch(
+      `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+      {},
+      true
+    );
+    const completedData = await completedRes.json();
+    const completedPayments = completedData.results || completedData || [];
+    const completedOrderIds = new Set(completedPayments.map(p => p.order));
+
+    // ─── 3. Refunded payments ──────────────────────────────────────
+    const refundRes = await apiFetch(
+      `/api/orders/payments/?status=REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+      {},
+      true
+    );
+    const refundData = await refundRes.json();
+    const refundedPayments = refundData.results || refundData || [];
+    const refundedOrderIds = new Set(refundedPayments.map(p => p.order));
+
+    // ─── 4. All orders that have any payment (completed or refunded) ──
+    const allPaidOrderIds = new Set([...completedOrderIds, ...refundedOrderIds]);
+    const totalOrders = allPaidOrderIds.size;
+
+    // ─── 5. Calculate financial metrics (completed orders only) ──────
+    let grossSales = 0;
+    let totalDiscounts = 0;
+    const grouped: Record<string, { grossSales: number; refunds: number; orders: number }> = {};
+
+    allOrders.forEach((order: any) => {
+      if (!allPaidOrderIds.has(order.id)) return;
+
+      const date = format(new Date(order.created_at), "yyyy-MM-dd");
+      if (!grouped[date]) grouped[date] = { grossSales: 0, refunds: 0, orders: 0 };
+
+      if (completedOrderIds.has(order.id)) {
+        const subtotal = (order.items || []).reduce(
+          (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
+          0
+        );
+        grouped[date].grossSales += subtotal;
+        grossSales += subtotal;
+
+        const discSum = (order.discounts || []).reduce(
+          (s: number, d: any) => s + Number(d.amount),
+          0
+        );
+        totalDiscounts += discSum;
       }
 
-      // ─── 2. Get Gross Profit Report for summary ─────────────────────
-      let grossProfitData = null;
-      try {
-        grossProfitData = await getGrossProfitReport(startStr, endStr, branchId);
-        console.log("📊 Gross Profit Report:", grossProfitData);
-      } catch (error) {
-        console.error("❌ Failed to fetch gross profit report:", error);
-      }
+      grouped[date].orders += 1;
+    });
 
-      // ─── 3. Get Daily Sales Summary ─────────────────────────────────
-      let dailySummary = null;
-      try {
-        // Get today's summary
-        const todayStr = format(new Date(), "yyyy-MM-dd");
-        dailySummary = await getDailySalesSummary(todayStr, 1, branchId);
-        console.log("📊 Daily Sales Summary:", dailySummary);
-      } catch (error) {
-        console.error("❌ Failed to fetch daily sales summary:", error);
-      }
+    // ─── 6. Refunds by date ──────────────────────────────────────────
+    refundedPayments.forEach((p: any) => {
+      const date = format(new Date(p.created_at), "yyyy-MM-dd");
+      if (!grouped[date]) grouped[date] = { grossSales: 0, refunds: 0, orders: 0 };
+      grouped[date].refunds += Number(p.refunded_amount || 0);
+    });
 
-      // ─── 4. Group sales transactions by date ──────────────────────
-      const grouped: Record<
-        string,
-        { grossSales: number; refunds: number; orders: number }
-      > = {};
+    const totalRefunds = refundedPayments.reduce(
+      (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
+      0
+    );
 
-      salesTransactions.forEach((tx: any) => {
-        const date = format(new Date(tx.created_at), "yyyy-MM-dd");
-        if (!grouped[date]) {
-          grouped[date] = { grossSales: 0, refunds: 0, orders: 0 };
-        }
-        const amount = parseFloat(tx.revenue_amount || tx.amount || 0);
-        grouped[date].grossSales += amount;
-        grouped[date].orders += 1;
+    // ─── 7. Group discounts by date ──────────────────────────────────
+    const discountGrouped: Record<string, number> = {};
+    allOrders.forEach((order: any) => {
+      if (!completedOrderIds.has(order.id)) return;
+      const date = format(new Date(order.created_at), "yyyy-MM-dd");
+      const discSum = (order.discounts || []).reduce(
+        (s: number, d: any) => s + Number(d.amount),
+        0
+      );
+      if (discSum > 0) discountGrouped[date] = (discountGrouped[date] || 0) + discSum;
+    });
+
+    // ─── 8. Build result array ──────────────────────────────────────
+    const result: SalesData[] = [];
+    Object.keys(grouped).sort().forEach((date) => {
+      const gross = grouped[date].grossSales;
+      const refunds = grouped[date].refunds || 0;
+      const ordersCount = grouped[date].orders;
+      const discounts = discountGrouped[date] || 0;
+      // const netSales = gross - discounts - totalRefunds;
+      const dailyNetSales = gross - discounts - refunds;
+
+      result.push({
+        date: format(new Date(date), "MMM dd"),
+        grossSales: gross,
+        discounts: discounts,
+        refunds: refunds,
+        netSales: dailyNetSales,
+        orders: ordersCount,
+        avgOrderValue: ordersCount > 0 ? dailyNetSales / ordersCount : 0,
       });
+    });
 
-      // ─── 5. Build result ──────────────────────────────────────────────
-      let totalGross = 0;
-      let totalOrders = 0;
-      let totalRefunds = 0;
-      const result: SalesData[] = [];
+    setSalesData(result);
 
-      Object.keys(grouped).sort().forEach((date) => {
-        const gross = grouped[date].grossSales;
-        const ordersCount = grouped[date].orders;
-        const refunds = grouped[date].refunds || 0;
+    // ─── 9. Summary ──────────────────────────────────────────────────
+    const totalNetSales  = grossSales - totalDiscounts - totalRefunds;
+    const avgOrderValue = totalOrders > 0 ? totalNetSales / totalOrders : 0;
 
-        totalGross += gross;
-        totalOrders += ordersCount;
-        totalRefunds += refunds;
+    setSummary({
+      grossSales: grossSales,
+      discounts: totalDiscounts,
+      refunds: totalRefunds,
+      netSales: totalNetSales,
+      serviceCharges: 0,
+      totalOrders: totalOrders,
+      averageOrderValue: avgOrderValue,
+    });
 
-        result.push({
-          date: format(new Date(date), "MMM dd"),
-          grossSales: gross,
-          discounts: 0, // Will be calculated from orders if needed
-          refunds: refunds,
-          netSales: gross - refunds,
-          orders: ordersCount,
-          avgOrderValue: ordersCount > 0 ? gross / ordersCount : 0,
-        });
-      });
+    setDebugInfo({
+      totalOrders,
+      grossSales,
+      totalDiscounts,
+      totalRefunds,
+      totalNetSales,
+      paidOrderIdsCount: completedOrderIds.size,
+    });
 
-      setSalesData(result);
-
-      // ─── 6. Summary ────────────────────────────────────────────────────
-      const grossFromReport = grossProfitData 
-        ? parseFloat(grossProfitData.total_revenue || '0') 
-        : totalGross;
-      
-      const cogsFromReport = grossProfitData 
-        ? parseFloat(grossProfitData.total_cogs || '0') 
-        : 0;
-
-      const netSales = grossFromReport;
-      const avgOrderValue = totalOrders > 0 ? grossFromReport / totalOrders : 0;
-
-      setSummary({
-        grossSales: grossFromReport,
-        discounts: 0,
-        refunds: totalRefunds,
-        netSales: netSales,
-        serviceCharges: 0,
-        totalOrders: totalOrders,
-        averageOrderValue: avgOrderValue,
-      });
-
-      // ─── Debug Info ──────────────────────────────────────────────────
-      setDebugInfo({
-        salesTransactionsCount: salesTransactions.length,
-        totalRevenue,
-        grossProfitData,
-        dailySummary,
-        firstTransaction: salesTransactions[0] || null,
-        branchId,
-        branchName,
-      });
-
-      console.log("✅ Sales report complete:", {
-        totalGross: grossFromReport,
-        totalOrders,
-        totalRefunds,
-        netSales,
-      });
-
-    } catch (error) {
-      console.error("❌ Failed to fetch sales report:", error);
-      toast.error("Failed to load sales data");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
+  } catch (error) {
+    console.error("❌ Failed to fetch sales report:", error);
+    toast.error("Failed to load sales data");
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+};
   useEffect(() => {
     fetchSalesReport(period);
   }, [period]);
