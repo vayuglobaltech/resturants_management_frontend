@@ -504,21 +504,21 @@ export default function DashboardOverview() {
         return [
           { 
             title: "Today's Revenue", 
-            value: `$${stats.todayRevenue?.toLocaleString() || '0'}`, 
+            value: `Rs. ${stats.todayRevenue?.toLocaleString() || '0'}`, 
             icon: DollarSign, 
             href: "/dashboard/reports",
             subtitle: "Daily sales"
           },
           { 
             title: "Monthly Revenue", 
-            value: `$${stats.monthlyRevenue?.toLocaleString() || '0'}`, 
+            value: `Rs. ${stats.monthlyRevenue?.toLocaleString() || '0'}`, 
             icon: TrendingUp, 
             href: "/dashboard/reports",
             subtitle: "This month"
           },
           { 
             title: "Gross Profit", 
-            value: `$${stats.grossProfit?.toLocaleString() || '0'}`, 
+            value: `Rs. ${stats.grossProfit?.toLocaleString() || '0'}`, 
             icon: Receipt, 
             href: "/dashboard/reports",
             subtitle: `${stats.grossProfitMargin?.toFixed(1) || '0'}% margin`
@@ -536,7 +536,7 @@ export default function DashboardOverview() {
         return [
           { 
             title: "Today's Revenue", 
-            value: `$${stats.todayRevenue?.toLocaleString() || '0'}`, 
+            value: `Rs. ${stats.todayRevenue?.toLocaleString() || '0'}`, 
             icon: DollarSign, 
             href: "/dashboard/reports",
             subtitle: "Branch performance"
@@ -632,7 +632,7 @@ export default function DashboardOverview() {
         return [
           { 
             title: "Today's Sales", 
-            value: `$${stats.todayRevenue?.toLocaleString() || '0'}`, 
+            value: `Rs. ${stats.todayRevenue?.toLocaleString() || '0'}`, 
             icon: DollarSign, 
             href: "/dashboard/payments",
             subtitle: `${stats.todayTransactions || 0} transactions`
@@ -818,7 +818,7 @@ export default function DashboardOverview() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
                 <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Gross profit</p>
-                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>${stats.grossProfit?.toLocaleString() || "0"}</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>Rs. {stats.grossProfit?.toLocaleString() || "0"}</p>
               </div>
               <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
                 <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Margin</p>
@@ -826,11 +826,11 @@ export default function DashboardOverview() {
               </div>
               <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
                 <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Monthly revenue</p>
-                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>${stats.monthlyRevenue?.toLocaleString() || "0"}</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>Rs. {stats.monthlyRevenue?.toLocaleString() || "0"}</p>
               </div>
               <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
                 <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Today</p>
-                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>${stats.todayRevenue?.toLocaleString() || "0"}</p>
+                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>Rs. {stats.todayRevenue?.toLocaleString() || "0"}</p>
               </div>
             </div>
           </div>

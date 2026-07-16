@@ -101,7 +101,7 @@ export default function RecipesPage() {
   };
 
   const formatCurrency = (value: string) =>
-    `$${parseFloat(value || "0").toFixed(2)}`;
+    `Rs. ${parseFloat(value || "0").toFixed(2)}`;
 
   if (loading) {
     return (
@@ -277,7 +277,6 @@ export default function RecipesPage() {
                         {recipe.prep_time_minutes || 0}m
                       </span>
                       <span className="inline-flex items-center gap-1 text-xs text-indigo-400 bg-background px-2.5 py-1 rounded-full">
-                        <DollarSign className="h-3 w-3" />
                         {formatCurrency(recipe.cost_price)}
                       </span>
                     </div>

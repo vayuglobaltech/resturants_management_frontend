@@ -302,7 +302,7 @@ function MenuItemCard({
         {/* Footer */}
         <div className="flex items-center justify-between mt-3 pt-2 border-t border-yellow-500/10">
           <span className="text-yellow-500 font-bold text-lg">
-            ${parseFloat(item.price).toFixed(2)}
+            Rs. {parseFloat(item.price).toFixed(2)}
           </span>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             {item.prep_time_minutes && (

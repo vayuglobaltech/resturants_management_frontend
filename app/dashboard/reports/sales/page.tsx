@@ -222,7 +222,7 @@ export default function SalesReportPage() {
   };
 
   // ─── Formatting helpers ──────────────────────────────────────────────
-  const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
+  const formatCurrency = (value: number) => `Rs. ${value.toFixed(2)}`;
 
   // ─── Loading state ────────────────────────────────────────────────────
   if (loading) {

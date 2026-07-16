@@ -515,7 +515,7 @@ export default function IngredientsPage() {
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Cost / Unit</p>
                         <p className="text-lg font-bold text-[var(--primary)]">
-                          ${parseFloat(ing.cost_per_unit || '0').toFixed(2)}
+                          Rs. {parseFloat(ing.cost_per_unit || '0').toFixed(2)}
                         </p>
                       </div>
                       <div>
@@ -634,7 +634,7 @@ export default function IngredientsPage() {
                 {/* Cost Per Unit */}
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    Cost Per Unit ($) <span className="text-red-400">*</span>
+                    Cost Per Unit (Rs. ) <span className="text-red-400">*</span>
                   </label>
                   <Input
                     required
