@@ -519,13 +519,13 @@ export default function GrossProfitReportPage() {
           {/* Period Info */}
           <Card className="bg-muted/30 border-border">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-center text-md">
                 <span className="text-muted-foreground">Period:</span>
-                <span className="text-foreground">
+                <span className="text-foreground px-2">
                   {new Date(report.period_start).toLocaleDateString()} - {new Date(report.period_end).toLocaleDateString()}
                 </span>
-                <span className="text-muted-foreground">Transactions:</span>
-                <span className="text-foreground font-bold">{report.transaction_count}</span>
+                {/* <span className="text-muted-foreground">Transactions:</span>
+                <span className="text-foreground font-bold">{report.transaction_count}</span> */}
               </div>
             </CardContent>
           </Card>
@@ -585,46 +585,6 @@ export default function GrossProfitReportPage() {
                       }}
                     />
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Summary Stats */}
-          <Card className="bg-muted/30 border-border">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Revenue / COGS Ratio</p>
-                  <p className="text-lg font-bold text-foreground">
-                    {safeNumber(report.total_revenue) > 0 
-                      ? (safeNumber(report.total_revenue) / safeNumber(report.total_cogs)).toFixed(2)
-                      : '0.00'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Profit Per Transaction</p>
-                  <p className="text-lg font-bold text-foreground">
-                    {report.transaction_count > 0 
-                      ? formatCurrency(safeNumber(report.gross_profit) / report.transaction_count)
-                      : '$0.00'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Revenue Per Transaction</p>
-                  <p className="text-lg font-bold text-foreground">
-                    {report.transaction_count > 0 
-                      ? formatCurrency(safeNumber(report.total_revenue) / report.transaction_count)
-                      : '$0.00'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">COGS Per Transaction</p>
-                  <p className="text-lg font-bold text-foreground">
-                    {report.transaction_count > 0 
-                      ? formatCurrency(safeNumber(report.total_cogs) / report.transaction_count)
-                      : '$0.00'}
-                  </p>
                 </div>
               </div>
             </CardContent>

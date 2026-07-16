@@ -57,9 +57,7 @@ type Summary = {
   discounts: number;
   refunds: number;
   netSales: number;
-  serviceCharges: number;
   totalOrders: number;
-  averageOrderValue: number;
 };
 
 export default function SalesReportPage() {
@@ -74,13 +72,10 @@ export default function SalesReportPage() {
     discounts: 0,
     refunds: 0,
     netSales: 0,
-    serviceCharges: 0,
     totalOrders: 0,
-    averageOrderValue: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
   const [branchName, setBranchName] = useState<string>("");
 
   // ─── Get user's branch ID ─────────────────────────────────────────────
@@ -118,7 +113,6 @@ export default function SalesReportPage() {
 
   const fetchSalesReport = async (period: Period) => {
   setLoading(true);
-  setDebugInfo(null);
   try {
     const { start, end } = getDateRange(period);
     const startStr = format(start, "yyyy-MM-dd");
@@ -220,43 +214,30 @@ export default function SalesReportPage() {
       const refunds = grouped[date].refunds || 0;
       const ordersCount = grouped[date].orders;
       const discounts = discountGrouped[date] || 0;
-      // const netSales = gross - discounts - totalRefunds;
-      const dailyNetSales = gross - discounts - refunds;
+      const netSales = gross - discounts - totalRefunds;
+
 
       result.push({
         date: format(new Date(date), "MMM dd"),
         grossSales: gross,
         discounts: discounts,
         refunds: refunds,
-        netSales: dailyNetSales,
+        netSales: netSales,
         orders: ordersCount,
-        avgOrderValue: ordersCount > 0 ? dailyNetSales / ordersCount : 0,
       });
     });
 
     setSalesData(result);
 
     // ─── 9. Summary ──────────────────────────────────────────────────
-    const totalNetSales  = grossSales - totalDiscounts - totalRefunds;
-    const avgOrderValue = totalOrders > 0 ? totalNetSales / totalOrders : 0;
+    const netSales = grossSales - totalDiscounts - totalRefunds;
 
     setSummary({
       grossSales: grossSales,
       discounts: totalDiscounts,
       refunds: totalRefunds,
-      netSales: totalNetSales,
-      serviceCharges: 0,
+      netSales: netSales,
       totalOrders: totalOrders,
-      averageOrderValue: avgOrderValue,
-    });
-
-    setDebugInfo({
-      totalOrders,
-      grossSales,
-      totalDiscounts,
-      totalRefunds,
-      totalNetSales,
-      paidOrderIdsCount: completedOrderIds.size,
     });
 
   } catch (error) {
@@ -277,7 +258,10 @@ export default function SalesReportPage() {
   };
 
   // ─── Formatting helpers ──────────────────────────────────────────────
-  const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
+  const formatCurrency = (value: number | null | undefined) => {
+  if (value === undefined || value === null || isNaN(value)) return '$0.00';
+  return `$${value.toFixed(2)}`;
+};
 
   // ─── Loading state ────────────────────────────────────────────────────
   if (loading) {
@@ -390,39 +374,6 @@ export default function SalesReportPage() {
         </Card>
       )}
 
-      {/* ─── Debug Info (remove in production) ────────────────────────── */}
-      {debugInfo && hasData && (
-        <Card className="bg-muted/30 border-border border-dashed">
-          <CardContent className="p-4">
-            <details className="text-xs">
-              <summary className="cursor-pointer text-muted-foreground font-medium">
-                🔍 Debug Info
-              </summary>
-              <div className="mt-2 space-y-1">
-                <p>Branch: {debugInfo.branchName || 'N/A'} (ID: {debugInfo.branchId || 'N/A'})</p>
-                <p>Sales Transactions: {debugInfo.salesTransactionsCount}</p>
-                <p>Total Revenue: ${debugInfo.totalRevenue?.toFixed(2) || '0.00'}</p>
-                {debugInfo.grossProfitData && (
-                  <div className="mt-2 p-2 bg-background rounded">
-                    <p className="font-medium">Gross Profit Report:</p>
-                    <pre className="mt-1 overflow-auto max-h-40">
-                      {JSON.stringify(debugInfo.grossProfitData, null, 2)}
-                    </pre>
-                  </div>
-                )}
-                {debugInfo.firstTransaction && (
-                  <div className="mt-2 p-2 bg-background rounded">
-                    <p className="font-medium">Sample Transaction:</p>
-                    <pre className="mt-1 overflow-auto max-h-40">
-                      {JSON.stringify(debugInfo.firstTransaction, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            </details>
-          </CardContent>
-        </Card>
-      )}
 
       {hasData && (
         <>
@@ -497,34 +448,6 @@ export default function SalesReportPage() {
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 rounded-full bg-cyan-500/20">
-                  <DollarSign className="h-6 w-6 text-cyan-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Avg. Order Value</p>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(summary.averageOrderValue)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-slate-500/10 to-slate-500/5 border-slate-500/20">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 rounded-full bg-slate-500/20">
-                  <Receipt className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Service Charges</p>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(summary.serviceCharges)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* ─── Chart ────────────────────────────────────────────────────── */}
@@ -561,6 +484,12 @@ export default function SalesReportPage() {
                       name="Gross Sales"
                       radius={[4, 4, 0, 0]}
                     />
+                      <Bar
+                        dataKey="netSales"
+                        fill="#34d399"
+                        name="Net Sales"
+                        radius={[4, 4, 0, 0]}
+                      />
                     <Bar
                       dataKey="discounts"
                       fill="#fb7185"
@@ -572,15 +501,7 @@ export default function SalesReportPage() {
                       fill="#f59e0b"
                       name="Refunds"
                       radius={[4, 4, 0, 0]}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="netSales"
-                      stroke="#34d399"
-                      strokeWidth={2}
-                      name="Net Sales"
-                      dot={{ r: 3 }}
-                    />
+                    />                  
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -606,7 +527,6 @@ export default function SalesReportPage() {
                       <th className="px-4 py-3 text-left">Discounts</th>
                       <th className="px-4 py-3 text-left">Refunds</th>
                       <th className="px-4 py-3 text-left">Net Sales</th>
-                      <th className="px-4 py-3 text-left">Avg Order</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -640,9 +560,6 @@ export default function SalesReportPage() {
                           </td>
                           <td className="px-4 py-3 font-bold text-emerald-400">
                             {formatCurrency(day.netSales)}
-                          </td>
-                          <td className="px-4 py-3">
-                            {formatCurrency(day.avgOrderValue)}
                           </td>
                         </tr>
                       ))

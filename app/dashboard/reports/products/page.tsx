@@ -448,6 +448,14 @@ export default function ProductPerformancePage() {
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center gap-1">
+                      S.N <SortIcon field="name" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => handleSort("name")}
+                  >
+                    <div className="flex items-center gap-1">
                       Product <SortIcon field="name" />
                     </div>
                   </th>
@@ -467,14 +475,14 @@ export default function ProductPerformancePage() {
                       Qty Sold <SortIcon field="quantity_sold" />
                     </div>
                   </th>
-                  <th
+                  {/* <th
                     className="px-4 py-3 text-right cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("order_count")}
                   >
                     <div className="flex items-center justify-end gap-1">
                       Orders <SortIcon field="order_count" />
                     </div>
-                  </th>
+                  </th> */}
                   <th
                     className="px-4 py-3 text-right cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("net_sales")}
@@ -517,7 +525,7 @@ export default function ProductPerformancePage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredProducts.map((product) => (
+                  filteredProducts.map((product, index) => (
                     <tr
                       key={product.id}
                       className={cn(
@@ -525,6 +533,9 @@ export default function ProductPerformancePage() {
                         product.quantity_sold === 0 && "opacity-60"
                       )}
                     >
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        {index + 1}
+                      </td>
                       <td className="px-4 py-3 font-medium text-foreground">
                         {product.name}
                         <span className="text-xs text-muted-foreground ml-2">({product.sku})</span>
@@ -535,7 +546,7 @@ export default function ProductPerformancePage() {
                       <td className="px-4 py-3 text-right font-medium">
                         {product.quantity_sold}
                       </td>
-                      <td className="px-4 py-3 text-right">{product.order_count}</td>
+                      {/* <td className="px-4 py-3 text-right">{product.order_count}</td> */}
                       <td className="px-4 py-3 text-right font-medium">
                         {formatCurrency(product.net_sales)}
                       </td>

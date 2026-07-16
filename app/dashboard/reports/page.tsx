@@ -25,9 +25,8 @@ import Link from "next/link";
 type OverviewStats = {
   totalSales: number;
   totalOrders: number;
-  averageOrderValue: number;
   grossProfit: number;
-  totalExpenses: number;
+  // totalExpenses: number;
   netProfit: number;
   cancelledOrders: number;
   recentTransactions: any[];
@@ -41,9 +40,8 @@ export default function ReportsOverviewPage() {
   const [stats, setStats] = useState<OverviewStats>({
     totalSales: 0,
     totalOrders: 0,
-    averageOrderValue: 0,
     grossProfit: 0,
-    totalExpenses: 0,
+    // totalExpenses: 0,
     netProfit: 0,
     cancelledOrders: 0,
     recentTransactions: [],
@@ -171,28 +169,27 @@ export default function ReportsOverviewPage() {
     }
 
     // ─── 9. Expenses ──────────────────────────────────────────────────────
-    let totalExpenses = 0;
-    try {
-      const expRes = await apiFetch(
-        `/api/accounting/expenses/?expense_date__gte=${gte}&expense_date__lte=${lte}&page_size=1000`,
-        {},
-        true
-      );
-      const expData = await expRes.json();
-      const expenses = expData.results || expData || [];
-      totalExpenses = expenses.reduce(
-        (sum: number, e: any) => sum + Number(e.amount || 0),
-        0
-      );
-    } catch (error) {
-      console.warn("Expense endpoint not available, using 0");
-    }
+    // let totalExpenses = 0;
+    // try {
+    //   const expRes = await apiFetch(
+    //     `/api/accounting/expenses/?expense_date__gte=${gte}&expense_date__lte=${lte}&page_size=1000`,
+    //     {},
+    //     true
+    //   );
+    //   const expData = await expRes.json();
+    //   const expenses = expData.results || expData || [];
+    //   totalExpenses = expenses.reduce(
+    //     (sum: number, e: any) => sum + Number(e.amount || 0),
+    //     0
+    //   );
+    // } catch (error) {
+    //   console.warn("Expense endpoint not available, using 0");
+    // }
 
     // ─── 10. Derived metrics ──────────────────────────────────────────
     const netSales = grossSales - totalDiscounts - totalRefunds;
     const grossProfit = netSales - totalCogs;
-    const netProfit = grossProfit - totalExpenses;
-    const averageOrderValue = totalOrders > 0 ? netSales / totalOrders : 0;
+    const netProfit = grossProfit;
 
     // ─── 11. Recent transactions ──────────────────────────────────────
     const recentRes = await apiFetch(
@@ -206,9 +203,8 @@ export default function ReportsOverviewPage() {
     setStats({
       totalSales: netSales,
       totalOrders,
-      averageOrderValue,
       grossProfit,
-      totalExpenses,
+      // totalExpenses,
       netProfit,
       cancelledOrders,
       recentTransactions,
@@ -298,7 +294,7 @@ export default function ReportsOverviewPage() {
               <DollarSign className="h-6 w-6 text-indigo-400" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Sales</p>
+              <p className="text-sm text-muted-foreground">Net Sales</p>
               <p className="text-2xl font-bold">{formatCurrency(stats.totalSales)}</p>
             </div>
           </CardContent>
@@ -315,21 +311,6 @@ export default function ReportsOverviewPage() {
             <div>
               <p className="text-sm text-muted-foreground">Total Orders</p>
               <p className="text-2xl font-bold">{stats.totalOrders}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 cursor-pointer hover:shadow-lg hover:shadow-purple-500/10 transition-all"
-          onClick={() => navigateTo("sales")}
-        >
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 rounded-full bg-purple-500/20">
-              <TrendingUp className="h-6 w-6 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Avg. Order Value</p>
-              <p className="text-2xl font-bold">{formatCurrency(stats.averageOrderValue)}</p>
             </div>
           </CardContent>
         </Card>
@@ -367,7 +348,7 @@ export default function ReportsOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card
+        {/* <Card
           className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20 cursor-pointer hover:shadow-lg hover:shadow-orange-500/10 transition-all"
           onClick={() => navigateTo("profit-loss")}
         >
@@ -380,7 +361,7 @@ export default function ReportsOverviewPage() {
               <p className="text-2xl font-bold">{formatCurrency(stats.totalExpenses)}</p>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card
           className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20 cursor-pointer hover:shadow-lg hover:shadow-red-500/10 transition-all"

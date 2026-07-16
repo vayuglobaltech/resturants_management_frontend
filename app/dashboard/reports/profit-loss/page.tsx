@@ -62,7 +62,7 @@ type PnLData = {
   netSales: number;
   cogs: number;
   grossProfit: number;
-  operatingExpenses: number;
+  // operatingExpenses: number;
   netProfit: number;
 };
 
@@ -73,7 +73,7 @@ type PnLSummary = {
   netSales: number;
   cogs: number;
   grossProfit: number;
-  operatingExpenses: number;
+  // operatingExpenses: number;
   netProfit: number;
   netProfitMargin: number;
 };
@@ -103,7 +103,7 @@ export default function ProfitLossPage() {
     netSales: 0,
     cogs: 0,
     grossProfit: 0,
-    operatingExpenses: 0,
+    // operatingExpenses: 0,
     netProfit: 0,
     netProfitMargin: 0,
   });
@@ -293,7 +293,7 @@ export default function ProfitLossPage() {
           netSales: netSales,
           cogs: dailyCogs,
           grossProfit: grossProfit,
-          operatingExpenses: dailyExpenses,
+          // operatingExpenses: dailyExpenses,
           netProfit: netProfit,
         };
       });
@@ -320,7 +320,7 @@ export default function ProfitLossPage() {
       netSales: totalNetSales,
       cogs: totalCogsSum,
       grossProfit: totalGrossProfit,
-      operatingExpenses: totalExpenses,
+      // operatingExpenses: totalExpenses,
       netProfit: totalNetProfit,
       netProfitMargin: netProfitMargin,
     });
@@ -374,11 +374,11 @@ export default function ProfitLossPage() {
       type: "deduction",
     },
     { label: "Gross Profit", value: summary.grossProfit, type: "subtotal" },
-    {
-      label: "Operating Expenses",
-      value: summary.operatingExpenses,
-      type: "deduction",
-    },
+    // {
+    //   label: "Operating Expenses",
+    //   value: summary.operatingExpenses,
+    //   type: "deduction",
+    // },
     { label: "Net Profit", value: summary.netProfit, type: "total" },
   ];
 
@@ -535,7 +535,7 @@ export default function ProfitLossPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+        {/* <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-orange-500/20">
               <DollarSign className="h-5 w-5 text-orange-400" />
@@ -549,7 +549,7 @@ export default function ProfitLossPage() {
               </p>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
         <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-purple-500/20">
@@ -559,21 +559,6 @@ export default function ProfitLossPage() {
               <p className="text-xs text-muted-foreground">Net Profit</p>
               <p className="text-lg font-bold">
                 {formatCurrency(summary.netProfit)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-full bg-emerald-500/20">
-              <TrendingUp className="h-5 w-5 text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Revenue / COGS</p>
-              <p className="text-lg font-bold">
-                {summary.cogs > 0 
-                  ? (summary.grossSales / summary.cogs).toFixed(2)
-                  : 'N/A'}
               </p>
             </div>
           </CardContent>
@@ -621,19 +606,19 @@ export default function ProfitLossPage() {
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar
-                  dataKey="operatingExpenses"
+                  dataKey="netProfit"
                   fill="#f59e0b"
-                  name="Operating Expenses"
+                  name="Net Profit"
                   radius={[4, 4, 0, 0]}
                 />
-                <Line
+                {/* <Line
                   type="monotone"
                   dataKey="netProfit"
                   stroke="#facc15"
                   strokeWidth={3}
                   name="Net Profit"
                   dot={{ r: 3 }}
-                />
+                /> */}
               </ComposedChart>
             </ResponsiveContainer>
           </div>

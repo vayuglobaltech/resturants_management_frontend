@@ -301,7 +301,7 @@ setCashiers(Array.from(cashierMap.values()));
           
           const order = orders.find((o: any) => o.id === c.order);
           if (order && order.confirmed_at && order.ready_at) {
-            const prep = differenceInMinutes(new Date(order.ready_at), new Date(order.confirmed_at));
+            const prep = differenceInMinutes(new Date(order.ready_at), new Date(order.preparing_at));
             if (!prepTimes[kitchenId]) prepTimes[kitchenId] = [];
             prepTimes[kitchenId].push(prep);
             if (prep > 30) stat.delayed_orders += 1;
@@ -327,7 +327,9 @@ setCashiers(Array.from(cashierMap.values()));
         });
       }
       
-      const kitchenArray = Array.from(kitchenMap.values()).filter(k => k.orders_prepared > 0 || k.average_prep_time > 0);
+      // const kitchenArray = Array.from(kitchenMap.values()).filter(k => k.orders_prepared > 0 || k.average_prep_time > 0);
+      const kitchenArray = Array.from(kitchenMap.values());
+
       setKitchen(kitchenArray);
       
     } catch (error) {
@@ -512,7 +514,6 @@ setCashiers(Array.from(cashierMap.values()));
                         <th className="px-4 py-3 text-right">Tables Served</th>
                         <th className="px-4 py-3 text-right">Sales Handled</th>
                         <th className="px-4 py-3 text-right">Cancelled</th>
-                        <th className="px-4 py-3 text-right">Avg Order Value</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -523,7 +524,6 @@ setCashiers(Array.from(cashierMap.values()));
                           <td className="px-4 py-3 text-right">{w.tables_served}</td>
                           <td className="px-4 py-3 text-right font-medium">{formatCurrency(w.sales_handled)}</td>
                           <td className="px-4 py-3 text-right text-red-400">{w.cancelled_orders}</td>
-                          <td className="px-4 py-3 text-right">{formatCurrency(w.average_order_value)}</td>
                         </tr>
                       ))}
                     </tbody>
