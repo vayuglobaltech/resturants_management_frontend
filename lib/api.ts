@@ -43,6 +43,17 @@ export async function apiFetch(
   }
   return res;
 }
+// In @/lib/api.ts, add this generic wrapper
+export async function apiFetchTyped<T = any>(
+  path: string,
+  options: RequestInit = {},
+  auth = false
+): Promise<T> {
+  const res = await apiFetch(path, options, auth);
+  const data = await res.json();
+  if (!res.ok) throw data;
+  return data as T;
+}
 
 export async function getBranches() {
   const res = await apiFetch("/api/users/branches/");

@@ -181,7 +181,7 @@ export default function EditRecipePage({ params }: EditRecipePageProps) {
         <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-400" />
         <p className="text-red-400">{fetchError}</p>
         <Link href="/dashboard/inventory/recipes">
-          <Button variant="primary" className="mt-4">Back to Recipes</Button>
+          <Button className="mt-4">Back to Recipes</Button>
         </Link>
       </div>
     );

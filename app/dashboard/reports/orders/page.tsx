@@ -413,7 +413,18 @@ export default function OrderReportPage() {
       </div>
 
       {/* ─── Summary Cards ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2.5 rounded-full bg-amber-500/20">
+              <Clock className="h-5 w-5 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Active</p>
+              <p className="text-lg font-bold">{stats.activeOrders}</p>
+            </div>
+          </CardContent>
+        </Card>
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-indigo-500/20">
@@ -426,7 +437,7 @@ export default function OrderReportPage() {
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-2 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-emerald-500/20">
               <CheckCircle className="h-5 w-5 text-emerald-400" />
             </div>
@@ -436,17 +447,7 @@ export default function OrderReportPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-full bg-amber-500/20">
-              <Clock className="h-5 w-5 text-amber-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Active</p>
-              <p className="text-lg font-bold">{stats.activeOrders}</p>
-            </div>
-          </CardContent>
-        </Card>
+        
         <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-red-500/20">
@@ -472,7 +473,7 @@ export default function OrderReportPage() {
       </div>
 
       {/* ─── Additional Stats ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
         <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-cyan-500/20">

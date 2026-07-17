@@ -371,7 +371,7 @@ export default function PaymentsPage() {
                 Total Amount
               </p>
               <p className="text-lg font-bold">
-                Rs .{summaryStats.totalAmount.toFixed(2)}
+                 &nbsp;  Rs. {summaryStats.totalAmount.toFixed(2)}
               </p>
             </div>
           </CardContent>

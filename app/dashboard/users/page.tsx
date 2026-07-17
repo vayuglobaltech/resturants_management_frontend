@@ -48,6 +48,25 @@ type User = {
   date_joined?: string;
 };
 
+// ✅ Helper function to safely get user role name
+const getUserRoleName = (role: any): string => {
+  if (!role) return "";
+  if (typeof role === "object" && "name" in role) {
+    return String(role.name);
+  }
+  if (typeof role === "string") {
+    return role;
+  }
+  return "";
+};
+
+// ✅ Helper function to check if user is admin
+const isUserAdmin = (user: any): boolean => {
+  if (!user) return false;
+  const roleName = getUserRoleName(user.role);
+  return roleName.toLowerCase() === "admin";
+};
+
 export default function UsersPage() {
   const { user } = useAuth();
   const canManage = useCanManage();
@@ -130,9 +149,12 @@ export default function UsersPage() {
         userList = data.results || data.data || [];
       }
 
+      // ✅ Use the helper to check if user is admin
+      const isAdmin = isUserAdmin(user);
       const branchIdFilter = managerBranchId || (user as any)?.primary_branch || (user as any)?.branch;
+      
       let filtered = userList;
-      if (branchIdFilter && !["admin"].includes(user?.role?.name || "")) {
+      if (branchIdFilter && !isAdmin) {
         filtered = userList.filter(
           (u: User) =>
             u.branch === branchIdFilter ||
@@ -473,173 +495,173 @@ export default function UsersPage() {
 
       {/* ─── Add User Modal ─── */}
       {showAddModal && (
-<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-<div className="bg-background border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-  <div className="flex items-center justify-between mb-4">
-    <h2 className="text-xl font-bold text-foreground">Add New Employee</h2>
-    <button 
-      onClick={() => setShowAddModal(false)} 
-      className="text-muted-foreground hover:text-foreground transition-colors rounded-lg p-1 hover:bg-muted/50"
-    >
-      <X className="h-5 w-5" />
-    </button>
-  </div>
-  
-  <form onSubmit={handleAddUser} className="space-y-4">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-          Username <span className="text-red-400">*</span>
-        </label>
-        <Input 
-          value={newUser.username} 
-          onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} 
-          required 
-          className="w-full"
-        />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-          Email <span className="text-red-400">*</span>
-        </label>
-        <Input 
-          type="email" 
-          value={newUser.email} 
-          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} 
-          required 
-          className="w-full"
-        />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-          Password <span className="text-red-400">*</span>
-        </label>
-        <Input 
-          type="password" 
-          value={newUser.password} 
-          onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} 
-          required 
-          className="w-full"
-        />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-          Confirm Password <span className="text-red-400">*</span>
-        </label>
-        <Input 
-          type="password" 
-          value={newUser.password2} 
-          onChange={(e) => setNewUser({ ...newUser, password2: e.target.value })} 
-          required 
-          className="w-full"
-        />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-          First Name
-        </label>
-        <Input 
-          value={newUser.first_name} 
-          onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })} 
-          className="w-full"
-        />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-          Last Name
-        </label>
-        <Input 
-          value={newUser.last_name} 
-          onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })} 
-          className="w-full"
-        />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-          Phone Number
-        </label>
-        <Input 
-          value={newUser.phone_number} 
-          onChange={(e) => setNewUser({ ...newUser, phone_number: e.target.value })} 
-          className="w-full"
-        />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-          Role <span className="text-red-400">*</span>
-        </label>
-        <select
-          value={newUser.role}
-          onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-          required
-          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-foreground shadow-sm focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-colors"
-        >
-          <option value="">Select role</option>
-          <option value="4">Waiter</option>
-          <option value="3">Cashier</option>
-          <option value="5">Kitchen Staff</option>
-        </select>
-      </div>
-    </div>
-    
-    <div>
-      <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-        Branch (auto-assigned)
-      </label>
-      <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-foreground/70 text-sm shadow-sm">
-        {managerBranchName || "Your branch"}
-      </div>
-    </div>
-    
-    <div className="flex flex-wrap gap-6 py-1">
-      <label className="flex items-center gap-2.5 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-        <input
-          type="checkbox"
-          checked={newUser.is_approved}
-          onChange={(e) => setNewUser({ ...newUser, is_approved: e.target.checked })}
-          className="h-4 w-4 rounded border-border bg-background text-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:ring-offset-0 transition-colors"
-        />
-        Approve immediately
-      </label>
-      <label className="flex items-center gap-2.5 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-        <input
-          type="checkbox"
-          checked={newUser.is_active}
-          onChange={(e) => setNewUser({ ...newUser, is_active: e.target.checked })}
-          className="h-4 w-4 rounded border-border bg-background text-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:ring-offset-0 transition-colors"
-        />
-        Active
-      </label>
-    </div>
-    
-    <div className="flex gap-3 pt-2 border-t border-border">
-      <Button 
-        type="button" 
-        variant="ghost" 
-        onClick={() => setShowAddModal(false)} 
-        className="flex-1 hover:bg-muted/50"
-      >
-        Cancel
-      </Button>
-      <Button 
-        type="submit" 
-        disabled={submitting} 
-        className="flex-1 gap-2 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-indigo-600 shadow-lg shadow-indigo-500/25"
-      >
-        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-        {submitting ? "Creating..." : "Create Employee"}
-      </Button>
-    </div>
-  </form>
-</div>
-</div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-background border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-foreground">Add New Employee</h2>
+              <button 
+                onClick={() => setShowAddModal(false)} 
+                className="text-muted-foreground hover:text-foreground transition-colors rounded-lg p-1 hover:bg-muted/50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddUser} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                    Username <span className="text-red-400">*</span>
+                  </label>
+                  <Input 
+                    value={newUser.username} 
+                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} 
+                    required 
+                    className="w-full"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                    Email <span className="text-red-400">*</span>
+                  </label>
+                  <Input 
+                    type="email" 
+                    value={newUser.email} 
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} 
+                    required 
+                    className="w-full"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                    Password <span className="text-red-400">*</span>
+                  </label>
+                  <Input 
+                    type="password" 
+                    value={newUser.password} 
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} 
+                    required 
+                    className="w-full"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                    Confirm Password <span className="text-red-400">*</span>
+                  </label>
+                  <Input 
+                    type="password" 
+                    value={newUser.password2} 
+                    onChange={(e) => setNewUser({ ...newUser, password2: e.target.value })} 
+                    required 
+                    className="w-full"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                    First Name
+                  </label>
+                  <Input 
+                    value={newUser.first_name} 
+                    onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })} 
+                    className="w-full"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                    Last Name
+                  </label>
+                  <Input 
+                    value={newUser.last_name} 
+                    onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })} 
+                    className="w-full"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                    Phone Number
+                  </label>
+                  <Input 
+                    value={newUser.phone_number} 
+                    onChange={(e) => setNewUser({ ...newUser, phone_number: e.target.value })} 
+                    className="w-full"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                    Role <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                    required
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-foreground shadow-sm focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-colors"
+                  >
+                    <option value="">Select role</option>
+                    <option value="4">Waiter</option>
+                    <option value="3">Cashier</option>
+                    <option value="5">Kitchen Staff</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                  Branch (auto-assigned)
+                </label>
+                <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-foreground/70 text-sm shadow-sm">
+                  {managerBranchName || "Your branch"}
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-6 py-1">
+                <label className="flex items-center gap-2.5 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={newUser.is_approved}
+                    onChange={(e) => setNewUser({ ...newUser, is_approved: e.target.checked })}
+                    className="h-4 w-4 rounded border-border bg-background text-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:ring-offset-0 transition-colors"
+                  />
+                  Approve immediately
+                </label>
+                <label className="flex items-center gap-2.5 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={newUser.is_active}
+                    onChange={(e) => setNewUser({ ...newUser, is_active: e.target.checked })}
+                    className="h-4 w-4 rounded border-border bg-background text-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:ring-offset-0 transition-colors"
+                  />
+                  Active
+                </label>
+              </div>
+              
+              <div className="flex gap-3 pt-2 border-t border-border">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={() => setShowAddModal(false)} 
+                  className="flex-1 hover:bg-muted/50"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={submitting} 
+                  className="flex-1 gap-2 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-indigo-600 shadow-lg shadow-indigo-500/25"
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  {submitting ? "Creating..." : "Create Employee"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* ─── Edit User Modal ─── */}

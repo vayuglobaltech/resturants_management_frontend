@@ -137,3 +137,35 @@
 .scrollbar-hidden::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* app/globals.css */
+
+/* ✅ Keep PWA improvements but allow scrolling */
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;  /* ✅ Allow vertical scrolling */
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  overscroll-behavior: none; /* Prevents pull-to-refresh */
+  background-color: #121110;
+}
+
+/* ✅ Main app container - allows scrolling */
+#root, .app-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ✅ For iOS Safari - ensures content is scrollable */
+@supports (-webkit-touch-callout: none) {
+  body {
+    min-height: -webkit-fill-available;
+  }
+}

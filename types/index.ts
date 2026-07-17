@@ -120,7 +120,6 @@ export interface AccountingSummary {
   grossProfitMargin: number;
   pendingExpenses: number;
   pendingAdjustments: number;
-  dailySales: DailySalesSummary;
 }
 
 export interface ShiftClosingFormData {

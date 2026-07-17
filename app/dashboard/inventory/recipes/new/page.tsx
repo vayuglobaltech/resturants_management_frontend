@@ -19,6 +19,16 @@ interface Product {
   product_type: string;
 }
 
+type FormData = {
+  product: string;
+  description: string;
+  prep_time_minutes: string;
+  yields: string;
+  cost_price: string;
+  is_active: boolean;
+  notes: string;
+};
+
 export default function AddRecipePage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -29,7 +39,38 @@ export default function AddRecipePage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm();
+  } = useForm<FormData>();
+
+  // ✅ Helper function to safely get user branch ID
+  const getUserBranchId = (): number => {
+    if (!user) return 1;
+    
+    // If branch is an object with id
+    if (user.branch && typeof user.branch === 'object' && 'id' in user.branch) {
+      return Number((user.branch as any).id);
+    }
+    
+    // If branch is a number
+    if (typeof user.branch === 'number') {
+      return user.branch;
+    }
+    
+    // If branch is a string that can be converted to number
+    if (typeof user.branch === 'string') {
+      const parsed = parseInt(user.branch);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+    
+    // If primary_branch is an object with id
+    if (user.primary_branch && typeof user.primary_branch === 'object' && 'id' in user.primary_branch) {
+      return Number((user.primary_branch as any).id);
+    }
+    
+    // Fallback to 1
+    return 1;
+  };
 
   // Fetch products (only menu items)
   useEffect(() => {
@@ -47,8 +88,10 @@ export default function AddRecipePage() {
     fetchProducts();
   }, []);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: FormData) => {
     try {
+      const branchId = getUserBranchId();
+      
       const payload = {
         product: parseInt(data.product),
         description: data.description || "",
@@ -57,7 +100,7 @@ export default function AddRecipePage() {
         cost_price: parseFloat(data.cost_price) || 0,
         is_active: data.is_active === true,
         notes: data.notes || "",
-        branch: user?.branch?.id || 1,
+        branch: branchId,
       };
       await createRecipe(payload);
       toast.success("Recipe created successfully!");
@@ -66,6 +109,14 @@ export default function AddRecipePage() {
       const msg = error?.detail || error?.message || "Failed to create recipe.";
       toast.error(msg);
     }
+  };
+
+  // ✅ Helper to safely get error message
+  const getErrorMessage = (error: any): string => {
+    if (!error) return '';
+    if (typeof error === 'string') return error;
+    if (typeof error === 'object' && error.message) return error.message;
+    return 'Invalid input';
   };
 
   return (
@@ -103,7 +154,9 @@ export default function AddRecipePage() {
                   ))}
               </select>
               {errors.product && (
-                <p className="text-sm text-red-400 mt-1">{errors.product.message}</p>
+                <p className="text-sm text-red-400 mt-1">
+                  {getErrorMessage(errors.product.message)}
+                </p>
               )}
             </div>
 

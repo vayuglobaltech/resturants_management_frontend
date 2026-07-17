@@ -10,7 +10,7 @@ import {
   updateDiscount,
   deleteDiscount,
 } from "@/lib/ordersApi";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getBranches } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,45 @@ type Branch = {
   name: string;
 };
 
+type UserBranch = {
+  id: number;
+  name: string;
+} | number | string | null;
+
+type UserRole = {
+  name: string;
+} | string | null;
+
+// ✅ Type guard to check if value is a Branch object
+function isBranchObject(value: unknown): value is { id: number; name: string } {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'id' in value &&
+    'name' in value &&
+    typeof (value as any).id === 'number' &&
+    typeof (value as any).name === 'string'
+  );
+}
+
+// ✅ Type guard to check if value is a Role object
+function isRoleObject(value: unknown): value is { name: string } {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'name' in value &&
+    typeof (value as any).name === 'string'
+  );
+}
+
+// ✅ Helper to safely extract data
+const safeExtract = (data: any, defaultValue: any = []) => {
+  if (!data) return defaultValue;
+  if (Array.isArray(data)) return data;
+  if (data.results && Array.isArray(data.results)) return data.results;
+  return defaultValue;
+};
+
 export default function DiscountsPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -60,6 +99,12 @@ export default function DiscountsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchMap, setBranchMap] = useState<Record<number, string>>({});
+  
+  // ─── Branch validation state ──────────────────────────────────────────
+  const [validBranchId, setValidBranchId] = useState<number | null>(null);
+  const [branchName, setBranchName] = useState("");
+  const [isBranchValidated, setIsBranchValidated] = useState(false);
 
   // ─── Modal state ──────────────────────────────────────────────────
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,42 +127,176 @@ export default function DiscountsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Discount | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // ─── User role & branch ──────────────────────────────────────────
-  const userRole = user?.role?.name?.toUpperCase();
-  const isAdmin = userRole === "ADMIN";
-  const userBranch = user?.branch || user?.primary_branch;
-
-  // ─── Fetch branches (only for admin) ────────────────────────────
-  useEffect(() => {
-    if (isAdmin) {
-      const fetchBranches = async () => {
-        try {
-          const res = await apiFetch("/api/branches/", {}, true);
-          const data = await res.json();
-          setBranches(data.results || data || []);
-        } catch (error) {
-          console.error("Failed to fetch branches:", error);
-        }
-      };
-      fetchBranches();
+  // ─── User role ──────────────────────────────────────────────────
+  const getUserRole = (): string => {
+    if (!user) return '';
+    
+    if (user.role && isRoleObject(user.role)) {
+      return user.role.name.toUpperCase();
     }
-  }, [isAdmin]);
+    
+    if (typeof user.role === 'string') {
+      return user.role.toUpperCase();
+    }
+    
+    return '';
+  };
+
+  const userRole = getUserRole();
+  const isAdmin = userRole === "ADMIN";
+  
+  // ─── Fetch and validate branch (similar to dashboard) ──────────────
+  useEffect(() => {
+    const fetchAndValidateBranch = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // First, fetch the user profile to get the branch
+        console.log("📡 Fetching user profile for branch...");
+        const res = await apiFetch('/api/users/profile/', {}, true);
+        
+        let profileBranchName = "";
+        let profileBranchId = null;
+        
+        if (res.ok) {
+          const profile = await res.json();
+          console.log("📋 User profile from API:", profile);
+          
+          // Try different possible field names for branch
+          if (profile.branch?.name) {
+            profileBranchName = profile.branch.name;
+            profileBranchId = profile.branch.id;
+          } else if (profile.branch_name) {
+            profileBranchName = profile.branch_name;
+          } else if (profile.branch?.branch_name) {
+            profileBranchName = profile.branch.branch_name;
+          }
+          
+          console.log("✅ Found branch name in profile:", profileBranchName);
+        } else {
+          console.error("Failed to fetch profile:", res.status);
+        }
+        
+        // Now fetch available branches
+        console.log("🔍 Fetching available branches...");
+        const branchData = await getBranches();
+        const branchList = safeExtract(branchData);
+        console.log("📋 Available branches:", branchList);
+        
+        setBranches(branchList);
+        
+        // Build branch map for quick lookups
+        const map: Record<number, string> = {};
+        branchList.forEach((b: Branch) => {
+          map[b.id] = b.name;
+        });
+        setBranchMap(map);
+        
+        if (branchList.length === 0) {
+          toast.error("No branches available in the system");
+          setLoading(false);
+          return;
+        }
+        
+        let selectedBranch = null;
+        let selectedBranchName = "";
+        
+        // FIRST: Try to use branch from profile
+        if (profileBranchName) {
+          const matchedBranch = branchList.find((b: any) => 
+            b.name?.toLowerCase() === profileBranchName.toLowerCase()
+          );
+          if (matchedBranch) {
+            selectedBranch = matchedBranch;
+            selectedBranchName = matchedBranch.name;
+            console.log("✅ Using branch from profile:", selectedBranchName);
+          } else {
+            // If branch not in list, use the profile branch name
+            selectedBranchName = profileBranchName;
+            selectedBranch = branchList[0];
+            console.log("📌 Using profile branch name (not in list):", selectedBranchName);
+          }
+        }
+        
+        // SECOND: Try by user's branch ID from auth
+        if (!selectedBranch) {
+          const userBranchId = (user as any)?.branch?.id;
+          if (userBranchId) {
+            const branchById = branchList.find((b: any) => b.id === userBranchId);
+            if (branchById) {
+              selectedBranch = branchById;
+              selectedBranchName = branchById.name;
+              console.log("✅ Using branch from user ID:", selectedBranchName);
+            }
+          }
+        }
+        
+        // THIRD: Try by user's branch name from auth
+        if (!selectedBranch) {
+          const userBranchName = (user as any)?.branch?.name;
+          if (userBranchName) {
+            const branchByName = branchList.find((b: any) => 
+              b.name?.toLowerCase() === userBranchName.toLowerCase()
+            );
+            if (branchByName) {
+              selectedBranch = branchByName;
+              selectedBranchName = branchByName.name;
+              console.log("✅ Using branch from user name:", selectedBranchName);
+            }
+          }
+        }
+        
+        // FINAL: Fallback to first branch
+        if (!selectedBranch && branchList.length > 0) {
+          selectedBranch = branchList[0];
+          selectedBranchName = selectedBranch.name || "Default Branch";
+          console.log("📌 Using first available branch as fallback:", selectedBranchName);
+        }
+        
+        if (selectedBranch) {
+          setValidBranchId(selectedBranch.id);
+          setBranchName(selectedBranchName);
+          setIsBranchValidated(true);
+          console.log("✅ Final branch:", selectedBranchName);
+        } else {
+          toast.error("No valid branch found");
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("❌ Failed to validate branch:", error);
+        toast.error("Failed to load branch data");
+        setLoading(false);
+      }
+    };
+
+    fetchAndValidateBranch();
+  }, [user]);
+
+  // ─── Fetch discounts when branch is validated ──────────────────────
+  useEffect(() => {
+    if (isBranchValidated) {
+      fetchDiscounts();
+    }
+  }, [isBranchValidated]);
 
   const fetchDiscounts = async () => {
     try {
+      setLoading(true);
       const data = await getDiscounts();
       setDiscounts(data);
       setFiltered(data);
     } catch (error) {
       toast.error("Failed to load discounts.");
+      console.error("Failed to fetch discounts:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchDiscounts();
-  }, []);
 
   useEffect(() => {
     if (searchTerm.trim()) {
@@ -134,6 +313,20 @@ export default function DiscountsPage() {
       setFiltered(discounts);
     }
   }, [searchTerm, discounts]);
+
+  // ✅ Helper to get branch name from ID
+  const getBranchName = (branchId: number | null): string => {
+    if (!branchId) return "All Branches";
+    
+    // First check the branch map
+    if (branchMap[branchId]) return branchMap[branchId];
+    
+    // Then check if the discount has a branch_name
+    const discount = discounts.find(d => d.branch === branchId);
+    if (discount?.branch_name) return discount.branch_name;
+    
+    return `Branch ${branchId}`;
+  };
 
   const handleOpenModal = (discount?: Discount) => {
     if (discount) {
@@ -154,8 +347,8 @@ export default function DiscountsPage() {
       });
     } else {
       setEditingDiscount(null);
-      // For non‑admin, auto‑set branch
-      const defaultBranch = isAdmin ? "" : (userBranch?.id ? String(userBranch.id) : "");
+      // Use the validated branch ID
+      const defaultBranch = isAdmin ? "" : (validBranchId ? String(validBranchId) : "");
       setFormData({
         name: "",
         description: "",
@@ -233,8 +426,9 @@ export default function DiscountsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <Tag className="h-6 w-6 text-indigo-400" /> Discounts
+         
         </h1>
         <div className="flex items-center gap-2">
           <Button
@@ -249,6 +443,11 @@ export default function DiscountsPage() {
             <Plus className="h-4 w-4 mr-1" /> Add Discount
           </Button>
         </div>
+        {branchName && (
+            <span className="text-xs font-normal text-muted-foreground ml-2">
+              ({branchName})
+            </span>
+          )}
       </div>
 
       {/* Search */}
@@ -303,12 +502,12 @@ export default function DiscountsPage() {
                     {d.type === "percentage" ? `${d.value}%` : `$${d.value}`}
                   </span>
                 </div>
-                {d.branch_name && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Branch</span>
-                    <span className="text-foreground">{d.branch_name}</span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Branch</span>
+                  <span className="text-foreground">
+                    {getBranchName(d.branch)}
+                  </span>
+                </div>
                 {d.requires_code && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Code</span>
@@ -448,7 +647,7 @@ export default function DiscountsPage() {
                   </select>
                 ) : (
                   <div className="w-full rounded-md border border-border bg-background/50 px-3 py-2 text-foreground/80">
-                    {userBranch?.name || "Your branch"} (auto‑assigned)
+                    {branchName || "Your branch"} (auto‑assigned)
                     <input type="hidden" name="branch" value={formData.branch} />
                   </div>
                 )}

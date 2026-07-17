@@ -1,7 +1,29 @@
 import type { NextConfig } from 'next';
 
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: false, // ✅ Enable PWA in development
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'vayutech-cache',
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 24 * 60 * 60,
+        },
+      },
+    },
+  ],
+});
+
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ['192.168.1.73'],
+  allowedDevOrigins: ['192.168.1.*', '*.local','data-unrefined-till.ngrok-free.dev', // ✅ Add your ngrok URL here
+    '*.ngrok-free.dev',],
+  turbopack: {},
   async headers() {
     return [
       {
@@ -19,6 +41,18 @@ const nextConfig: NextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization',
+          },
         ],
       },
       {
@@ -32,14 +66,10 @@ const nextConfig: NextConfig = {
             key: 'Cache-Control',
             value: 'no-cache, no-store, must-revalidate',
           },
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self'",
-          },
         ],
       },
     ];
   },
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);

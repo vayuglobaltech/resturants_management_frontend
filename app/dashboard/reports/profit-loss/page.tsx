@@ -259,91 +259,151 @@ try {
       discountGrouped[date] = (discountGrouped[date] || 0) + discSum;
     });
 
-    // ─── 7. Refunds grouped by date ──────────────────────────────────
-    const refundGrouped: Record<string, number> = {};
-    refundedPayments.forEach((p: any) => {
-      const date = format(new Date(p.created_at), "yyyy-MM-dd");
-      refundGrouped[date] = (refundGrouped[date] || 0) + Number(p.refunded_amount || 0);
-    });
+      // ─── 4. Group sales by date ──────────────────────────────────
+      const salesGrouped: Record<string, number> = {};
+      payments.forEach((p: any) => {
+        const date = format(new Date(p.created_at), "yyyy-MM-dd");
+        salesGrouped[date] = (salesGrouped[date] || 0) + Number(p.amount || 0);
+      });
 
-//     // ─── Fetch products to get cost prices ──────────────────────────
-// let products: any[] = [];
-// try {
-//   const productsRes = await apiFetch(`/api/inventory/products/?page_size=1000`, {}, true);
-//   const productsData = await productsRes.json();
-//   products = productsData.results || productsData || [];
-// } catch (error) {
-//   console.warn("Failed to fetch products, using fallback cost");
-// }
+      // ─── 5. COGS (from COGSTransaction endpoint) ──────────────────
+      let cogsTotal = 0;
+      const cogsMap: Record<string, number> = {};
+      try {
+        const cogsRes = await apiFetch(
+          `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+          {},
+          true,
+        );
+        const cogsData = await cogsRes.json();
+        const cogsItems = cogsData.results || cogsData || [];
+        cogsItems.forEach((c: any) => {
+          const date = format(new Date(c.created_at), "yyyy-MM-dd");
+          const amount = Number(c.total_cogs || 0);
+          cogsMap[date] = (cogsMap[date] || 0) + amount;
+          cogsTotal += amount;
+        });
+      } catch (error) {
+        console.warn("COGS endpoint not available, computing from orders...");
+        orders.forEach((o: any) => {
+          const date = format(new Date(o.created_at), "yyyy-MM-dd");
+          let orderCogs = 0;
+          (o.items || []).forEach((item: any) => {
+            const price = Number(item.price_at_order || 0);
+            const qty = Number(item.quantity || 0);
+            const cost = price * 0.6;
+            orderCogs += cost * qty;
+          });
+          cogsMap[date] = (cogsMap[date] || 0) + orderCogs;
+          cogsTotal += orderCogs;
+        });
+      }
 
-    // ─── 8. COGS & Expenses grouped by date ────────────────────────
-// ─── Fetch products to get cost prices ──────────────────────────
-let products: any[] = [];
-try {
-  const productsRes = await apiFetch(`/api/inventory/products/?page_size=1000`, {}, true);
-  const productsData = await productsRes.json();
-  products = productsData.results || productsData || [];
-} catch (error) {
-  console.warn("Failed to fetch products, using fallback cost");
-}
+      // ─── 6. Operating Expenses (from ExpenseEntry) ──────────────
+      let expenseTotal = 0;
+      const expenseMap: Record<string, number> = {};
+      try {
+        const expRes = await apiFetch(
+          `/api/accounting/expenses/?expense_date__gte=${startStr}&expense_date__lte=${endStr}&page_size=1000`,
+          {},
+          true,
+        );
+        const expData = await expRes.json();
+        const expenses = expData.results || expData || [];
+        expenses.forEach((e: any) => {
+          const date = format(
+            new Date(e.expense_date || e.created_at),
+            "yyyy-MM-dd",
+          );
+          const amount = Number(e.amount || 0);
+          expenseMap[date] = (expenseMap[date] || 0) + amount;
+          expenseTotal += amount;
+        });
+      } catch (error) {
+        console.warn(
+          "Expense endpoint not available, using placeholder (5% of gross sales)",
+        );
+        const totalGross = payments.reduce(
+          (s: number, p: any) => s + Number(p.amount || 0),
+          0,
+        );
+        expenseTotal = totalGross * 0.05;
+        const days = Math.max(1, Object.keys(salesGrouped).length || 1);
+        const perDay = expenseTotal / days;
+        Object.keys(salesGrouped).forEach((date) => {
+          expenseMap[date] = perDay;
+        });
+      }
 
-// ─── Compute daily COGS from orders (using product.cost_price) ──
-const cogsGrouped: Record<string, number> = {};
-const productCostMap = new Map<number, number>();
-products.forEach((p: any) => {
-  productCostMap.set(p.id, parseFloat(p.cost_price) || parseFloat(p.price) * 0.6 || 0);
-});
+      // ─── 7. Refund grouping ──────────────────────────────────────
+      const refundGrouped: Record<string, number> = {};
+      refundedPayments.forEach((p: any) => {
+        const date = format(new Date(p.created_at), "yyyy-MM-dd");
+        const refundAmt = Number(p.refunded_amount || 0);
+        refundGrouped[date] = (refundGrouped[date] || 0) + refundAmt;
+      });
 
-allOrders.forEach((order: any) => {
-  if (!paidOrderIds.has(order.id)) return;  // ✅ use paidOrderIds
-  const date = format(new Date(order.created_at), "yyyy-MM-dd");
-  let orderCogs = 0;
-  (order.items || []).forEach((item: any) => {
-    const cost = productCostMap.get(item.product) || 0;
-    orderCogs += cost * (item.quantity || 0);
-  });
-  cogsGrouped[date] = (cogsGrouped[date] || 0) + orderCogs;
-});
+      // ─── 8. Build daily data ──────────────────────────────────────
+      const allDates = new Set([
+        ...Object.keys(salesGrouped),
+        ...Object.keys(discountMap),
+        ...Object.keys(cogsMap),
+        ...Object.keys(expenseMap),
+        ...Object.keys(refundGrouped),
+      ]);
+
+      let totalRefunds = 0;
+      const result: PnLData[] = Array.from(allDates)
+        .sort()
+        .map((date) => {
+          const gross = salesGrouped[date] || 0;
+          const discounts = discountMap[date] || 0;
+          const refunds = refundGrouped[date] || 0;
+          totalRefunds += refunds;
+          const netSales = gross - discounts - refunds;
+          const cogs = cogsMap[date] || 0;
+          const grossProfit = netSales - cogs;
+          const operatingExpenses = expenseMap[date] || 0;
+          const netProfit = grossProfit - operatingExpenses;
+          return {
+            date: format(new Date(date), "MMM dd"),
+            grossSales: gross,
+            discounts,
+            refunds,
+            netSales,
+            cogs,
+            grossProfit,
+            operatingExpenses,
+            netProfit,
+          };
+        });
 
 // Remove the old cogsItems fetch and grouping – it's replaced by the above.
 // The summary totalCogs can still come from getGrossProfitReport (or computed).
 
-    const expenseGrouped: Record<string, number> = {};
-    expenseItems.forEach((e: any) => {
-      const date = format(new Date(e.expense_date || e.created_at), "yyyy-MM-dd");
-      expenseGrouped[date] = (expenseGrouped[date] || 0) + Number(e.amount || 0);
-    });
+      // ─── 9. Summary ──────────────────────────────────────────────────
+      const totalGross = payments.reduce(
+        (s: number, p: any) => s + Number(p.amount || 0),
+        0,
+      );
+      const totalNetSales = totalGross - totalDiscounts - totalRefunds;
+      const totalCogs = cogsTotal;
+      const totalGrossProfit = totalNetSales - totalCogs;
+      const totalExpenses = expenseTotal;
+      const totalNetProfit = totalGrossProfit - totalExpenses;
+      const netProfitMargin =
+        totalNetSales > 0 ? (totalNetProfit / totalNetSales) * 100 : 0;
 
-    // ─── 9. Build daily data ──────────────────────────────────────────
-    const allDates = new Set([
-      ...Object.keys(salesGrouped),
-      ...Object.keys(cogsGrouped),
-      ...Object.keys(expenseGrouped),
-    ]);
-
-    const result: PnLData[] = Array.from(allDates)
-      .sort()
-      .map((date) => {
-        const gross = salesGrouped[date] || 0;
-        const discounts = discountGrouped[date] || 0;
-        const refunds = refundGrouped[date] || 0;
-        const netSales = gross - discounts - refunds;
-        const dailyCogs = cogsGrouped[date] || 0;
-        const dailyExpenses = expenseGrouped[date] || 0;
-        const grossProfit = netSales - dailyCogs;
-        const netProfit = grossProfit - dailyExpenses;
-
-        return {
-          date: format(new Date(date), "MMM dd"),
-          grossSales: gross,
-          discounts: discounts,
-          refunds: refunds,
-          netSales: netSales,
-          cogs: dailyCogs,
-          grossProfit: grossProfit,
-          // operatingExpenses: dailyExpenses,
-          netProfit: netProfit,
-        };
+      setSummary({
+        grossSales: totalGross,
+        discounts: totalDiscounts,
+        refunds: totalRefunds,
+        netSales: totalNetSales,
+        cogs: totalCogs,
+        grossProfit: totalGrossProfit,
+        operatingExpenses: totalExpenses,
+        netProfit: totalNetProfit,
+        netProfitMargin: netProfitMargin,
       });
 
     setPnlData(result);
@@ -633,7 +693,12 @@ allOrders.forEach((order: any) => {
                   className="text-xs text-muted-foreground"
                 />
                 <Tooltip
-                  formatter={(value: number) => `$${value.toFixed(2)}`}
+                  formatter={(value: any) => {
+                    if (value === undefined || value === null || isNaN(Number(value))) {
+                      return '$0.00';
+                    }
+                    return `$${Number(value).toFixed(2)}`;
+                  }}
                   labelStyle={{ color: "#fff" }}
                   contentStyle={{
                     backgroundColor: "#1e293b",

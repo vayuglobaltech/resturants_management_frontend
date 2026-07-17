@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { getOrder, updateOrder, addOrderItem, deleteOrderItem, getActiveDiscounts } from "@/lib/ordersApi";
 import { getRecipeByProduct, getBranchInventory } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { useCanManage, useCanModifyOrders } from "@/hooks/usePermissions";
+import { useCanModifyOrders } from "@/hooks/usePermissions";
+import { useCanManage } from "@/hooks/useCanManage";
 import {
   ArrowLeft,
   Clock,
@@ -51,6 +52,23 @@ const ROLE_TRANSITIONS: Record<string, string[]> = {
   cashier: ["PAID"],
   admin: [],
   branch_manager: [],
+};
+
+// ✅ Helper function to safely get user role
+const getUserRole = (user: any): string | null => {
+  if (!user) return null;
+  
+  // If role is an object with name property
+  if (user.role && typeof user.role === 'object' && 'name' in user.role) {
+    return (user.role as any).name;
+  }
+  
+  // If role is a string
+  if (typeof user.role === 'string') {
+    return user.role;
+  }
+  
+  return null;
 };
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -101,8 +119,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     fetchOrder();
   }, [id]);
 
+  // ✅ Get user role safely
+  const role = getUserRole(user);
+  
   // ─── Fetch active discounts (only for cashier/manager/admin) ──────
-  const canApplyDiscount = user && ["admin", "branch_manager", "cashier"].includes(user.role?.name);
+  const canApplyDiscount = user && ["admin", "branch_manager", "cashier"].includes(role || "");
+  
   useEffect(() => {
     if (!canApplyDiscount) return;
     const fetchDiscounts = async () => {
@@ -115,8 +137,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     };
     fetchDiscounts();
   }, [canApplyDiscount]);
-
-  const role = user?.role && typeof user.role === "object" ? user.role.name : null;
 
   const getAvailableStatuses = () => {
     if (!order) return [];
@@ -140,14 +160,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   // ─── Filter out PAID for non‑cashier/admins ──────────────────────────────
-const rawAvailableStatuses = getAvailableStatuses();
-const availableStatuses = rawAvailableStatuses.filter((status) => {
-  if (status === "PAID") {
-    const userRole = user?.role;
-    return userRole && ["admin", "cashier"].includes(userRole);
-  }
-  return true;
-});
+  const rawAvailableStatuses = getAvailableStatuses();
+  const availableStatuses = rawAvailableStatuses.filter((status) => {
+    if (status === "PAID") {
+      return role && ["admin", "cashier"].includes(role);
+    }
+    return true;
+  });
 
   const handleUpdateStatus = async () => {
     if (!selectedStatus || selectedStatus === order.status) return;
@@ -326,9 +345,9 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
 
   // ─── Check if the current user can apply discounts ────────────────
   const canApplyDiscountHere = user &&
-  ["admin", "branch_manager", "cashier"].includes(user.role?.name) &&
-  order?.status !== "PAID" &&
-  order?.status !== "CANCELLED";
+    ["admin", "branch_manager", "cashier"].includes(role || "") &&
+    order?.status !== "PAID" &&
+    order?.status !== "CANCELLED";
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -558,134 +577,133 @@ const availableStatuses = rawAvailableStatuses.filter((status) => {
         </div>
 
         {/* Right Column: Order Summary */}
-<div className="space-y-6">
-  <Card className="border-border bg-muted/30">
-    <CardHeader className="pb-4 border-b border-border">
-      <CardTitle className="text-lg">Order Summary</CardTitle>
-    </CardHeader>
-    <CardContent className="p-4 space-y-4">
-      <div className="flex justify-between items-center text-sm">
-        <span className="text-muted-foreground flex items-center gap-2"><Hash className="h-4 w-4"/> Order ID</span>
-        <span className="text-foreground">{order.order_number}</span>
-      </div>
-      <div className="flex justify-between items-center text-sm">
-        <span className="text-muted-foreground flex items-center gap-2"><User className="h-4 w-4"/> Server/User</span>
-        <span className="text-foreground">{order.user_name || "Guest"}</span>
-      </div>
-      <div className="flex justify-between items-center text-sm">
-        <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4"/> Created At</span>
-        <span className="text-foreground">
-          {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
-      </div>
-      <div className="flex justify-between items-center text-sm">
-        <span className="text-muted-foreground flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> Priority</span>
-        <span className="text-foreground">{order.priority}</span>
-      </div>
+        <div className="space-y-6">
+          <Card className="border-border bg-muted/30">
+            <CardHeader className="pb-4 border-b border-border">
+              <CardTitle className="text-lg">Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground flex items-center gap-2"><Hash className="h-4 w-4"/> Order ID</span>
+                <span className="text-foreground">{order.order_number}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground flex items-center gap-2"><User className="h-4 w-4"/> Server/User</span>
+                <span className="text-foreground">{order.user_name || "Guest"}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4"/> Created At</span>
+                <span className="text-foreground">
+                  {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> Priority</span>
+                <span className="text-foreground">{order.priority}</span>
+              </div>
 
-      {/* ─── Subtotal (items before discounts) ─── */}
-      {totalDiscount > 0 && (
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-muted-foreground">Subtotal (items)</span>
-          <span className="text-foreground">${rawSubtotal.toFixed(2)}</span>
+              {/* ─── Subtotal (items before discounts) ─── */}
+              {totalDiscount > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Subtotal (items)</span>
+                  <span className="text-foreground">${rawSubtotal.toFixed(2)}</span>
+                </div>
+              )}
+
+              {/* ─── Discounts Applied ─── */}
+              {order.discounts && order.discounts.length > 0 && (
+                <div className="pt-2 border-t border-border">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Discounts Applied</h4>
+                  {order.discounts.map((disc: any) => (
+                    <div key={disc.id} className="flex justify-between items-center text-sm mb-1">
+                      <span className="text-muted-foreground">{disc.discount_name}</span>
+                      <span className="text-emerald-400">-${parseFloat(disc.amount).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-sm font-medium pt-1 border-t border-border">
+                    <span className="text-muted-foreground">Total Discount</span>
+                    <span className="text-emerald-400">-${totalDiscount.toFixed(2)}</span>
+                  </div>
+                  {/* Remove all discounts button (only for editable orders) */}
+                  {canApplyDiscountHere && order.discounts.length > 0 && (
+                    <button
+                      onClick={handleRemoveAllDiscounts}
+                      disabled={updatingDiscount}
+                      className="mt-2 text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+                    >
+                      <X className="h-3 w-3" /> Remove all discounts
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* ─── Apply Discount (Cashier/Manager/Admin only) ─── */}
+              {canApplyDiscountHere && (
+                <div className="pt-2 border-t border-border">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
+                      Apply Discount
+                    </label>
+                    <select
+                      value={selectedDiscountId}
+                      onChange={(e) => setSelectedDiscountId(e.target.value)}
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      disabled={updatingDiscount}
+                    >
+                      <option value="">Select a discount…</option>
+                      {availableDiscounts.map((d: any) => (
+                        <option key={d.id} value={String(d.id)}>
+                          {d.name} ({d.type === "percentage" ? `${d.value}%` : `$${d.value}`})
+                          {d.requires_code ? " 🔑" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {availableDiscounts.length === 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">All available discounts have been applied.</p>
+                    )}
+                    {updatingDiscount && <p className="text-xs text-muted-foreground mt-1">Updating...</p>}
+                  </div>
+
+                  {/* ─── Promo Code Input ─── */}
+                  {selectedDiscountId && discounts.find((d: any) => String(d.id) === selectedDiscountId)?.requires_code && (
+                    <div className="mt-2">
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">
+                        Promo Code
+                      </label>
+                      <input
+                        type="text"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        placeholder="Enter promo code..."
+                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  )}
+
+                  {selectedDiscountId && (
+                    <Button 
+                      size="sm" 
+                      className="w-full mt-3" 
+                      onClick={handleApplyDiscount}
+                      disabled={updatingDiscount}
+                    >
+                      Apply Discount
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-border">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground font-medium">Total Amount</span>
+                  <span className="text-xl font-bold text-emerald-400">
+                    ${parseFloat(order.total_amount || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      )}
-
-      {/* ─── Discounts Applied ─── */}
-      {order.discounts && order.discounts.length > 0 && (
-        <div className="pt-2 border-t border-border">
-          <h4 className="text-sm font-medium text-muted-foreground mb-2">Discounts Applied</h4>
-          {order.discounts.map((disc: any) => (
-            <div key={disc.id} className="flex justify-between items-center text-sm mb-1">
-              <span className="text-muted-foreground">{disc.discount_name}</span>
-              <span className="text-emerald-400">-${parseFloat(disc.amount).toFixed(2)}</span>
-            </div>
-          ))}
-          <div className="flex justify-between text-sm font-medium pt-1 border-t border-border">
-            <span className="text-muted-foreground">Total Discount</span>
-            <span className="text-emerald-400">-${totalDiscount.toFixed(2)}</span>
-          </div>
-          {/* Remove all discounts button (only for editable orders) */}
-          {canApplyDiscountHere && order.discounts.length > 0 && (
-            <button
-              onClick={handleRemoveAllDiscounts}
-              disabled={updatingDiscount}
-              className="mt-2 text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
-            >
-              <X className="h-3 w-3" /> Remove all discounts
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ─── Apply Discount (Cashier/Manager/Admin only) ─── */}
-      {/* ─── Apply Discount (Cashier/Manager/Admin only) ─── */}
-{canApplyDiscountHere && (
-  <div className="pt-2 border-t border-border">
-    <div className="flex-1">
-      <label className="block text-sm font-medium text-muted-foreground mb-1">
-        Apply Discount
-      </label>
-      <select
-        value={selectedDiscountId}
-        onChange={(e) => setSelectedDiscountId(e.target.value)}
-        className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        disabled={updatingDiscount}
-      >
-        <option value="">Select a discount…</option>
-        {availableDiscounts.map((d: any) => (
-          <option key={d.id} value={String(d.id)}>
-            {d.name} ({d.type === "percentage" ? `${d.value}%` : `$${d.value}`})
-            {d.requires_code ? " 🔑" : ""}
-          </option>
-        ))}
-      </select>
-      {availableDiscounts.length === 0 && (
-        <p className="text-xs text-muted-foreground mt-1">All available discounts have been applied.</p>
-      )}
-      {updatingDiscount && <p className="text-xs text-muted-foreground mt-1">Updating...</p>}
-    </div>
-
-    {/* ─── Promo Code Input ─── */}
-    {selectedDiscountId && discounts.find((d: any) => String(d.id) === selectedDiscountId)?.requires_code && (
-      <div className="mt-2">
-        <label className="block text-xs font-medium text-muted-foreground mb-1">
-          Promo Code
-        </label>
-        <input
-          type="text"
-          value={promoCode}
-          onChange={(e) => setPromoCode(e.target.value)}
-          placeholder="Enter promo code..."
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-      </div>
-    )}
-
-    {selectedDiscountId && (
-       <Button 
-         size="sm" 
-         className="w-full mt-3" 
-         onClick={handleApplyDiscount}
-         disabled={updatingDiscount}
-       >
-         Apply Discount
-       </Button>
-    )}
-  </div>
-)}
-
-      <div className="pt-4 border-t border-border">
-        <div className="flex justify-between items-center">
-          <span className="text-muted-foreground font-medium">Total Amount</span>
-          <span className="text-xl font-bold text-emerald-400">
-            ${parseFloat(order.total_amount || 0).toFixed(2)}
-          </span>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-</div>
       </div>
     </div>
   );

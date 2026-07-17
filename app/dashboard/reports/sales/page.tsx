@@ -351,96 +351,168 @@ const formatCurrency = (value: number | null | undefined) => {
         </div>
       </div>
 
-      {/* ─── No Data Message ────────────────────────────────────────────── */}
-      {!hasData && (
-        <Card className="bg-muted/30 border-dashed border-2">
-          <CardContent className="p-12 text-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="p-4 rounded-full bg-muted/50">
-                <Receipt className="h-12 w-12 text-muted-foreground" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">
-                  No Sales Data Available
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                  There are no completed sales transactions for this period.
-                  Try selecting a different date range or check your payment
-                  data.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setPeriod("week")}
-                className="mt-2"
-              >
-                Try Last 7 Days
-              </Button>
+      {/* ─── Summary Cards ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 rounded-full bg-indigo-500/20">
+              <DollarSign className="h-6 w-6 text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Gross Sales</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.grossSales)}
+              </p>
             </div>
           </CardContent>
         </Card>
-      )}
 
+        <Card className="bg-gradient-to-br from-rose-500/10 to-rose-500/5 border-rose-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 rounded-full bg-rose-500/20">
+              <Percent className="h-6 w-6 text-rose-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Discounts</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.discounts)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-      {hasData && (
-        <>
-          {/* ─── Summary Cards ────────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 rounded-full bg-indigo-500/20">
-                  <DollarSign className="h-6 w-6 text-indigo-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Gross Sales</p>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(summary.grossSales)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 rounded-full bg-amber-500/20">
+              <DollarSign className="h-6 w-6 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Refunds</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.refunds)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="bg-gradient-to-br from-rose-500/10 to-rose-500/5 border-rose-500/20">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 rounded-full bg-rose-500/20">
-                  <Percent className="h-6 w-6 text-rose-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Discounts</p>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(summary.discounts)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 rounded-full bg-emerald-500/20">
+              <TrendingUp className="h-6 w-6 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Net Sales</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.netSales)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-            <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 rounded-full bg-amber-500/20">
-                  <DollarSign className="h-6 w-6 text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Refunds</p>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(summary.refunds)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 rounded-full bg-purple-500/20">
+              <ShoppingBag className="h-6 w-6 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Orders</p>
+              <p className="text-2xl font-bold">{summary.totalOrders}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 rounded-full bg-emerald-500/20">
-                  <TrendingUp className="h-6 w-6 text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Net Sales</p>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(summary.netSales)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+        <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 rounded-full bg-cyan-500/20">
+              <DollarSign className="h-6 w-6 text-cyan-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Avg. Order Value</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.averageOrderValue)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-slate-500/10 to-slate-500/5 border-slate-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 rounded-full bg-slate-500/20">
+              <Receipt className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Service Charges</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(summary.serviceCharges)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ─── Chart ────────────────────────────────────────────────────── */}
+      <Card className="border-border">
+        <CardContent className="p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-4">
+            Sales Trend
+          </h3>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={salesData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                  dataKey="date"
+                  className="text-xs text-muted-foreground"
+                />
+                <YAxis
+                  tickFormatter={(value) => `$${value}`}
+                  className="text-xs text-muted-foreground"
+                />
+                <Tooltip
+                  formatter={(value: any) => {
+                    if (value === undefined || value === null || isNaN(Number(value))) {
+                      return '$0.00';
+                    }
+                    return `$${Number(value).toFixed(2)}`;
+                  }}
+                  labelStyle={{ color: "#fff" }}
+                  contentStyle={{
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #334155",
+                    borderRadius: "8px",
+                  }}
+                />
+               <Legend />
+                <Bar
+                  dataKey="grossSales"
+                  fill="#818cf8"
+                  name="Gross Sales"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="discounts"
+                  fill="#fb7185"
+                  name="Discounts"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="refunds"
+                  fill="#f59e0b"
+                  name="Refunds"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="netSales"
+                  stroke="#34d399"
+                  strokeWidth={2}
+                  name="Net Sales"
+                  dot={{ r: 3 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
