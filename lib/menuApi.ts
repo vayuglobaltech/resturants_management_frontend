@@ -4,6 +4,7 @@ export interface MenuItem {
   id: number;
   name: string;
   description: string;
+  sku: string;
   price: string;
   cost_price: string;
   category: number;
@@ -17,6 +18,7 @@ export interface MenuItem {
 }
 
 export interface MenuListResponse {
+  json(): unknown;
   count: number;
   next: string | null;
   previous: string | null;
@@ -25,6 +27,7 @@ export interface MenuListResponse {
 
 export interface MenuItemPayload {
   name: string;
+  sku: string;
   description: string;
   price: string;
   cost_price: string;

@@ -1,4 +1,6 @@
 // API base URL - update this to match your backend
+import { CreateTransactionData, TransactionFilters } from '@/types/index';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // ─── Token Storage ────────────────────────────────────────────────────────────
@@ -173,7 +175,7 @@ export async function updateProfile(data: Record<string, string>) {
 }
 
 export async function listAllUsers() {
-  const res = await apiFetch("/api/users/users/", {}, true);
+  const res = await apiFetch("/api/users/", {}, true);
   const json = await res.json();
   if (!res.ok) throw json;
   return json;
@@ -224,9 +226,10 @@ export async function deleteCategory(id: string | number) {
     { method: "DELETE" },
     true
   );
+  // 204 No Content – no JSON body
   if (res.status === 204) return null;
   const json = await res.json().catch(() => null);
-  if (res.ok === false && json) throw json;
+  if (!res.ok && json) throw json;
   return json;
 }
 
@@ -360,6 +363,16 @@ export async function createRecipe(data: any) {
   const json = await res.json();
   if (!res.ok) throw json;
   return json;
+}
+
+export async function getRecipeByProduct(productId: number) {
+  // Query recipes by product ID (returns a paginated list)
+  const res = await apiFetch(`/api/inventory/recipes/?product=${productId}`, {}, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  const results = json.results || json;
+  // Return the first recipe (there should be only one per product)
+  return results[0] || null;
 }
 
 export async function getRecipe(id: string | number) {
@@ -530,6 +543,73 @@ export async function createTransaction(data: any) {
 
 export async function getTransaction(id: string | number) {
   const res = await apiFetch(`/api/inventory/transactions/${id}/`, {}, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+
+
+
+
+
+
+export async function updateTransaction(id: string | number, data: Partial<CreateTransactionData>) {
+  const res = await apiFetch(
+    `/api/inventory/transactions/${id}/`,
+    { method: 'PATCH', body: JSON.stringify(data) },
+    true
+  );
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function deleteTransaction(id: string | number) {
+  const res = await apiFetch(
+    `/api/inventory/transactions/${id}/`,
+    { method: 'DELETE' },
+    true
+  );
+  if (!res.ok) {
+    const json = await res.json();
+    throw json;
+  }
+  return true;
+}
+// lib/api.ts
+
+export async function getBranchInventory(branchId: number) {
+  const res = await apiFetch(`/api/inventory/inventory/?branch=${branchId}`, {}, true);
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json.results || json;
+}
+
+
+export async function updateUser(id: string | number, data: any) {
+  const res = await apiFetch(
+    `/api/users/${id}/`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    },
+    true
+  );
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function createUser(data: any) {
+  const res = await apiFetch(
+    "/api/users/add/",   // ✅ matches backend URL
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+    true
+  );
   const json = await res.json();
   if (!res.ok) throw json;
   return json;

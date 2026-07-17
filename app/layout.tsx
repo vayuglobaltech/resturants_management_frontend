@@ -2,6 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "Restaurant Management",
@@ -32,11 +37,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className={cn("font-sans", geist.variable)}>
+      <body suppressHydrationWarning data-new-gr-c-s-check-loaded="14.1305.0"
+        data-gr-ext-installed=""
+        cz-shortcut-listen="true">
         <AuthProvider>
-          <ServiceWorkerRegistration />
-          {children}
+          <ThemeProvider>
+            <ServiceWorkerRegistration />
+            {children}
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

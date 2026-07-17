@@ -59,17 +59,17 @@ export default function StockPage() {
     <div className="animate-fadeUp">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Stock Levels</h1>
-          <p className="text-slate-400 mt-1 text-sm">Monitor physical stock and replenish supplies.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Stock Levels</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Monitor physical stock and replenish supplies.</p>
         </div>
         
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">🔍</span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search ingredients..."
-            className="w-full md:w-64 pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-slate-100 placeholder-slate-500 text-sm focus:border-indigo-500/70 focus:bg-white/[0.06] focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
+            className="w-full md:w-64 pl-10 pr-4 py-2.5 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm focus:border-indigo-500/70 focus:bg-muted/30 focus:ring-1 focus:ring-indigo-500/70 outline-none transition-all"
           />
         </div>
       </div>
@@ -92,43 +92,43 @@ export default function StockPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredStock.length === 0 ? (
-            <div className="col-span-full py-10 text-center text-slate-500 bg-white/[0.02] border border-white/[0.05] rounded-2xl">
+            <div className="col-span-full py-10 text-center text-muted-foreground bg-muted/30 border border-border rounded-2xl">
               No stock records found matching your search.
             </div>
           ) : (
             filteredStock.map((item) => {
               const isLow = item.quantity <= item.reorder_threshold;
               return (
-                <div key={item.id} className={`relative p-5 rounded-2xl border ${isLow ? 'border-red-500/30' : 'border-white/[0.08]'} bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.05] transition-colors`}>
+                <div key={item.id} className={`relative p-5 rounded-2xl border ${isLow ? 'border-red-500/30' : 'border-border'} bg-muted/30 backdrop-blur-md hover:bg-muted/30 transition-colors`}>
                   {isLow && (
                     <span className="absolute top-4 right-4 flex h-3 w-3">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
                     </span>
                   )}
-                  <h3 className="text-lg font-semibold text-slate-100 mb-1 pr-6">{item.ingredient_name}</h3>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-1 pr-6">{item.ingredient_name}</h3>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
                     <span>🏢 {item.branch_name}</span>
                     <span className="w-1 h-1 rounded-full bg-slate-600"></span>
                     <span>📍 {item.location || 'Main'}</span>
                   </p>
                   
-                  <div className="flex items-end justify-between mt-6 pt-4 border-t border-white/[0.06]">
+                  <div className="flex items-end justify-between mt-6 pt-4 border-t border-border">
                     <div>
-                      <p className="text-xs text-slate-500 mb-1">Current Quantity</p>
+                      <p className="text-xs text-muted-foreground mb-1">Current Quantity</p>
                       {editingId === item.id ? (
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
                             value={editQty}
                             onChange={(e) => setEditQty(Number(e.target.value))}
-                            className="w-20 px-2 py-1 rounded bg-white/10 border border-white/20 text-white text-sm"
+                            className="w-20 px-2 py-1 rounded bg-muted border border-border text-foreground text-sm"
                           />
-                          <span className="text-slate-400 text-sm">{item.unit}</span>
+                          <span className="text-muted-foreground text-sm">{item.unit}</span>
                         </div>
                       ) : (
                         <p className={`text-2xl font-bold ${isLow ? 'text-red-400' : 'text-emerald-400'}`}>
-                          {item.quantity} <span className="text-sm font-medium text-slate-500">{item.unit}</span>
+                          {item.quantity} <span className="text-sm font-medium text-muted-foreground">{item.unit}</span>
                         </p>
                       )}
                     </div>
@@ -137,7 +137,7 @@ export default function StockPage() {
                       {editingId === item.id ? (
                         <div className="flex gap-2">
                           <button onClick={() => handleSave(item.id)} className="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition">Save</button>
-                          <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition">Cancel</button>
+                          <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-foreground font-medium rounded-lg transition">Cancel</button>
                         </div>
                       ) : (
                         <button
