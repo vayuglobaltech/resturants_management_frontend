@@ -38,11 +38,18 @@ import Link from "next/link";
 import { Modal } from "@/components/ui/Modal";
 
 type Payment = {
+  refunded_amount: any;
   id: string;
   order_number: string;
   amount: number;
   payment_method: string;
-  status: "COMPLETED" | "PENDING" | "FAILED" | string;
+  status:
+    | "COMPLETED"
+    | "PENDING"
+    | "FAILED"
+    | "PARTIALLY_REFUNDED"
+    | "REFUNDED"
+    | string;
   created_at: string;
   cashier_name?: string;
 };
@@ -64,6 +71,8 @@ const STATUS_OPTIONS = [
   { value: "COMPLETED", label: "Completed" },
   { value: "PENDING", label: "Pending" },
   { value: "FAILED", label: "Failed" },
+  { value: "PARTIALLY_REFUNDED", label: "Partially Refunded" },
+  { value: "REFUNDED", label: "Complete Refunded" },
 ];
 
 const METHOD_OPTIONS = [
@@ -498,7 +507,7 @@ export default function PaymentsPage() {
                           <th className="px-4 py-3 text-left">Amount</th>
                           <th className="px-4 py-3 text-left">Method</th>
                           <th className="px-4 py-3 text-left">Cashier</th>
-                          <th className="px-4 py-3 text-left">Status</th>
+                          <th className="px-4 py-3 pl-18 text-left">Status</th>
                           <th className="px-4 py-3 text-left hidden sm:table-cell">
                             Date
                           </th>
@@ -533,15 +542,27 @@ export default function PaymentsPage() {
                                 {payment.cashier_name || "—"} {/* ✅ new */}
                               </td>
                               <td className="px-4 py-3">
-                                <span
-                                  className={cn(
-                                    "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border",
-                                    statusConfig.className,
-                                  )}
-                                >
-                                  <StatusIcon className="h-3 w-3" />
-                                  {statusConfig.label}
-                                </span>
+                                <div className="flex flex-col items-center gap-2">
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border",
+                                      statusConfig.className,
+                                    )}
+                                  >
+                                    <StatusIcon className="h-3 w-3" />
+                                    {statusConfig.label}
+                                  </span>
+                                  {(payment.status === "PARTIALLY_REFUNDED" ||
+                                    payment.status === "REFUNDED") &&
+                                    payment.refunded_amount > 0 && (
+                                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                                        Refunded: $
+                                        {Number(
+                                          payment.refunded_amount,
+                                        ).toFixed(2)}
+                                      </span>
+                                    )}
+                                </div>
                               </td>
                               <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                                 {payment.created_at
@@ -652,6 +673,17 @@ export default function PaymentsPage() {
                         <span className="capitalize">
                           {payment.cashier_name || "—"}
                         </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {(payment.status === "PARTIALLY_REFUNDED" ||
+                          payment.status === "REFUNDED") &&
+                          payment.refunded_amount > 0 && (
+                            <span className="text-[12px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                              Refunded: $
+                              {Number(payment.refunded_amount).toFixed(2)}
+                            </span>
+                          )}
                       </div>
 
                       <div className="pt-2 border-t border-border/50">

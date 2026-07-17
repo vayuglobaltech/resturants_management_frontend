@@ -88,10 +88,10 @@ export default function GrossProfitReportPage() {
   const [validBranchId, setValidBranchId] = useState<number | null>(null);
   const [isBranchValidated, setIsBranchValidated] = useState(false);
   const [report, setReport] = useState<ProfitReport | null>(null);
-  const [period, setPeriod] = useState<string>('week');
+  const [period, setPeriod] = useState<string>('today');
   const [dateRange, setDateRange] = useState({
-    start_date: getDateRange('week').start_date,
-    end_date: getDateRange('week').end_date,
+    start_date: getDateRange('today').start_date,
+    end_date: getDateRange('today').end_date,
   });
   const [showCustomDate, setShowCustomDate] = useState(false);
 
@@ -354,7 +354,6 @@ export default function GrossProfitReportPage() {
     { value: 'today', label: 'Today', icon: Clock },
     { value: 'week', label: 'This Week', icon: Calendar },
     { value: 'month', label: 'This Month', icon: BarChart3 },
-    { value: 'year', label: 'This Year', icon: CalendarIcon },
   ];
 
   // ─── Loading state ──────────────────────────────────────────────────────
@@ -418,7 +417,7 @@ export default function GrossProfitReportPage() {
                     {p.label}
                   </button>
                 ))}
-                <button
+                {/* <button
                   onClick={handleCustomDate}
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5",
@@ -429,7 +428,7 @@ export default function GrossProfitReportPage() {
                 >
                   <CalendarIcon className="h-3.5 w-3.5" />
                   Custom
-                </button>
+                </button> */}
               </div>
             </div>
           </div>

@@ -169,13 +169,19 @@ export default function EmployeePerformancePage() {
       }
 
       // ─── 4. Fetch refunded payments ──────────────────────────────
-      const refundedRes = await apiFetch(
-        `/api/orders/payments/?status=REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true
-      );
-      const refundedData = await refundedRes.json();
-      const refundedPayments = refundedData.results || refundedData || [];
+      // ─── Fetch refunded payments (full and partial) ──────────────
+      let refundedPayments: any[] = [];
+      try {
+        const refundRes = await apiFetch(
+          `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+          {},
+          true
+        );
+        const refundData = await refundRes.json();
+        refundedPayments = refundData.results || refundData || [];
+      } catch (error) {
+        console.warn("Refunds endpoint not available, using empty array");
+      }
 
       // ─── 5. Fetch COGS transactions for kitchen staff ───────────────
       let cogsItems: any[] = [];
@@ -238,6 +244,8 @@ export default function EmployeePerformancePage() {
       // ─── 7. Compute Cashier Stats ──────────────────────────────────
 const cashierMap = new Map<number, CashierStats>();
 
+
+
 // Pre‑populate with all cashier users (so they appear even with 0 transactions)
 const cashierUsers = allUsers.filter((u: any) => u.role?.name === "cashier");
 cashierUsers.forEach((u: any) => {
@@ -262,11 +270,19 @@ payments.forEach((p: any) => {
 });
 
 // Refunded payments → add refunds
+// refundedPayments.forEach((p: any) => {
+//   // Use refunded_by_id (the user ID) to attribute the refund
+//   const refundedById = p.refunded_by_id;
+//   if (!refundedById) return;
+//   // Only attribute to a cashier if that user is in the map
+//   if (!cashierMap.has(refundedById)) return;
+//   const stat = cashierMap.get(refundedById)!;
+//   stat.refunds += Number(p.refunded_amount || 0);
+// });
+// Refunded payments → add refunds
 refundedPayments.forEach((p: any) => {
-  // Use refunded_by_id (the user ID) to attribute the refund
   const refundedById = p.refunded_by_id;
   if (!refundedById) return;
-  // Only attribute to a cashier if that user is in the map
   if (!cashierMap.has(refundedById)) return;
   const stat = cashierMap.get(refundedById)!;
   stat.refunds += Number(p.refunded_amount || 0);
