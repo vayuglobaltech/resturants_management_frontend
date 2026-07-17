@@ -236,7 +236,16 @@ export default function GrossProfitReportPage() {
   try {
     setLoading(true);
     
-    // ─── 1. Fetch Gross Sales from completed payments ────────────────
+    // ─── 1. Fetch all orders (for gross sales & discounts) ──────────
+    const ordersRes = await apiFetch(
+      `/api/orders/?created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
+      {},
+      true
+    );
+    const ordersData = await ordersRes.json();
+    const allOrders = ordersData.results || ordersData || [];
+
+    // ─── 2. Fetch completed payments (for paid orders) ──────────────
     const salesRes = await apiFetch(
       `/api/orders/payments/?status=COMPLETED&created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
       {},
@@ -246,31 +255,50 @@ export default function GrossProfitReportPage() {
     const completedPayments = salesData.results || salesData || [];
     const paidOrderIds = new Set(completedPayments.map(p => p.order));
 
-    let totalRevenue = 0;
-    if (paidOrderIds.size > 0) {
-      const ordersRes = await apiFetch(
-        `/api/orders/?created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
+    // ─── 3. Fetch refunded payments (full and partial) ──────────────
+    let refundedPayments: any[] = [];
+    try {
+      const refundRes = await apiFetch(
+        `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
         {},
         true
       );
-      const ordersData = await ordersRes.json();
-      const allOrders = ordersData.results || ordersData || [];
-      
-      allOrders.forEach((order: any) => {
-        if (!paidOrderIds.has(order.id)) return;
-        const subtotal = (order.items || []).reduce(
-          (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
-          0
-        );
-        totalRevenue += subtotal;
-      });
+      const refundData = await refundRes.json();
+      refundedPayments = refundData.results || refundData || [];
+    } catch (error) {
+      console.warn("Refunds endpoint not available, using empty array");
     }
 
-    // ─── 2. Fetch COGS from accounting API ────────────────────────────
+    // ─── 4. Calculate Gross Sales & Discounts ──────────────────────
+    let grossSales = 0;
+    let totalDiscounts = 0;
+    allOrders.forEach((order: any) => {
+      if (!paidOrderIds.has(order.id)) return;
+      const subtotal = (order.items || []).reduce(
+        (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
+        0
+      );
+      grossSales += subtotal;
+      const discSum = (order.discounts || []).reduce(
+        (s: number, d: any) => s + Number(d.amount),
+        0
+      );
+      totalDiscounts += discSum;
+    });
+
+    // ─── 5. Calculate Refunds ────────────────────────────────────────
+    const totalRefunds = refundedPayments.reduce(
+      (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
+      0
+    );
+
+    // ─── 6. Net Sales ────────────────────────────────────────────────
+    const netSales = grossSales - totalDiscounts - totalRefunds;
+
+    // ─── 7. Fetch COGS from accounting API ──────────────────────────
     let totalCogs = 0;
     let transactionCount = 0;
     try {
-      // Use the existing getGrossProfitReport which returns COGS
       const grossProfitData = await getGrossProfitReport(
         dateRange.start_date,
         dateRange.end_date,
@@ -284,18 +312,22 @@ export default function GrossProfitReportPage() {
       console.warn("COGS endpoint failed, using 0");
     }
 
-    // ─── 3. Build report object ──────────────────────────────────────
-    const grossProfit = totalRevenue - totalCogs;
-    const margin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+    // ─── 8. Build report object ──────────────────────────────────────
+    const grossProfit = netSales - totalCogs;
+    // const margin = netSales > 0 ? (grossProfit / netSales) * 100 : 0;
+    const margin = netSales > 0 ? (grossProfit / grossSales) * 100 : 0;
 
     setReport({
       period_start: dateRange.start_date,
       period_end: dateRange.end_date,
-      total_revenue: totalRevenue,
+      total_revenue: grossSales,        // keep this for consistency (gross sales)
       total_cogs: totalCogs,
       gross_profit: grossProfit,
       gross_profit_margin_percentage: margin,
       transaction_count: transactionCount,
+      net_sales: netSales,
+      discounts: totalDiscounts,
+      refunds: totalRefunds,
     });
 
   } catch (error) {

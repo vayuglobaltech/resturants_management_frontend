@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { getGrossProfitReport } from "@/lib/accountingApi";
 
 type OverviewStats = {
   totalSales: number;
@@ -48,6 +49,16 @@ export default function ReportsOverviewPage() {
   });
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>("today");
+  const getBranchId = useCallback(() => {
+    if (!user) return undefined;
+    // Try to get branch from user object
+      const branch = (user as any)?.branch;
+      if (branch) {
+        return typeof branch === 'object' ? branch.id : branch;
+      }
+      return undefined;
+    }, [user]);
+  
 
   // ─── Build date filters ──────────────────────────────────────────────
   const getDateRange = (period: Period) => {
@@ -58,7 +69,7 @@ export default function ReportsOverviewPage() {
         gte: format(startOfDay(now), "yyyy-MM-dd"),
         lte: format(endOfDay(now), "yyyy-MM-dd"),
       };
-    case "week":
+      case "week":
       return {
         gte: format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"), // Monday start
         lte: format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"),
@@ -68,14 +79,17 @@ export default function ReportsOverviewPage() {
         gte: format(startOfMonth(now), "yyyy-MM-dd"),
         lte: format(endOfMonth(now), "yyyy-MM-dd"),
       };
-  }
-};
-
+    }
+  };
+  
+  const { gte, lte } = getDateRange(period);
+  const startStr = format(gte, "yyyy-MM-dd");
+  const endStr = format(lte, "yyyy-MM-dd");
   const fetchOverview = async (period: Period) => {
   setLoading(true);
   try {
     const { gte, lte } = getDateRange(period);
-
+    const branchId = getBranchId();
     console.log(`📊 Fetching overview for period: ${period}`);
     console.log(`   Date range: ${gte} to ${lte}`);
 
@@ -98,26 +112,26 @@ export default function ReportsOverviewPage() {
     const completedPayments = salesData.results || salesData || [];
     const completedOrderIds = new Set(completedPayments.map(p => p.order));
 
-    // ─── 3. Refunded payments ──────────────────────────────────────
-    let refundedPayments: any[] = [];
-    let totalRefunds = 0;
-    try {
-      const refundRes = await apiFetch(
-        `/api/orders/payments/?status=REFUNDED&created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
-        {},
-        true
-      );
-      const refundData = await refundRes.json();
-      refundedPayments = refundData.results || refundData || [];
-      totalRefunds = refundedPayments.reduce(
-        (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
-        0
-      );
-    } catch (error) {
-      console.warn("Refunds endpoint not available, using 0");
-    }
-
+    // ─── 3. Refunded payments (full and partial) ──────────────────────
+let refundedPayments: any[] = [];
+let totalRefunds = 0;
+try {
+  const refundRes = await apiFetch(
+    `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
+    {},
+    true
+  );
+  const refundData = await refundRes.json();
+  refundedPayments = refundData.results || refundData || [];
+  totalRefunds = refundedPayments.reduce(
+    (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
+    0
+  );
+} catch (error) {
+  console.warn("Refunds endpoint not available, using 0");
+}
     const refundedOrderIds = new Set(refundedPayments.map(p => p.order));
+    console.log(`🔍 Overview COGS URL: /api/accounting/cogs-transactions/?created_at__gte=${gte}&created_at__lte=${lte}`);
 
     // ─── 4. Total orders (completed + refunded) ──────────────────────
     const allPaidOrderIds = new Set([...completedOrderIds, ...refundedOrderIds]);
@@ -152,20 +166,31 @@ export default function ReportsOverviewPage() {
 
     // ─── 8. COGS ────────────────────────────────────────────────────────
     let totalCogs = 0;
+        let grossProfitReportData = null;
+        try {
+          grossProfitReportData = await getGrossProfitReport(startStr, endStr, branchId);
+          if (grossProfitReportData) {
+            totalCogs = parseFloat(grossProfitReportData.total_cogs || '0');
+          }
+        } catch (error) {
+          console.warn("Gross Profit Report not available, using 0");
+        }
+    
+        // ─── COGS: Daily items for chart ──────────────────────────────────
+    // ─── COGS: Daily items for chart ──────────────────────────────────
+    let cogsItems: any[] = [];
     try {
-      const cogsRes = await apiFetch(
-        `/api/accounting/cogs-transactions/?created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
-        {},
-        true
-      );
+      // ✅ Add branch parameter to match the summary endpoint
+      const branchParam = branchId ? `&branch=${branchId}` : '';
+      const cogsUrl = `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}${branchParam}&page_size=2000`;
+      console.log(`🔍 COGS Items URL: ${cogsUrl}`);
+      
+      const cogsRes = await apiFetch(cogsUrl, {}, true);
       const cogsData = await cogsRes.json();
-      const cogsItems = cogsData.results || cogsData || [];
-      totalCogs = cogsItems.reduce(
-        (sum: number, c: any) => sum + Number(c.total_cogs || 0),
-        0
-      );
+      cogsItems = cogsData.results || cogsData || [];
+      console.log(`📦 COGS Items Response:`, cogsItems);
     } catch (error) {
-      console.warn("COGS endpoint not available, using 0");
+      console.warn("COGS items endpoint not available, using empty array");
     }
 
     // ─── 9. Expenses ──────────────────────────────────────────────────────

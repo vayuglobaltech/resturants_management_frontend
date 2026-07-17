@@ -90,9 +90,7 @@ const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 export default function ProfitLossPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const initialPeriod = (searchParams.get("period") as Period) || "today";
-
-  const [period, setPeriod] = useState<Period>(initialPeriod);
+  const [period, setPeriod] = useState<Period>("today");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [pnlData, setPnlData] = useState<PnLData[]>([]);
@@ -173,32 +171,48 @@ export default function ProfitLossPage() {
     const paidOrderIds = new Set(completedPayments.map(p => p.order));
 
     // ─── 3. Refunded payments ──────────────────────────────────────
-    const refundRes = await apiFetch(
-      `/api/orders/payments/?status=REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-      {},
-      true
-    );
-    const refundData = await refundRes.json();
-    const refundedPayments = refundData.results || refundData || [];
+    // ─── 3. Refunded payments (full and partial) ──────────────────
+let refundedPayments: any[] = [];
+try {
+  const refundRes = await apiFetch(
+    `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+    {},
+    true
+  );
+  const refundData = await refundRes.json();
+  refundedPayments = refundData.results || refundData || [];
+} catch (error) {
+  console.warn("Refunds endpoint not available, using empty array");
+}
 
     // ─── 4. COGS from accounting API ──────────────────────────────
     let totalCogs = 0;
-    let cogsItems: any[] = [];
+    let grossProfitReportData = null;
     try {
-      const cogsRes = await apiFetch(
-        `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true
-      );
-      const cogsData = await cogsRes.json();
-      cogsItems = cogsData.results || cogsData || [];
-      totalCogs = cogsItems.reduce(
-        (sum: number, c: any) => sum + Number(c.total_cogs || 0),
-        0
-      );
+      grossProfitReportData = await getGrossProfitReport(startStr, endStr, branchId);
+      if (grossProfitReportData) {
+        totalCogs = parseFloat(grossProfitReportData.total_cogs || '0');
+      }
     } catch (error) {
-      console.warn("COGS endpoint not available, using 0");
+      console.warn("Gross Profit Report not available, using 0");
     }
+
+    // ─── COGS: Daily items for chart ──────────────────────────────────
+// ─── COGS: Daily items for chart ──────────────────────────────────
+let cogsItems: any[] = [];
+try {
+  // ✅ Add branch parameter to match the summary endpoint
+  const branchParam = branchId ? `&branch=${branchId}` : '';
+  const cogsUrl = `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}${branchParam}&page_size=2000`;
+  console.log(`🔍 COGS Items URL: ${cogsUrl}`);
+  
+  const cogsRes = await apiFetch(cogsUrl, {}, true);
+  const cogsData = await cogsRes.json();
+  cogsItems = cogsData.results || cogsData || [];
+  console.log(`📦 COGS Items Response:`, cogsItems);
+} catch (error) {
+  console.warn("COGS items endpoint not available, using empty array");
+}
 
     // ─── 5. Expenses from accounting API ──────────────────────────
     let totalExpenses = 0;
@@ -253,12 +267,47 @@ export default function ProfitLossPage() {
       refundGrouped[date] = (refundGrouped[date] || 0) + Number(p.refunded_amount || 0);
     });
 
+//     // ─── Fetch products to get cost prices ──────────────────────────
+// let products: any[] = [];
+// try {
+//   const productsRes = await apiFetch(`/api/inventory/products/?page_size=1000`, {}, true);
+//   const productsData = await productsRes.json();
+//   products = productsData.results || productsData || [];
+// } catch (error) {
+//   console.warn("Failed to fetch products, using fallback cost");
+// }
+
     // ─── 8. COGS & Expenses grouped by date ────────────────────────
-    const cogsGrouped: Record<string, number> = {};
-    cogsItems.forEach((c: any) => {
-      const date = format(new Date(c.created_at), "yyyy-MM-dd");
-      cogsGrouped[date] = (cogsGrouped[date] || 0) + Number(c.total_cogs || 0);
-    });
+// ─── Fetch products to get cost prices ──────────────────────────
+let products: any[] = [];
+try {
+  const productsRes = await apiFetch(`/api/inventory/products/?page_size=1000`, {}, true);
+  const productsData = await productsRes.json();
+  products = productsData.results || productsData || [];
+} catch (error) {
+  console.warn("Failed to fetch products, using fallback cost");
+}
+
+// ─── Compute daily COGS from orders (using product.cost_price) ──
+const cogsGrouped: Record<string, number> = {};
+const productCostMap = new Map<number, number>();
+products.forEach((p: any) => {
+  productCostMap.set(p.id, parseFloat(p.cost_price) || parseFloat(p.price) * 0.6 || 0);
+});
+
+allOrders.forEach((order: any) => {
+  if (!paidOrderIds.has(order.id)) return;  // ✅ use paidOrderIds
+  const date = format(new Date(order.created_at), "yyyy-MM-dd");
+  let orderCogs = 0;
+  (order.items || []).forEach((item: any) => {
+    const cost = productCostMap.get(item.product) || 0;
+    orderCogs += cost * (item.quantity || 0);
+  });
+  cogsGrouped[date] = (cogsGrouped[date] || 0) + orderCogs;
+});
+
+// Remove the old cogsItems fetch and grouping – it's replaced by the above.
+// The summary totalCogs can still come from getGrossProfitReport (or computed).
 
     const expenseGrouped: Record<string, number> = {};
     expenseItems.forEach((e: any) => {
@@ -338,6 +387,7 @@ export default function ProfitLossPage() {
 
   useEffect(() => {
     fetchPnL();
+    
   }, [fetchPnL]);
 
   // ─── Loading ──────────────────────────────────────────────────────────

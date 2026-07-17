@@ -49,6 +49,8 @@ import {
 
 type Period = "today" | "week" | "month" | "custom";
 type Order = {
+  payment_status: string;
+  refunded_amount: number;
   table: number | undefined;
   id: number;
   order_number: string;
@@ -650,9 +652,10 @@ export default function OrderReportPage() {
                           {order.table_number_display || "—"}
                         </td>
                         <td className="px-4 py-3">{order.user_name || "—"}</td>
-                        <td className="px-4 py-3 text-right font-medium">
-                          {formatCurrency(Number(order.total_amount || 0))}
-                        </td>
+                        {order.payment_status === 'REFUNDED' || order.payment_status === 'PARTIALLY_REFUNDED'
+    ? `$${Number(order.refunded_amount || 0).toFixed(2)}`
+    : formatCurrency(Number(order.total_amount || 0))
+  }
                         <td className="px-4 py-3">
                           <span
                             className={cn(

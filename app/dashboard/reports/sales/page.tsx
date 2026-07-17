@@ -140,14 +140,19 @@ export default function SalesReportPage() {
     const completedPayments = completedData.results || completedData || [];
     const completedOrderIds = new Set(completedPayments.map(p => p.order));
 
-    // ─── 3. Refunded payments ──────────────────────────────────────
-    const refundRes = await apiFetch(
-      `/api/orders/payments/?status=REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-      {},
-      true
-    );
-    const refundData = await refundRes.json();
-    const refundedPayments = refundData.results || refundData || [];
+   // ─── 3. Refunded payments (full and partial) ──────────────────
+    let refundedPayments: any[] = [];
+    try {
+      const refundRes = await apiFetch(
+        `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+        {},
+        true
+      );
+      const refundData = await refundRes.json();
+      refundedPayments = refundData.results || refundData || [];
+    } catch (error) {
+      console.warn("Refunds endpoint not available, using empty array");
+    }
     const refundedOrderIds = new Set(refundedPayments.map(p => p.order));
 
     // ─── 4. All orders that have any payment (completed or refunded) ──
