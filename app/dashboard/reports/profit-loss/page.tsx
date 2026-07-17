@@ -79,10 +79,9 @@ type PnLSummary = {
 };
 
 // ─── Helper to format currency ──────────────────────────────────────────
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-    value,
-  );
+const formatCurrency = (value: number) => {
+  return `Rs ${value.toFixed(2)}`;
+};
 
 // ─── Helper to format percent ───────────────────────────────────────────
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;

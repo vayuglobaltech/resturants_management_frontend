@@ -213,7 +213,7 @@ export default function ProductPerformancePage() {
     }
   };
 
-  const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
+  const formatCurrency = (value: number) => `Rs. ${value.toFixed(2)}`;
   const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
   const SortIcon = ({ field }: { field: SortField }) => {

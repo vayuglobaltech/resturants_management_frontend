@@ -526,7 +526,7 @@ export default function NewOrderPage() {
             </div>
 
             {/* Menu grid */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-h-[70vh] lg:overflow-y-auto lg:pr-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-h-[70vh]  lg:overflow-y-auto lg:pr-1">
               {filteredItems.length === 0 ? (
                 <div className="col-span-2 rounded-[24px] border border-dashed border-[var(--primary)]/30 bg-[var(--primary)]/5 py-8 text-center text-muted-foreground shadow-sm">
                   <AlertCircle className="mx-auto h-10 w-10 text-[var(--primary)]/40" />
@@ -553,7 +553,7 @@ export default function NewOrderPage() {
                       onClick={() => addToCart(item)}
                       disabled={!item.is_available}
                       className={cn(
-                        "group relative  rounded-[22px] border p-3.5 text-left shadow-sm transition-all duration-300",
+                        "group relative  rounded-[22px] border p-3.5 text-left shadow-sm transition-all duration-300 mt-3",
                         item.is_available
                           ? "border-[var(--primary)]/20 bg-gradient-to-br from-background via-background to-[var(--primary)]/5 hover:-translate-y-0.5 hover:border-[var(--primary)]/50 hover:shadow-[0_16px_40px_-22px_rgba(234,179,8,0.7)]"
                           : "cursor-not-allowed border-[var(--primary)]/20 bg-muted/30 opacity-60"

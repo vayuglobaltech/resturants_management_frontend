@@ -263,9 +263,11 @@ export default function SalesReportPage() {
   };
 
   // ─── Formatting helpers ──────────────────────────────────────────────
-  const formatCurrency = (value: number | null | undefined) => {
-  if (value === undefined || value === null || isNaN(value)) return '$0.00';
-  return `$${value.toFixed(2)}`;
+const formatCurrency = (value: number | null | undefined) => {
+  if (value === undefined || value === null || isNaN(value)) {
+    return 'Rs. 0.00';
+  }
+  return `Rs. ${value.toFixed(2)}`;
 };
 
   // ─── Loading state ────────────────────────────────────────────────────

@@ -31,7 +31,7 @@ const safeNumber = (value: any): number => {
 };
 
 const formatCurrency = (value: any): string => {
-  return `$${safeNumber(value).toFixed(2)}`;
+  return `Rs. ${safeNumber(value).toFixed(2)}`;
 };
 
 const getDateRange = (period: string) => {
