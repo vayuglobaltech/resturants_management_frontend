@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [form, setForm] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -36,6 +38,10 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -94,7 +100,7 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* password */}
+            {/* password with eye toggle */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <label htmlFor="login-password" className="text-xs font-medium text-muted-foreground tracking-wide">
@@ -107,17 +113,31 @@ export default function LoginPage() {
                   Forgot password?
                 </Link>
               </div>
-              <input
-                id="login-password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                required
-                placeholder="••••••••"
-                autoComplete="current-password"
-                className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none transition-all focus:border-indigo-500/70 focus:bg-muted/30 focus:ring-2 focus:ring-indigo-500/15"
-              />
+              <div className="relative">
+                <input
+                  id="login-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3 pr-12 rounded-xl bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none transition-all focus:border-indigo-500/70 focus:bg-muted/30 focus:ring-2 focus:ring-indigo-500/15"
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <Eye className="h-5 w-5" />
+                  ) : (
+                    <EyeOff className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* submit */}

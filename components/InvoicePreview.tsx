@@ -22,7 +22,7 @@ interface InvoicePreviewProps {
   grandTotal: number;
   customerName: string;
   cashierName: string;
-  // paymentMethod: string;
+  paymentMethod: string;
   orderNumber?: string;
   date?: string;
   discounts?: InvoiceDiscount[];

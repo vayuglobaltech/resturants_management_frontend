@@ -168,7 +168,14 @@ export default function ProfitLossPage() {
         totalDiscounts += discSum;
       });
 
-      // ─── 4. COGS (from COGSTransaction endpoint) ──────────────────
+      // ─── 4. Group sales by date ──────────────────────────────────
+      const salesGrouped: Record<string, number> = {};
+      payments.forEach((p: any) => {
+        const date = format(new Date(p.created_at), "yyyy-MM-dd");
+        salesGrouped[date] = (salesGrouped[date] || 0) + Number(p.amount || 0);
+      });
+
+      // ─── 5. COGS (from COGSTransaction endpoint) ──────────────────
       let cogsTotal = 0;
       const cogsMap: Record<string, number> = {};
       try {
@@ -186,7 +193,6 @@ export default function ProfitLossPage() {
           cogsTotal += amount;
         });
       } catch (error) {
-        // If endpoint not available, compute from order items using product cost
         console.warn("COGS endpoint not available, computing from orders...");
         orders.forEach((o: any) => {
           const date = format(new Date(o.created_at), "yyyy-MM-dd");
@@ -194,7 +200,7 @@ export default function ProfitLossPage() {
           (o.items || []).forEach((item: any) => {
             const price = Number(item.price_at_order || 0);
             const qty = Number(item.quantity || 0);
-            const cost = price * 0.6; // placeholder
+            const cost = price * 0.6;
             orderCogs += cost * qty;
           });
           cogsMap[date] = (cogsMap[date] || 0) + orderCogs;
@@ -202,7 +208,7 @@ export default function ProfitLossPage() {
         });
       }
 
-      // ─── 5. Operating Expenses (from ExpenseEntry) ──────────────
+      // ─── 6. Operating Expenses (from ExpenseEntry) ──────────────
       let expenseTotal = 0;
       const expenseMap: Record<string, number> = {};
       try {
@@ -238,13 +244,7 @@ export default function ProfitLossPage() {
         });
       }
 
-      // ─── 6. Group by date ──────────────────────────────────────────
-      const salesGrouped: Record<string, number> = {};
-      payments.forEach((p: any) => {
-        const date = format(new Date(p.created_at), "yyyy-MM-dd");
-        salesGrouped[date] = (salesGrouped[date] || 0) + Number(p.amount || 0);
-      });
-
+      // ─── 7. Refund grouping ──────────────────────────────────────
       const refundGrouped: Record<string, number> = {};
       refundedPayments.forEach((p: any) => {
         const date = format(new Date(p.created_at), "yyyy-MM-dd");
@@ -252,7 +252,7 @@ export default function ProfitLossPage() {
         refundGrouped[date] = (refundGrouped[date] || 0) + refundAmt;
       });
 
-      // ─── 7. Build daily data ──────────────────────────────────────
+      // ─── 8. Build daily data ──────────────────────────────────────
       const allDates = new Set([
         ...Object.keys(salesGrouped),
         ...Object.keys(discountMap),
@@ -289,7 +289,7 @@ export default function ProfitLossPage() {
 
       setPnlData(result);
 
-      // ─── 8. Summary ──────────────────────────────────────────────────
+      // ─── 9. Summary ──────────────────────────────────────────────────
       const totalGross = payments.reduce(
         (s: number, p: any) => s + Number(p.amount || 0),
         0,
@@ -549,7 +549,12 @@ export default function ProfitLossPage() {
                   className="text-xs text-muted-foreground"
                 />
                 <Tooltip
-                  formatter={(value: number) => `$${value.toFixed(2)}`}
+                  formatter={(value: any) => {
+                    if (value === undefined || value === null || isNaN(Number(value))) {
+                      return '$0.00';
+                    }
+                    return `$${Number(value).toFixed(2)}`;
+                  }}
                   labelStyle={{ color: "#fff" }}
                   contentStyle={{
                     backgroundColor: "#1e293b",

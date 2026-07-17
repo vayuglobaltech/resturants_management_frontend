@@ -84,37 +84,6 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-// ─── Tooltip ──────────────────────────────────────────────────────────
-function SidebarTooltip({
-  label,
-  collapsed,
-  children,
-}: {
-  label: string;
-  collapsed: boolean;
-  children: React.ReactNode;
-}) {
-  const [show, setShow] = useState(false);
-  if (!collapsed) return <>{children}</>;
-  return (
-    <div
-      className="relative"
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      onFocus={() => setShow(true)}
-      onBlur={() => setShow(false)}
-    >
-      {children}
-      {show && (
-        <div className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 whitespace-nowrap px-2.5 py-1 rounded-lg bg-foreground text-background text-xs font-medium shadow-lg">
-          {label}
-          <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-foreground" />
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function DashboardSidebar({
   selectedFeature,
   collapsed,
@@ -256,7 +225,6 @@ export function DashboardSidebar({
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
-                  {/* Active indicator bar - left side - removed for cleaner look */}
                   <item.icon
                     className={cn(
                       "h-4 w-4 flex-shrink-0 transition-colors duration-200",
@@ -271,8 +239,6 @@ export function DashboardSidebar({
                   )}>
                     {item.label}
                   </span>
-                  
-                  {/* Active pill indicator - removed */}
                 </Link>
               );
             })}
@@ -307,8 +273,6 @@ export function DashboardSidebar({
                               : "text-muted-foreground hover:text-foreground hover:bg-muted"
                           )}
                         >
-                          {/* Active indicator bar - removed */}
-                          
                           <Icon
                             className={cn(
                               "h-4 w-4 flex-shrink-0 transition-colors duration-200",
@@ -328,7 +292,6 @@ export function DashboardSidebar({
                               OCC
                             </span>
                           )}
-                          {/* Active pill indicator - removed */}
                         </Link>
                       );
                     })}
@@ -340,67 +303,65 @@ export function DashboardSidebar({
         </>
       ) : (
         // ─── COLLAPSED ──────────────────────────────────────────────────
-        <div className="flex flex-col items-center space-y-2 py-2.5">
+        <div className="flex flex-col items-center space-y-3 py-3">
           {filteredItems.map((item) => {
             const isActive = pathname === item.href;
             return (
-              <SidebarTooltip key={item.href} label={item.label} collapsed={collapsed}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "rounded-lg p-1.5 transition-colors duration-200 relative",
-                    isActive
-                      ? "bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                </Link>
-              </SidebarTooltip>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "rounded-lg p-2 transition-colors duration-200 relative",
+                  isActive
+                    ? "bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+              </Link>
             );
           })}
 
           {/* ─── Dynamic items (only for orders/tables) ──────────────── */}
           {(selectedFeature === "orders" || selectedFeature === "tables") &&
             (dynamicItems.length > 0 || loadingDynamic) && (
-            <div className="w-full border-t border-border px-1.5 pt-2">
+            <div className="w-full border-t border-border px-1.5 pt-3">
               {loadingDynamic ? (
                 <div className="flex justify-center py-2">
                   <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {dynamicItems.map((dItem) => {
                     const isActive = isDynamicActive(dItem.href);
                     const Icon = dItem.icon || Folder;
                     const showTableNumber = dItem.tableNumber !== undefined;
                     return (
-                      <SidebarTooltip key={dItem.id} label={dItem.name} collapsed={collapsed}>
-                        <Link
-                          href={dItem.href}
-                          className={cn(
-                            "flex items-center justify-center rounded-lg p-1.5 transition-all duration-200 relative",
-                            isActive
-                              ? "bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                          )}
-                        >
-                          {showTableNumber ? (
-                            <span
-                              className={cn(
-                                "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
-                                isActive
-                                  ? "bg-yellow-500 text-white dark:bg-yellow-400 dark:text-black"
-                                  : "bg-muted text-muted-foreground"
-                              )}
-                            >
-                              T{dItem.tableNumber}
-                            </span>
-                          ) : (
-                            <Icon className="h-4 w-4" />
-                          )}
-                        </Link>
-                      </SidebarTooltip>
+                      <Link
+                        key={dItem.id}
+                        href={dItem.href}
+                        className={cn(
+                          "flex items-center justify-center rounded-lg p-2 transition-all duration-200 relative",
+                          isActive
+                            ? "bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                      >
+                        {showTableNumber ? (
+                          <span
+                            className={cn(
+                              "flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold",
+                              isActive
+                                ? "bg-yellow-500 text-white dark:bg-yellow-400 dark:text-black"
+                                : "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            T{dItem.tableNumber}
+                          </span>
+                        ) : (
+                          <Icon className="h-5 w-5" />
+                        )}
+                      </Link>
                     );
                   })}
                 </div>
@@ -419,7 +380,7 @@ export function DashboardSidebar({
         "bg-card border-r border-border",
         "transition-all duration-300 ease-in-out overflow-hidden",
         collapsed
-          ? "w-10 md:w-11 overflow-y-auto scrollbar-none"
+          ? "w-12 md:w-14 overflow-y-auto scrollbar-none"
           : "w-36 md:w-40"
       )}
     >

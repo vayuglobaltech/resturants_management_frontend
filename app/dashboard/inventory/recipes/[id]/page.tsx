@@ -122,7 +122,7 @@ export default function RecipeDetailPage({ params }: RecipeDetailPageProps) {
         <h2 className="text-2xl font-bold text-foreground">Recipe Not Found</h2>
         <p className="text-muted-foreground max-w-md mt-2">{error || "The recipe you're looking for doesn't exist."}</p>
         <Link href="/dashboard/inventory/recipes" className="mt-6">
-          <Button variant="primary">Back to Recipes</Button>
+          <Button>Back to Recipes</Button>
         </Link>
       </motion.div>
     );
@@ -155,7 +155,7 @@ export default function RecipeDetailPage({ params }: RecipeDetailPageProps) {
             {canManage && (
               <>
                 <Link href={`/dashboard/inventory/recipes/${recipeId}/edit`}>
-                  <Button variant="primary" size="sm" className="gap-1">
+                  <Button  size="sm" className="gap-1">
                     <Pencil className="h-4 w-4" /> Edit
                   </Button>
                 </Link>

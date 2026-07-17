@@ -815,7 +815,7 @@ export default function DashboardOverview() {
             <p className="text-sm font-medium uppercase tracking-[0.3em]" style={{ color: "var(--page-accent)" }}>
               Performance Snapshot
             </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border p-3" style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-soft)" }}>
                 <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--page-muted)" }}>Gross profit</p>
                 <p className="mt-2 text-lg font-semibold" style={{ color: "var(--page-text)" }}>Rs. {stats.grossProfit?.toLocaleString() || "0"}</p>

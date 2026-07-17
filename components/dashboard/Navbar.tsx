@@ -241,7 +241,7 @@ export function DashboardNavbar({
                         <User className="h-4 w-4 text-muted-foreground" />{" "}
                         Profile
                       </Link>
-                      <Link
+                      {/* <Link
                         href="/dashboard/settings"
                         role="menuitem"
                         onClick={() => setIsProfileOpen(false)}
@@ -249,7 +249,7 @@ export function DashboardNavbar({
                       >
                         <Settings className="h-4 w-4 text-muted-foreground" />{" "}
                         Settings
-                      </Link>
+                      </Link> */}
                       <button
                         role="menuitem"
                         onClick={() => {

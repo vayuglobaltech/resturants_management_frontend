@@ -94,7 +94,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
           {error || "The menu item you're looking for doesn't exist."}
         </p>
         <Link href="/dashboard/menu" className="mt-6">
-          <Button variant="primary" className="gap-2">
+          <Button variant="default" className="gap-2">
             <ArrowLeft className="h-4 w-4" /> Back to Menu
           </Button>
         </Link>
@@ -119,7 +119,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
           </Link>
           <div className="flex items-center gap-2">
             <Link href={`/dashboard/menu/${item.id}/edit`}>
-              <Button variant="primary" size="sm" className="gap-1">
+              <Button variant="default" size="sm" className="gap-1">
                 <Edit2 className="h-4 w-4" /> Edit
               </Button>
             </Link>

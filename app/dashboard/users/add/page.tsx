@@ -11,6 +11,58 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import toast from "react-hot-toast";
 
+// ✅ Helper to safely get branch ID
+const getBranchId = (user: any): number | null => {
+  if (!user) return null;
+  
+  // Check primary_branch
+  if (user.primary_branch && typeof user.primary_branch === 'object' && 'id' in user.primary_branch) {
+    return Number((user.primary_branch as any).id);
+  }
+  
+  // Check branch
+  if (user.branch && typeof user.branch === 'object' && 'id' in user.branch) {
+    return Number((user.branch as any).id);
+  }
+  
+  // If branch is a number
+  if (typeof user.branch === 'number') {
+    return user.branch;
+  }
+  
+  // If branch is a string
+  if (typeof user.branch === 'string') {
+    const parsed = parseInt(user.branch);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  
+  return null;
+};
+
+// ✅ Helper to safely get branch name
+const getBranchName = (user: any): string => {
+  if (!user) return 'No branch assigned';
+  
+  // Check primary_branch
+  if (user.primary_branch && typeof user.primary_branch === 'object' && 'name' in user.primary_branch) {
+    return String((user.primary_branch as any).name);
+  }
+  
+  // Check branch
+  if (user.branch && typeof user.branch === 'object' && 'name' in user.branch) {
+    return String((user.branch as any).name);
+  }
+  
+  // If branch is a string
+  if (typeof user.branch === 'string') {
+    return user.branch;
+  }
+  
+  return 'Your branch';
+};
+
 export default function AddUserPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -28,17 +80,32 @@ export default function AddUserPage() {
     is_active: true,
   });
 
-  const branchId = user?.primary_branch?.id || user?.branch?.id;
+  // ✅ Use the helper to get branch ID safely
+  const branchId = getBranchId(user);
+  const branchName = getBranchName(user);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ✅ Validate branch exists
+    if (!branchId) {
+      toast.error("No branch assigned to your account. Please contact admin.");
+      return;
+    }
+    
+    // ✅ Validate password match
+    if (formData.password !== formData.password2) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const payload = {
         ...formData,
         role: parseInt(formData.role),
-        branch: branchId,          // ✅ auto-set to manager's branch
-        primary_branch: branchId,  // ✅ auto-set
+        branch: branchId,
+        primary_branch: branchId,
       };
       await createUser(payload);
       toast.success("User created successfully!");
@@ -141,7 +208,7 @@ export default function AddUserPage() {
                 Branch (auto-assigned)
               </label>
               <div className="w-full rounded-xl border border-border/70 bg-background/60 px-3.5 py-3 text-sm text-muted-foreground">
-                {branchId ? user?.branch?.name || user?.primary_branch?.name || "Your branch" : "No branch assigned"}
+                {branchName}
               </div>
             </div>
 

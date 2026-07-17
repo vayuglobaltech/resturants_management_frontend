@@ -15,9 +15,11 @@ interface ModalProps {
   confirmText?: string;
   cancelText?: string;
   onConfirm?: () => void;
+  onCancel?: () => void; // ✅ Add onCancel prop
   variant?: "default" | "danger";
   children?: ReactNode;
   size?: "sm" | "md" | "lg";
+  confirmDisabled?: boolean;
 }
 
 export function Modal({
@@ -29,9 +31,11 @@ export function Modal({
   confirmText,
   cancelText,
   onConfirm,
+  onCancel, // ✅ Destructure onCancel
   variant = "default",
   children,
   size = "md",
+  confirmDisabled = false,
 }: ModalProps) {
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -51,10 +55,30 @@ export function Modal({
     lg: "max-w-lg",
   };
 
-  const confirmVariant =
-    variant === "danger"
-      ? "bg-red-600 hover:bg-red-700 shadow-[0_4px_16px_rgba(239,68,68,0.3)]"
-      : "bg-primary hover:bg-primary/90 shadow-[0_8px_24px_rgba(184,142,76,0.25)]";
+  // Get proper button variants
+  const getConfirmVariant = () => {
+    if (variant === "danger") {
+      return "destructive";
+    }
+    return "default";
+  };
+
+  // Icon container background based on variant
+  const getIconContainerClass = () => {
+    if (variant === "danger") {
+      return "bg-red-500/10 dark:bg-red-500/20";
+    }
+    return "bg-primary/10 dark:bg-primary/20";
+  };
+
+  // Handle cancel - use onCancel if provided, otherwise use onClose
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      onClose();
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -94,7 +118,10 @@ export function Modal({
               <div className="p-6">
                 {icon && (
                   <div className="flex justify-center mb-4">
-                    <div className="w-16 h-16 rounded-full bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center">
+                    <div className={cn(
+                      "w-16 h-16 rounded-full flex items-center justify-center",
+                      getIconContainerClass()
+                    )}>
                       {icon}
                     </div>
                   </div>
@@ -117,8 +144,8 @@ export function Modal({
                 <div className="flex gap-3 p-6 pt-0">
                   {cancelText && (
                     <Button
-                      variant="secondary"
-                      onClick={onClose}
+                      variant="ghost"
+                      onClick={handleCancel} // ✅ Use handleCancel
                       className="flex-1 py-2.5"
                     >
                       {cancelText}
@@ -126,8 +153,10 @@ export function Modal({
                   )}
                   {confirmText && (
                     <Button
+                      variant={getConfirmVariant()}
                       onClick={onConfirm}
-                      className={cn("flex-1 py-2.5 text-foreground", confirmVariant)}
+                      disabled={confirmDisabled}
+                      className="flex-1 py-2.5"
                     >
                       {confirmText}
                     </Button>

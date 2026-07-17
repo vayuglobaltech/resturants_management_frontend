@@ -346,7 +346,7 @@ export default function PaymentsPage() {
                 Total Amount
               </p>
               <p className="text-lg font-bold">
-                Rs .{summaryStats.totalAmount.toFixed(2)}
+                 &nbsp;  Rs. {summaryStats.totalAmount.toFixed(2)}
               </p>
             </div>
           </CardContent>
@@ -742,7 +742,7 @@ export default function PaymentsPage() {
         cancelText="Cancel"
         onConfirm={handleRefund}
         onCancel={() => setRefundTarget(null)}
-        variant="warning"
+        variant="danger"
         confirmDisabled={refunding}
       />
     </div>

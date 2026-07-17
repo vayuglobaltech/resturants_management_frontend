@@ -52,8 +52,8 @@ export function isAdminOrManager(user: UserProfile): boolean {
   return (
     role === "admin" ||
     role === "branch_manager" ||
-    user.is_staff ||
-    user.is_superuser
+    user.is_staff === true || // ✅ Explicitly check for true
+    user.is_superuser === true // ✅ Explicitly check for true
   );
 }
 
@@ -67,7 +67,7 @@ export function canManageKitchen(user: any): boolean {
   if (!user) return false;
   
   // Check if user is superuser or staff
-  if (user.is_superuser || user.is_staff) return true;
+  if (user.is_superuser === true || user.is_staff === true) return true; // ✅ Explicitly check for true
   
   // Check role-based permissions
   const role = user.role?.name?.toLowerCase() || '';
@@ -84,7 +84,7 @@ export function canViewIngredients(_user: UserProfile): boolean {
 
 /** Can the user CREATE / EDIT / DELETE ingredients? (Admin / Manager only) */
 export function canManageIngredients(user: UserProfile): boolean {
-  return MANAGER_ROLES.has(getRoleName(user)) || !!user.is_staff || !!user.is_superuser;
+  return MANAGER_ROLES.has(getRoleName(user)) || user.is_staff === true || user.is_superuser === true; // ✅ Explicitly check for true
 }
 
 // Add these after your existing functions
@@ -97,7 +97,7 @@ export function canManageIngredients(user: UserProfile): boolean {
 /** Can the user VIEW transactions? (Admin & Managers only) */
 export function canViewTransactions(user: UserProfile): boolean {
   if (!user) return false;
-  if (user.is_superuser) return true;
+  if (user.is_superuser === true) return true; // ✅ Explicitly check for true
   
   const role = getRoleName(user);
   const allowedRoles = ['admin', 'super_admin', 'superadmin', 'manager', 'branch_manager'];
@@ -107,7 +107,7 @@ export function canViewTransactions(user: UserProfile): boolean {
 /** Can the user CREATE transactions? (Admin & Managers only) */
 export function canCreateTransaction(user: UserProfile): boolean {
   if (!user) return false;
-  if (user.is_superuser) return true;
+  if (user.is_superuser === true) return true; // ✅ Explicitly check for true
   
   const role = getRoleName(user);
   const allowedRoles = ['admin', 'super_admin', 'superadmin', 'manager', 'branch_manager'];
@@ -117,7 +117,7 @@ export function canCreateTransaction(user: UserProfile): boolean {
 /** Can the user UPDATE/EDIT transactions? (Admin & Managers only) */
 export function canEditTransaction(user: UserProfile): boolean {
   if (!user) return false;
-  if (user.is_superuser) return true;
+  if (user.is_superuser === true) return true; // ✅ Explicitly check for true
   
   const role = getRoleName(user);
   const allowedRoles = ['admin', 'super_admin', 'superadmin', 'manager', 'branch_manager'];
@@ -127,7 +127,7 @@ export function canEditTransaction(user: UserProfile): boolean {
 /** Can the user DELETE transactions? (Admin & Managers only) */
 export function canDeleteTransaction(user: UserProfile): boolean {
   if (!user) return false;
-  if (user.is_superuser) return true;
+  if (user.is_superuser === true) return true; // ✅ Explicitly check for true
   
   const role = getRoleName(user);
   const allowedRoles = ['admin', 'super_admin', 'superadmin', 'manager', 'branch_manager'];
@@ -137,7 +137,7 @@ export function canDeleteTransaction(user: UserProfile): boolean {
 /** Combined permission check for all transaction operations */
 export function canManageTransactions(user: UserProfile): boolean {
   if (!user) return false;
-  if (user.is_superuser) return true;
+  if (user.is_superuser === true) return true; // ✅ Explicitly check for true
   
   const role = getRoleName(user);
   const allowedRoles = ['admin', 'super_admin', 'superadmin', 'manager', 'branch_manager'];

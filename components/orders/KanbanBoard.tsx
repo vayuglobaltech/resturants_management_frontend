@@ -60,6 +60,16 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelled",
 };
 
+// ✅ Helper function to safely get user role as string
+const getUserRoleString = (role: any): string => {
+  if (!role) return '';
+  if (typeof role === 'string') return role;
+  if (typeof role === 'object' && 'name' in role) {
+    return String(role.name);
+  }
+  return '';
+};
+
 // ─── Overlay Order Card ──────────────────────────────────────────────
 function OverlayOrderCard({ order }: { order: any }) {
   const statusColor = STATUS_COLORS[order.status] || "bg-slate-500/20 text-muted-foreground";
@@ -109,7 +119,7 @@ function OrderCard({ order, onClick }: OrderCardProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: order.id, disabled: isPaid, });
+  } = useSortable({ id: order.id, disabled: isPaid });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -219,17 +229,15 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const canModify = useCanModifyOrders();
 
-  // Sensors: desktop drag after 5px movement; mobile long‑press (300ms delay)
+  // Sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
-      enabled: canModify,
     }),
     useSensor(TouchSensor, {
       activationConstraint: { delay: 300, tolerance: 5 },
-      enabled: canModify,
     }),
-    useSensor(KeyboardSensor, { enabled: canModify })
+    useSensor(KeyboardSensor)
   );
 
   const groupedOrders = useMemo(() => {
@@ -284,10 +292,11 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
       return;
     }
 
+    // ✅ FIXED: Use the helper to get role as string
+    const roleString = getUserRoleString(user?.role);
     if (newStatus === "PAID") {
-      const role = user?.role;
       const allowedRoles = ["admin", "cashier"];
-      if (!role || !allowedRoles.includes(role)) {
+      if (!roleString || !allowedRoles.includes(roleString.toLowerCase())) {
         toast.error("Only Cashier or Admin can mark an order as PAID.");
         setActiveOrder(null);
         setActiveId(null);

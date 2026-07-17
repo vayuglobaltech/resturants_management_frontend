@@ -18,6 +18,29 @@ type ProfileFormData = {
   phone_number: string;
 };
 
+const getUserRoleName = (role: any): string => {
+  if (!role) return "User";
+  if (typeof role === "object" && "name" in role) {
+    return String(role.name).replace(/_/g, " ");
+  }
+  if (typeof role === "string") {
+    return role.replace(/_/g, " ");
+  }
+  return "User";
+};
+
+// ✅ Helper function to safely get user branch name
+const getUserBranchName = (branch: any): string => {
+  if (!branch) return "—";
+  if (typeof branch === "object" && "name" in branch) {
+    return String(branch.name);
+  }
+  if (typeof branch === "string") {
+    return branch;
+  }
+  return "—";
+};
+
 export default function ProfilePage() {
   const { user, refreshProfile } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
@@ -63,9 +86,6 @@ export default function ProfilePage() {
       setError("email", { type: "manual", message: "Invalid email address" });
       isValid = false;
     }
-
-    // First name optional, but if provided, no validation needed
-    // Phone number optional, no validation needed
 
     return isValid;
   };
@@ -183,9 +203,7 @@ export default function ProfilePage() {
             <div>
               <p className="text-xs text-muted-foreground">Role</p>
               <p className="text-sm text-foreground capitalize">
-                {typeof user.role === "object" && "name" in user.role
-                  ? user.role.name.replace("_", " ")
-                  : "User"}
+                {getUserRoleName(user.role)}
               </p>
             </div>
           </div>
@@ -194,7 +212,7 @@ export default function ProfilePage() {
             <div>
               <p className="text-xs text-muted-foreground">Branch</p>
               <p className="text-sm text-foreground">
-                {user.branch ? (typeof user.branch === "object" ? user.branch.name : user.branch) : "—"}
+                {getUserBranchName(user.branch)}
               </p>
             </div>
           </div>

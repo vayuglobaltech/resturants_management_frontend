@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerUser, getBranches, getRoles } from "@/lib/api";
+import { Eye, EyeOff } from "lucide-react";
 
 interface Branch {
   id: number;
@@ -33,6 +34,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,6 +91,14 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   const inputCls =
@@ -240,31 +251,59 @@ export default function RegisterPage() {
             {/* password */}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="password" className={labelCls}>Password</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                required
-                placeholder="••••••••"
-                className={inputCls}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                  placeholder="••••••••"
+                  className={`${inputCls} pr-12`}
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <Eye className="h-5 w-5" />
+                  ) : (
+                    <EyeOff className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* confirm password */}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="password2" className={labelCls}>Confirm Password</label>
-              <input
-                id="password2"
-                name="password2"
-                type="password"
-                value={form.password2}
-                onChange={handleChange}
-                required
-                placeholder="••••••••"
-                className={inputCls}
-              />
+              <div className="relative">
+                <input
+                  id="password2"
+                  name="password2"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={form.password2}
+                  onChange={handleChange}
+                  required
+                  placeholder="••••••••"
+                  className={`${inputCls} pr-12`}
+                />
+                <button
+                  type="button"
+                  onClick={toggleConfirmPasswordVisibility}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  {showConfirmPassword ? (
+                    <Eye className="h-5 w-5" />
+                  ) : (
+                    <EyeOff className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <button

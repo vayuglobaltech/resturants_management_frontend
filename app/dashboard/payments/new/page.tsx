@@ -31,7 +31,7 @@ import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchTyped } from "@/lib/api";
 import { listOrders, getOrder, listTables } from "@/lib/ordersApi";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +45,7 @@ interface FormData {
   order: string;
   amount: string;
   customer_name: string;
-  // payment_method: string;
+  payment_method: string;
   status: string;
   transaction_id: string;
 }
@@ -139,7 +139,7 @@ export default function NewPaymentPage() {
   const selectedTableIdForm = watch("table");
   // const selectedOrderId = watch("order");
   const customerName = watch("customer_name");
-  // const paymentMethod = watch("payment_method");
+  const paymentMethod = watch("payment_method");
 
   const handleDownloadPDF = async () => {
     console.log("📄 PDF button clicked");
@@ -357,10 +357,14 @@ export default function NewPaymentPage() {
   // We no longer have a single selectedOrder; discounts are handled elsewhere
   // For combined bills, we can sum discounts from all orders (optional)
   // ─── Compute discounts from all eligible orders ──────────────────────────
-  const totalDiscountFromOrders = eligibleOrders.reduce<number>(
+  const totalDiscountFromOrders = eligibleOrders.reduce(
     (sum: number, order: any) =>
-      sum + (order.discounts || []).reduce<number>((s: number, d: any) => s + Number(d.amount), 0),
-    0,
+      sum +
+      (order.discounts || []).reduce(
+        (s: number, d: any) => s + Number(d.amount),
+        0
+      ),
+    0
   );
 
   // ─── 5. Auto‑fill amount when table changes ──────────────────────────
@@ -411,8 +415,9 @@ export default function NewPaymentPage() {
         ...pendingPayload,
         status: "PENDING", // always pending
       };
-
-      const res = await apiFetch(
+  
+      // ✅ apiFetchTyped returns the parsed JSON directly, not a Response
+      const json = await apiFetchTyped(
         "/api/orders/payments/",
         {
           method: "POST",
@@ -420,18 +425,11 @@ export default function NewPaymentPage() {
         },
         true,
       );
-      const json = await res.json();
-      if (!res.ok) throw json;
-
-      // ✅ Success – show invoice preview
-      setPaymentSuccess(true);
+            setPaymentSuccess(true);
       setShowBillSplash(true);
       setShowConfirmModal(false);
       toast.success("Bill generated successfully! Payment is pending.");
-
-      // (Optional) store the created payment ID if needed
-      // setCreatedPaymentId(json.id);
-    } catch (error: any) {
+      } catch (error: any) {
       const messages = Object.values(error).flat().join(" ");
       toast.error(messages || "Failed to generate bill.");
     } finally {
@@ -574,11 +572,16 @@ export default function NewPaymentPage() {
   };
 
   // Compute total discount from all eligible orders
-  const totalDiscountValue = eligibleOrders.reduce<number>(
+  const totalDiscountValue = eligibleOrders.reduce(
     (sum: number, order: any) =>
-      sum + (order.discounts || []).reduce<number>((s: number, d: any) => s + Number(d.amount), 0),
-    0,
+      sum +
+      (order.discounts || []).reduce(
+        (s: number, d: any) => s + Number(d.amount),
+        0
+      ),
+    0
   );
+  
   const subtotalBeforeDiscount = combinedTotal + totalDiscountValue;
   return (
     <div
@@ -1176,6 +1179,7 @@ export default function NewPaymentPage() {
                   items={combinedItems}
                   subtotal={subtotalBeforeDiscount}
                   grandTotal={combinedTotal}
+                  paymentMethod={paymentMethod}
                   customerName={customerName || "Guest"}
                   cashierName={cashierName}
                   orderNumber={

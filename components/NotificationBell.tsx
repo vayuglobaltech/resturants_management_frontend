@@ -26,12 +26,12 @@ export function NotificationBell({ className }: NotificationBellProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleNotificationClick = (id: string) => {
-    markAsRead(id);
-    // Optionally navigate based on notification type
-    // const notif = notifications.find(n => n.id === id);
-    // if (notif?.data?.order_id) router.push(`/dashboard/orders/${notif.data.order_id}`);
-  };
+  // const handleNotificationClick = (id: string) => {
+  //   markAsRead(id);
+  //   // Optionally navigate based on notification type
+  //   // const notif = notifications.find(n => n.id === id);
+  //   // if (notif?.data?.order_id) router.push(`/dashboard/orders/${notif.data.order_id}`);
+  // };
 
   const formatTime = (date: Date) => {
     const now = new Date();

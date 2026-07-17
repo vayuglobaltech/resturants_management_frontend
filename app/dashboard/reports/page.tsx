@@ -276,7 +276,7 @@ export default function ReportsOverviewPage() {
       </div>
 
       {/* ─── Stats Grid (Row 2) ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card
           className="bg-gradient-to-br from-rose-500/10 to-rose-500/5 border-rose-500/20 cursor-pointer hover:shadow-lg hover:shadow-rose-500/10 transition-all"
           onClick={() => navigateTo("gross-profit")}
@@ -340,7 +340,7 @@ export default function ReportsOverviewPage() {
         <CardContent className="p-0">
           <div className="flex items-center justify-between p-4 border-b border-border">
             <h3 className="font-semibold text-foreground">Recent Transactions</h3>
-            <Link href="/dashboard/reports/order-report">
+            <Link href="/dashboard/payments">
               <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground">
                 View All <ArrowRight className="h-4 w-4" />
               </Button>
@@ -388,7 +388,7 @@ export default function ReportsOverviewPage() {
                           {tx.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className=" py-3 text-muted-foreground ">
                         {formatDate(tx.created_at)}
                       </td>
                     </tr>
