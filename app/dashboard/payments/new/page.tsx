@@ -24,9 +24,9 @@ import {
   ShoppingBag,
   PartyPopper,
   Plus,
+  Store,
 } from "lucide-react";
 import toast from "react-hot-toast";
-// import html2canvas from "html2canvas";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { useAuth } from "@/context/AuthContext";
@@ -37,8 +37,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { InvoicePreview } from "@/components/InvoicePreview";
-import { Modal } from "@/components/ui/Modal"; // your existing modal
-// import ReactToPrint from "react-to-print";
+import { Modal } from "@/components/ui/Modal";
 
 interface FormData {
   table: string;
@@ -55,6 +54,12 @@ export default function NewPaymentPage() {
   const { user } = useAuth();
   const { theme } = useTheme();
   const isDarkMode = theme === "dark";
+  
+  // ─── Branch State ──────────────────────────────────────────────────────────
+  const [branchName, setBranchName] = useState("");
+  const [branchId, setBranchId] = useState<number | null>(null);
+  const [loadingBranch, setLoadingBranch] = useState(true);
+  
   const themeStyles = {
     "--page-bg": isDarkMode ? "#121110" : "#FAF8F5",
     "--page-surface": isDarkMode ? "#1C1A18" : "#FFFFFF",
@@ -69,7 +74,6 @@ export default function NewPaymentPage() {
   } as CSSProperties;
 
   // ─── Role-based route guard ─────────────────────────────────────────
-  // Managers/admins should NOT access Process Payment — only cashiers can.
   const rawRole = user?.role ?? user?.name ?? "";
   const userRole = String(
     typeof rawRole === "object" && "name" in rawRole ? rawRole.name : rawRole,
@@ -83,6 +87,129 @@ export default function NewPaymentPage() {
     }
   }, [isManager, router]);
 
+  // ─── Fetch branch info ──────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchBranchInfo = async () => {
+      if (!user) {
+        setLoadingBranch(false);
+        return;
+      }
+
+      try {
+        setLoadingBranch(true);
+        
+        // First, fetch the user profile to get the branch
+        console.log("📡 Fetching user profile for branch...");
+        const res = await apiFetch('/api/users/profile/', {}, true);
+        
+        let profileBranchName = "";
+        let profileBranchId = null;
+        
+        if (res.ok) {
+          const profile = await res.json();
+          console.log("📋 User profile from API:", profile);
+          
+          if (profile.branch?.name) {
+            profileBranchName = profile.branch.name;
+            profileBranchId = profile.branch.id;
+          } else if (profile.branch_name) {
+            profileBranchName = profile.branch_name;
+          } else if (profile.branch?.branch_name) {
+            profileBranchName = profile.branch.branch_name;
+          }
+          
+          console.log("✅ Found branch name in profile:", profileBranchName);
+        } else {
+          console.error("Failed to fetch profile:", res.status);
+        }
+        
+        // Now fetch available branches
+        console.log("🔍 Fetching available branches...");
+        const branchData = await getBranches();
+        const branchList = branchData.results || branchData || [];
+        console.log("📋 Available branches:", branchList);
+        
+        if (branchList.length === 0) {
+          console.log("No branches available");
+          setLoadingBranch(false);
+          return;
+        }
+        
+        let selectedBranch = null;
+        let selectedBranchName = "";
+        let selectedBranchId = null;
+        
+        // FIRST: Try to use branch from profile
+        if (profileBranchName) {
+          const matchedBranch = branchList.find((b: any) => 
+            b.name?.toLowerCase() === profileBranchName.toLowerCase()
+          );
+          if (matchedBranch) {
+            selectedBranch = matchedBranch;
+            selectedBranchName = matchedBranch.name;
+            selectedBranchId = matchedBranch.id;
+            console.log("✅ Using branch from profile:", selectedBranchName);
+          } else {
+            selectedBranchName = profileBranchName;
+            selectedBranch = branchList[0];
+            selectedBranchId = branchList[0].id;
+            console.log("📌 Using profile branch name (not in list):", selectedBranchName);
+          }
+        }
+        
+        // SECOND: Try by user's branch ID from auth
+        if (!selectedBranch) {
+          const userBranchId = (user as any)?.branch?.id;
+          if (userBranchId) {
+            const branchById = branchList.find((b: any) => b.id === userBranchId);
+            if (branchById) {
+              selectedBranch = branchById;
+              selectedBranchName = branchById.name;
+              selectedBranchId = branchById.id;
+              console.log("✅ Using branch from user ID:", selectedBranchName);
+            }
+          }
+        }
+        
+        // THIRD: Try by user's branch name from auth
+        if (!selectedBranch) {
+          const userBranchName = (user as any)?.branch?.name;
+          if (userBranchName) {
+            const branchByName = branchList.find((b: any) => 
+              b.name?.toLowerCase() === userBranchName.toLowerCase()
+            );
+            if (branchByName) {
+              selectedBranch = branchByName;
+              selectedBranchName = branchByName.name;
+              selectedBranchId = branchByName.id;
+              console.log("✅ Using branch from user name:", selectedBranchName);
+            }
+          }
+        }
+        
+        // FINAL: Fallback to first branch
+        if (!selectedBranch && branchList.length > 0) {
+          selectedBranch = branchList[0];
+          selectedBranchName = selectedBranch.name || "Default Branch";
+          selectedBranchId = selectedBranch.id;
+          console.log("📌 Using first available branch as fallback:", selectedBranchName);
+        }
+        
+        if (selectedBranch) {
+          setBranchName(selectedBranchName);
+          setBranchId(selectedBranchId);
+          console.log("✅ Final branch:", selectedBranchName);
+        }
+      } catch (error) {
+        console.error("❌ Failed to validate branch:", error);
+      } finally {
+        setLoadingBranch(false);
+      }
+    };
+
+    fetchBranchInfo();
+  }, [user]);
+
   const [tables, setTables] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -94,7 +221,6 @@ export default function NewPaymentPage() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const splashRef = useRef<HTMLDivElement>(null);
-  // const [isPrintReady, setIsPrintReady] = useState(false);
   const [showCreateOrder, setShowCreateOrder] = useState(false);
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const searchParams = useSearchParams();
@@ -130,14 +256,12 @@ export default function NewPaymentPage() {
       order: "",
       amount: "",
       customer_name: "",
-      // payment_method: "CASH",
       status: "COMPLETED",
       transaction_id: "",
     },
   });
 
   const selectedTableIdForm = watch("table");
-  // const selectedOrderId = watch("order");
   const customerName = watch("customer_name");
   const paymentMethod = watch("payment_method");
 
@@ -167,7 +291,6 @@ export default function NewPaymentPage() {
       const pdfHeight = (img.height * pdfWidth) / img.width;
       pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
 
-      // ─── Use combined order numbers ──────────────────────────────
       let filename = "receipt";
       if (eligibleOrders.length > 0) {
         const orderNumbers = eligibleOrders
@@ -182,13 +305,13 @@ export default function NewPaymentPage() {
       toast.error("Failed to generate PDF.");
     }
   };
+
   // ─── 1. Fetch occupied tables ──────────────────────────────────────────
   useEffect(() => {
     const fetchTables = async () => {
       try {
         const data = await listTables();
         const allTables = Array.isArray(data) ? data : [];
-        // ✅ Show ALL active tables (is_active = true)
         const activeTables = allTables.filter(
           (t: any) => t.status === "OCCUPIED",
         );
@@ -204,7 +327,6 @@ export default function NewPaymentPage() {
   }, []);
 
   // ─── 2. When table selected → fetch its orders ──────────────────────
-  // ─── 2. When table selected → fetch all its orders ──────────────────────
   useEffect(() => {
     if (selectedTableIdForm) {
       const fetchOrdersForTable = async () => {
@@ -220,7 +342,6 @@ export default function NewPaymentPage() {
           const tableOrders = Array.isArray(data) ? data : [];
           console.log("📦 All orders for table:", tableOrders);
 
-          // ─── Active orders = not PAID or CANCELLED ──────────────────
           const activeOrders = tableOrders.filter(
             (o: any) =>
               !["PAID", "CANCELLED"].includes(o.status?.toUpperCase()),
@@ -230,23 +351,17 @@ export default function NewPaymentPage() {
           const hasActiveOrder = activeOrders.length > 0;
           setHasActiveOrder(hasActiveOrder);
 
-          // ─── Eligible for payment = READY or DELIVERED ─────────────
           const eligibleOrders = activeOrders.filter(
             (o: any) =>
-              // o.status?.toUpperCase() === "READY" ||
-              o.status?.toUpperCase() === "DELIVERED" && !o.has_payment, // ✅ exclude already paid orders
+              o.status?.toUpperCase() === "DELIVERED" && !o.has_payment,
           );
           console.log("📦 Eligible orders (READY/DELIVERED):", eligibleOrders);
 
           setOrders(eligibleOrders);
           setShowCreateOrder(eligibleOrders.length === 0 && hasActiveOrder);
 
-          // ─── If eligible orders exist, combine them ────────────────────
-          // ─── If eligible orders exist, combine them ────────────────────
           if (eligibleOrders.length > 0) {
-            // Store all eligible orders
             setEligibleOrders(eligibleOrders);
-            // Combine items
             const combined = combineOrderItems(eligibleOrders);
             setCombinedItems(combined);
             const total = eligibleOrders.reduce(
@@ -255,9 +370,7 @@ export default function NewPaymentPage() {
             );
             setCombinedTotal(total);
             setValue("amount", total.toFixed(2));
-            // Use the first order as master for API
             setMasterOrderId(eligibleOrders[0].id);
-            // Pre-fill customer name from the first order
             if (eligibleOrders[0].customer_name) {
               setValue("customer_name", eligibleOrders[0].customer_name);
             }
@@ -304,7 +417,6 @@ export default function NewPaymentPage() {
 
     orders.forEach((order) => {
       (order.items || []).forEach((item: any) => {
-        // ✅ Use `product` field (the ID) instead of `product_id`
         const productId = item.product;
         if (!productId) return;
 
@@ -332,26 +444,9 @@ export default function NewPaymentPage() {
     console.log("✅ Combined items:", result);
     return result;
   };
-  // ─── 3. When order selected → fetch full details ────────────────────
-  // useEffect(() => {
-  //   if (selectedOrderId) {
-  //     const fetchOrderDetails = async () => {
-  //       try {
-  //         const order = await getOrder(selectedOrderId);
-  //         setSelectedOrder(order);
-  //       } catch (error) {
-  //         console.error("Failed to fetch order details:", error);
-  //         toast.error("Failed to load order details.");
-  //       }
-  //     };
-  //     fetchOrderDetails();
-  //   }
-  // }, [selectedOrderId]);
 
-  // ─── 4. Compute table totals ────────────────────────────────────────────
-  // We now use combinedTotal from state instead of selectedOrder
   const subtotal = combinedTotal;
-  const grandTotal = combinedTotal; // or subtotal + tax - discount if needed
+  const grandTotal = combinedTotal;
 
   // ─── Total discount from selected order ──────────────────────────────────
   // We no longer have a single selectedOrder; discounts are handled elsewhere
@@ -367,7 +462,6 @@ export default function NewPaymentPage() {
     0
   );
 
-  // ─── 5. Auto‑fill amount when table changes ──────────────────────────
   useEffect(() => {
     if (selectedTableIdForm && combinedTotal > 0) {
       setValue("amount", combinedTotal.toFixed(2));
@@ -383,20 +477,17 @@ export default function NewPaymentPage() {
       return;
     }
 
-    const allOrderIds = eligibleOrders.map((o) => o.id); // all order IDs
+    const allOrderIds = eligibleOrders.map((o) => o.id);
 
-    // Prepare payload with master order
     const payload = {
-      order: masterOrderId, // use master order for the API
-      order_ids: allOrderIds, // ✅ send all order IDs
+      order: masterOrderId,
+      order_ids: allOrderIds,
       amount: parseFloat(data.amount) || combinedTotal,
       subtotal: parseFloat(combinedTotal.toFixed(2)),
-      // payment_method: "CASH",
       status: "PENDING",
       transaction_id: data.transaction_id || undefined,
       branch: branchId,
       customer_name: data.customer_name || "Guest",
-      // We'll also store other order IDs to update later
       other_order_ids: eligibleOrders
         .filter((o) => o.id !== masterOrderId)
         .map((o) => o.id),
@@ -413,7 +504,7 @@ export default function NewPaymentPage() {
     try {
       const finalPayload = {
         ...pendingPayload,
-        status: "PENDING", // always pending
+        status: "PENDING",
       };
   
       // ✅ apiFetchTyped returns the parsed JSON directly, not a Response
@@ -437,15 +528,6 @@ export default function NewPaymentPage() {
     }
   };
 
-  // useEffect(() => {
-  //   if (showBillSplash && paymentSuccess) {
-  //     // Wait for DOM update
-  //     const timer = setTimeout(() => setIsPrintReady(true), 200);
-  //     return () => clearTimeout(timer);
-  //   }
-  //   setIsPrintReady(false);
-  // }, [showBillSplash, paymentSuccess]);
-
   const handleTableClick = (tableId: number) => {
     setSelectedTableId(String(tableId));
     setValue("table", String(tableId));
@@ -465,16 +547,6 @@ export default function NewPaymentPage() {
     user?.first_name && user?.last_name
       ? `${user.first_name} ${user.last_name}`
       : user?.username || "Cashier";
-
-  const branchName =
-    typeof user?.branch === "object" && user?.branch !== null && "name" in user.branch
-      ? (user.branch as { name?: string }).name
-      : undefined;
-
-  const branchId =
-    typeof user?.branch === "object" && user?.branch !== null && "id" in user.branch
-      ? Number((user.branch as { id?: number }).id)
-      : 1;
 
   const selectedTable = tables.find(
     (t) => t.id === parseInt(selectedTableIdForm),
@@ -560,7 +632,6 @@ export default function NewPaymentPage() {
           </div>
         </div>
 
-        {/* Status indicator dot */}
         <div
           className={`
           absolute top-3 right-4 w-2 h-2 rounded-full
@@ -602,17 +673,17 @@ export default function NewPaymentPage() {
             <Button
               variant="ghost"
               size="sm"
-              className=" transition-all"
+              className="transition-all"
               style={{ color: "var(--page-muted)" }}
             >
               <ArrowLeft className="h-4 w-4" /> 
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 px-3 py- bg-background rounded-full border border-border">
-              <Building2 className="h-4 w-4" style={{ color: "var(--page-accent)" }} />
+            <div className="flex items-center gap-1 px-3 py-2 bg-background rounded-full border border-border">
+              <Store className="h-4 w-4" style={{ color: "var(--page-accent)" }} />
               <span className="text-xs md:text-sm" style={{ color: "var(--page-muted)" }}>
-                {branchName || "Main Branch"}
+                {loadingBranch ? "Loading..." : branchName || "Main Branch"}
               </span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border border-border">
@@ -681,7 +752,6 @@ export default function NewPaymentPage() {
                           onSubmit={handleSubmit(onSubmit)}
                           className="space-y-4"
                         >
-                          {/* Hidden table field */}
                           <input type="hidden" {...register("table")} />
 
                           {/* Table Info */}
@@ -761,7 +831,6 @@ export default function NewPaymentPage() {
                                 </div>
                               </div>
                             ) : hasActiveOrder ? (
-                              // ─── Order exists but not ready for payment ──────────────────────
                               <div className="flex items-center gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400">
                                 <Clock className="h-4 w-4" />
                                 <span className="text-sm">
@@ -775,7 +844,6 @@ export default function NewPaymentPage() {
                                 </span>
                               </div>
                             ) : showCreateOrder ? (
-                              // ─── No order at all → cashier can create one ────────────────────
                               <div className="flex flex-col items-center justify-center p-6 rounded-lg border border-dashed" style={{ backgroundColor: "var(--page-soft)", borderColor: "var(--page-border)" }}>
                                 <p className="text-sm mb-3" style={{ color: "var(--page-muted)" }}>
                                   No orders found for this table.
@@ -798,7 +866,6 @@ export default function NewPaymentPage() {
                                 </Button>
                               </div>
                             ) : (
-                              // ─── Fallback ──────────────────────────────────────────────────────
                               <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ backgroundColor: "var(--page-soft)", borderColor: "var(--page-border)", color: "var(--page-accent)" }}>
                                 <AlertCircle className="h-4 w-4" />
                                 <span className="text-sm">
@@ -807,6 +874,7 @@ export default function NewPaymentPage() {
                               </div>
                             )}
                           </div>
+
                           {/* Customer Name */}
                           <div>
                             <label
@@ -855,71 +923,6 @@ export default function NewPaymentPage() {
                                 {errors.amount.message}
                               </p>
                             )}
-                          </div>
-
-                          {/* Payment Method & Status Row */}
-                          <div className="grid grid-cols-2 gap-3">
-                            {/* <div>
-                              <label
-                                htmlFor="payment_method"
-                                className="block text-sm font-medium text-muted-foreground mb-1.5"
-                              >
-                                Payment Method{" "}
-                                <span className="text-red-400">*</span>
-                              </label>
-                              <div className="relative">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                                  {paymentMethod === "CASH" ? (
-                                    <Banknote className="h-4 w-4 text-muted-foreground" />
-                                  ) : (
-                                    <QrCode className="h-4 w-4 text-muted-foreground" />
-                                  )}
-                                </div>
-                                <select
-                                  id="payment_method"
-                                  {...register("payment_method", {
-                                    required: "Method is required",
-                                  })}
-                                  className="w-full pl-10 rounded-lg border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-muted"
-                                >
-                                  <option value="CASH" className="bg-slate-800">
-                                    💰 Cash
-                                  </option>
-                                  <option value="QR" className="bg-slate-800">
-                                    📱 QR
-                                  </option>
-                                </select>
-                              </div>
-                            </div> */}
-                            {/* <div>
-                              <label
-                                htmlFor="status"
-                                className="block text-sm font-medium text-muted-foreground mb-1.5"
-                              >
-                                Status <span className="text-red-400">*</span>
-                              </label>
-                              <select
-                                id="status"
-                                {...register("status")}
-                                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer hover:bg-muted"
-                              >
-                                <option
-                                  value="COMPLETED"
-                                  className="bg-slate-800"
-                                >
-                                  ✅ Completed
-                                </option>
-                                <option
-                                  value="PENDING"
-                                  className="bg-slate-800"
-                                >
-                                  ⏳ Pending
-                                </option>
-                                <option value="FAILED" className="bg-slate-800">
-                                  ❌ Failed
-                                </option>
-                              </select>
-                            </div> */}
                           </div>
 
                           {/* Transaction ID */}
@@ -1189,7 +1192,7 @@ export default function NewPaymentPage() {
                   }
                   date={new Date().toISOString()}
                   discounts={eligibleOrders.flatMap((o) => o.discounts || [])}
-                  totalDiscount={totalDiscountValue} // or calculate combined discounts if needed
+                  totalDiscount={totalDiscountFromOrders}
                 />
               </div>
             </div>
@@ -1241,7 +1244,6 @@ export default function NewPaymentPage() {
 
       {/* Custom Scrollbar Styles */}
       <style jsx>{`
-        /* 1. SCROLLBAR: attach this to the parent wrapper */
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }
@@ -1257,7 +1259,6 @@ export default function NewPaymentPage() {
           background: rgba(99, 102, 241, 0.8);
         }
 
-        /* 3. ANIMATIONS */
         @keyframes slide-up {
           from {
             opacity: 0;

@@ -3,7 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch } from "@/lib/api";
+import { 
+  getSalesTransactions, 
+  getCOGSTransactions, 
+  getExpenses,
+  getGrossProfitReport,
+  getDailySalesSummary,
+} from "@/lib/accountingApi";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +26,7 @@ import {
   Minus,
   Percent,
   Activity,
+  AlertCircle,
 } from "lucide-react";
 import {
   format,
@@ -43,6 +50,8 @@ import {
   ResponsiveContainer,
   ComposedChart,
 } from "recharts";
+import toast from "react-hot-toast";
+import { apiFetch } from "@/lib/api";
 
 type Period = "today" | "week" | "month" | "custom";
 type PnLData = {
@@ -53,7 +62,7 @@ type PnLData = {
   netSales: number;
   cogs: number;
   grossProfit: number;
-  operatingExpenses: number;
+  // operatingExpenses: number;
   netProfit: number;
 };
 
@@ -64,7 +73,7 @@ type PnLSummary = {
   netSales: number;
   cogs: number;
   grossProfit: number;
-  operatingExpenses: number;
+  // operatingExpenses: number;
   netProfit: number;
   netProfitMargin: number;
 };
@@ -80,9 +89,7 @@ const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 export default function ProfitLossPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const initialPeriod = (searchParams.get("period") as Period) || "today";
-
-  const [period, setPeriod] = useState<Period>(initialPeriod);
+  const [period, setPeriod] = useState<Period>("today");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [pnlData, setPnlData] = useState<PnLData[]>([]);
@@ -93,12 +100,24 @@ export default function ProfitLossPage() {
     netSales: 0,
     cogs: 0,
     grossProfit: 0,
-    operatingExpenses: 0,
+    // operatingExpenses: 0,
     netProfit: 0,
     netProfitMargin: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [dataSource, setDataSource] = useState<string>("");
+
+  // ─── Get user's branch ID ─────────────────────────────────────────────
+  const getBranchId = useCallback(() => {
+    if (!user) return undefined;
+    // Try to get branch from user object
+    const branch = (user as any)?.branch;
+    if (branch) {
+      return typeof branch === 'object' ? branch.id : branch;
+    }
+    return undefined;
+  }, [user]);
 
   // ─── Date range helpers ──────────────────────────────────────────────
   const getDateRange = useCallback(
@@ -122,51 +141,123 @@ export default function ProfitLossPage() {
     [customStart, customEnd],
   );
 
-  // ─── Fetch P&L data ──────────────────────────────────────────────────
+  // ─── Fetch P&L data using real API ──────────────────────────────────
   const fetchPnL = useCallback(async () => {
-    setLoading(true);
+  setLoading(true);
+  try {
+    const { start, end } = getDateRange(period);
+    const startStr = format(start, "yyyy-MM-dd");
+    const endStr = format(end, "yyyy-MM-dd");
+    const branchId = getBranchId();
+
+    // ─── 1. Fetch ALL orders ──────────────────────────────────────────
+    const ordersRes = await apiFetch(
+      `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+      {},
+      true
+    );
+    const ordersData = await ordersRes.json();
+    const allOrders = ordersData.results || ordersData || [];
+
+    // ─── 2. Completed payments ──────────────────────────────────────
+    const completedRes = await apiFetch(
+      `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+      {},
+      true
+    );
+    const completedData = await completedRes.json();
+    const completedPayments = completedData.results || completedData || [];
+    const paidOrderIds = new Set(completedPayments.map(p => p.order));
+
+    // ─── 3. Refunded payments ──────────────────────────────────────
+    // ─── 3. Refunded payments (full and partial) ──────────────────
+let refundedPayments: any[] = [];
+try {
+  const refundRes = await apiFetch(
+    `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+    {},
+    true
+  );
+  const refundData = await refundRes.json();
+  refundedPayments = refundData.results || refundData || [];
+} catch (error) {
+  console.warn("Refunds endpoint not available, using empty array");
+}
+
+    // ─── 4. COGS from accounting API ──────────────────────────────
+    let totalCogs = 0;
+    let grossProfitReportData = null;
     try {
-      const { start, end } = getDateRange(period);
-      const startStr = format(start, "yyyy-MM-dd");
-      const endStr = format(end, "yyyy-MM-dd");
+      grossProfitReportData = await getGrossProfitReport(startStr, endStr, branchId);
+      if (grossProfitReportData) {
+        totalCogs = parseFloat(grossProfitReportData.total_cogs || '0');
+      }
+    } catch (error) {
+      console.warn("Gross Profit Report not available, using 0");
+    }
 
-      // ─── 1. Gross Sales (completed payments) ──────────────────────
-      const salesRes = await apiFetch(
-        `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true,
-      );
-      const salesData = await salesRes.json();
-      const payments = salesData.results || salesData || [];
+    // ─── COGS: Daily items for chart ──────────────────────────────────
+// ─── COGS: Daily items for chart ──────────────────────────────────
+let cogsItems: any[] = [];
+try {
+  // ✅ Add branch parameter to match the summary endpoint
+  const branchParam = branchId ? `&branch=${branchId}` : '';
+  const cogsUrl = `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}${branchParam}&page_size=2000`;
+  console.log(`🔍 COGS Items URL: ${cogsUrl}`);
+  
+  const cogsRes = await apiFetch(cogsUrl, {}, true);
+  const cogsData = await cogsRes.json();
+  cogsItems = cogsData.results || cogsData || [];
+  console.log(`📦 COGS Items Response:`, cogsItems);
+} catch (error) {
+  console.warn("COGS items endpoint not available, using empty array");
+}
 
-      // ─── 2. Refunded payments (real refunds) ──────────────────────
-      const refundRes = await apiFetch(
-        `/api/orders/payments/?status=REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+    // ─── 5. Expenses from accounting API ──────────────────────────
+    let totalExpenses = 0;
+    let expenseItems: any[] = [];
+    try {
+      const expRes = await apiFetch(
+        `/api/accounting/expenses/?expense_date__gte=${startStr}&expense_date__lte=${endStr}&page_size=2000`,
         {},
-        true,
+        true
       );
-      const refundData = await refundRes.json();
-      const refundedPayments = refundData.results || refundData || [];
+      const expData = await expRes.json();
+      expenseItems = expData.results || expData || [];
+      totalExpenses = expenseItems.reduce(
+        (sum: number, e: any) => sum + Number(e.amount || 0),
+        0
+      );
+    } catch (error) {
+      console.warn("Expense endpoint not available, using 0");
+    }
 
-      // ─── 3. Discounts (from orders) ──────────────────────────────
-      const ordersRes = await apiFetch(
-        `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true,
+    // ─── 6. Calculate Gross Sales & Discounts from orders ────────────
+    let grossSales = 0;
+    let totalDiscounts = 0;
+    const salesGrouped: Record<string, number> = {};
+    const discountGrouped: Record<string, number> = {};
+
+    allOrders.forEach((order: any) => {
+      if (!paidOrderIds.has(order.id)) return;
+
+      const date = format(new Date(order.created_at), "yyyy-MM-dd");
+      // Gross Sales from items
+      const subtotal = (order.items || []).reduce(
+        (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
+        0
       );
-      const ordersData = await ordersRes.json();
-      const orders = ordersData.results || ordersData || [];
-      const discountMap: Record<string, number> = {};
-      let totalDiscounts = 0;
-      orders.forEach((o: any) => {
-        const date = format(new Date(o.created_at), "yyyy-MM-dd");
-        const discSum = (o.discounts || []).reduce(
-          (s: number, d: any) => s + Number(d.amount),
-          0,
-        );
-        discountMap[date] = (discountMap[date] || 0) + discSum;
-        totalDiscounts += discSum;
-      });
+      grossSales += subtotal;
+      salesGrouped[date] = (salesGrouped[date] || 0) + subtotal;
+
+      // Discounts
+      const discSum = (order.discounts || []).reduce(
+        (s: number, d: any) => s + Number(d.amount),
+        0
+      );
+      totalDiscounts += discSum;
+      discountGrouped[date] = (discountGrouped[date] || 0) + discSum;
+    });
 
       // ─── 4. Group sales by date ──────────────────────────────────
       const salesGrouped: Record<string, number> = {};
@@ -287,7 +378,8 @@ export default function ProfitLossPage() {
           };
         });
 
-      setPnlData(result);
+// Remove the old cogsItems fetch and grouping – it's replaced by the above.
+// The summary totalCogs can still come from getGrossProfitReport (or computed).
 
       // ─── 9. Summary ──────────────────────────────────────────────────
       const totalGross = payments.reduce(
@@ -313,16 +405,48 @@ export default function ProfitLossPage() {
         netProfit: totalNetProfit,
         netProfitMargin: netProfitMargin,
       });
-    } catch (error) {
-      console.error("Failed to fetch P&L data:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [period, getDateRange]);
+
+    setPnlData(result);
+
+    // ─── 10. Summary ──────────────────────────────────────────────────
+    const totalGross = grossSales;
+    const totalCogsSum = totalCogs;
+    const totalDiscountSum = totalDiscounts;
+    const totalRefundSum = refundedPayments.reduce(
+      (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
+      0
+    );
+    const totalNetSales = totalGross - totalDiscountSum - totalRefundSum;
+    const totalGrossProfit = totalNetSales - totalCogsSum;
+    const totalNetProfit = totalGrossProfit - totalExpenses;
+    const netProfitMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0;
+
+    setSummary({
+      grossSales: totalGross,
+      discounts: totalDiscountSum,
+      refunds: totalRefundSum,
+      netSales: totalNetSales,
+      cogs: totalCogsSum,
+      grossProfit: totalGrossProfit,
+      // operatingExpenses: totalExpenses,
+      netProfit: totalNetProfit,
+      netProfitMargin: netProfitMargin,
+    });
+
+    setDataSource("Real data from API");
+
+  } catch (error) {
+    console.error("Failed to fetch P&L data:", error);
+    toast.error("Failed to load profit & loss data");
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+}, [period, getDateRange, getBranchId]);
 
   useEffect(() => {
     fetchPnL();
+    
   }, [fetchPnL]);
 
   // ─── Loading ──────────────────────────────────────────────────────────
@@ -352,8 +476,6 @@ export default function ProfitLossPage() {
   // ─── Financial Statement data ────────────────────────────────────────
   const statementItems = [
     { label: "Gross Sales", value: summary.grossSales, type: "revenue" },
-    { label: "Discounts", value: summary.discounts, type: "deduction" },
-    { label: "Refunds", value: summary.refunds, type: "deduction" },
     { label: "Net Sales", value: summary.netSales, type: "subtotal" },
     {
       label: "Cost of Goods Sold (COGS)",
@@ -361,11 +483,11 @@ export default function ProfitLossPage() {
       type: "deduction",
     },
     { label: "Gross Profit", value: summary.grossProfit, type: "subtotal" },
-    {
-      label: "Operating Expenses",
-      value: summary.operatingExpenses,
-      type: "deduction",
-    },
+    // {
+    //   label: "Operating Expenses",
+    //   value: summary.operatingExpenses,
+    //   type: "deduction",
+    // },
     { label: "Net Profit", value: summary.netProfit, type: "total" },
   ];
 
@@ -373,7 +495,17 @@ export default function ProfitLossPage() {
     <div className="space-y-6">
       {/* ─── Header ────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Profit & Loss</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Profit & Loss</h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            {dataSource && `📊 ${dataSource}`}
+            {summary.transaction_count !== undefined && (
+              <span className="ml-2">
+                • {summary.transaction_count} transactions
+              </span>
+            )}
+          </p>
+        </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Button
@@ -416,6 +548,31 @@ export default function ProfitLossPage() {
         </div>
       </div>
 
+      {/* ─── COGS Warning ──────────────────────────────────────────────── */}
+      {summary.cogs === 0 && summary.grossSales > 0 && (
+        <Card className="bg-amber-500/10 border-amber-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-400 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-400">
+                  COGS Data Missing
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  COGS is showing as 0. This usually means products don't have 
+                  cost prices set or COGS transactions haven't been created.
+                  <br />
+                  <span className="text-amber-400/70">
+                    Tip: Set cost prices on products and ensure COGS transactions 
+                    are created when orders are delivered.
+                  </span>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ─── Summary Cards ────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20">
@@ -437,9 +594,9 @@ export default function ProfitLossPage() {
               <DollarSign className="h-5 w-5 text-rose-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Net Sales</p>
+              <p className="text-xs text-muted-foreground">COGS</p>
               <p className="text-lg font-bold">
-                {formatCurrency(summary.netSales)}
+                {formatCurrency(summary.cogs)}
               </p>
             </div>
           </CardContent>
@@ -480,14 +637,14 @@ export default function ProfitLossPage() {
               <DollarSign className="h-5 w-5 text-cyan-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">COGS</p>
+              <p className="text-xs text-muted-foreground">Net Sales</p>
               <p className="text-lg font-bold">
-                {formatCurrency(summary.cogs)}
+                {formatCurrency(summary.netSales)}
               </p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+        {/* <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-orange-500/20">
               <DollarSign className="h-5 w-5 text-orange-400" />
@@ -501,29 +658,16 @@ export default function ProfitLossPage() {
               </p>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
         <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-purple-500/20">
-              <TrendingDown className="h-5 w-5 text-purple-400" />
+              <DollarSign className="h-5 w-5 text-purple-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Discounts</p>
+              <p className="text-xs text-muted-foreground">Net Profit</p>
               <p className="text-lg font-bold">
-                {formatCurrency(summary.discounts)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-full bg-red-500/20">
-              <TrendingDown className="h-5 w-5 text-red-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Refunds</p>
-              <p className="text-lg font-bold">
-                {formatCurrency(summary.refunds)}
+                {formatCurrency(summary.netProfit)}
               </p>
             </div>
           </CardContent>
@@ -576,19 +720,19 @@ export default function ProfitLossPage() {
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar
-                  dataKey="operatingExpenses"
+                  dataKey="netProfit"
                   fill="#f59e0b"
-                  name="Operating Expenses"
+                  name="Net Profit"
                   radius={[4, 4, 0, 0]}
                 />
-                <Line
+                {/* <Line
                   type="monotone"
                   dataKey="netProfit"
-                  stroke="#34d399"
-                  strokeWidth={2}
+                  stroke="#facc15"
+                  strokeWidth={3}
                   name="Net Profit"
                   dot={{ r: 3 }}
-                />
+                /> */}
               </ComposedChart>
             </ResponsiveContainer>
           </div>

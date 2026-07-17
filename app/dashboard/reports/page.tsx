@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
@@ -21,13 +21,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { getGrossProfitReport } from "@/lib/accountingApi";
 
 type OverviewStats = {
   totalSales: number;
   totalOrders: number;
-  averageOrderValue: number;
   grossProfit: number;
-  totalExpenses: number;
+  // totalExpenses: number;
   netProfit: number;
   cancelledOrders: number;
   recentTransactions: any[];
@@ -41,15 +41,24 @@ export default function ReportsOverviewPage() {
   const [stats, setStats] = useState<OverviewStats>({
     totalSales: 0,
     totalOrders: 0,
-    averageOrderValue: 0,
     grossProfit: 0,
-    totalExpenses: 0,
+    // totalExpenses: 0,
     netProfit: 0,
     cancelledOrders: 0,
     recentTransactions: [],
   });
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>("today");
+  const getBranchId = useCallback(() => {
+    if (!user) return undefined;
+    // Try to get branch from user object
+      const branch = (user as any)?.branch;
+      if (branch) {
+        return typeof branch === 'object' ? branch.id : branch;
+      }
+      return undefined;
+    }, [user]);
+  
 
   // ─── Build date filters ──────────────────────────────────────────────
   const getDateRange = (period: Period) => {
@@ -60,7 +69,7 @@ export default function ReportsOverviewPage() {
         gte: format(startOfDay(now), "yyyy-MM-dd"),
         lte: format(endOfDay(now), "yyyy-MM-dd"),
       };
-    case "week":
+      case "week":
       return {
         gte: format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"), // Monday start
         lte: format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"),
@@ -70,31 +79,21 @@ export default function ReportsOverviewPage() {
         gte: format(startOfMonth(now), "yyyy-MM-dd"),
         lte: format(endOfMonth(now), "yyyy-MM-dd"),
       };
-  }
-};
-
+    }
+  };
+  
+  const { gte, lte } = getDateRange(period);
+  const startStr = format(gte, "yyyy-MM-dd");
+  const endStr = format(lte, "yyyy-MM-dd");
   const fetchOverview = async (period: Period) => {
   setLoading(true);
   try {
     const { gte, lte } = getDateRange(period);
-
+    const branchId = getBranchId();
     console.log(`📊 Fetching overview for period: ${period}`);
     console.log(`   Date range: ${gte} to ${lte}`);
 
-    // ─── 1. Completed payments (sales) ───────────────────────────────
-    const salesRes = await apiFetch(
-      `/api/orders/payments/?status=COMPLETED&created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
-      {},
-      true
-    );
-    const salesData = await salesRes.json();
-    const completedPayments = salesData.results || salesData || [];
-    const totalSales = completedPayments.reduce(
-      (sum: number, p: any) => sum + Number(p.amount || 0),
-      0
-    );
-
-    // ─── 2. All orders (for this period) ──────────────────────────────
+    // ─── 1. Fetch all orders ──────────────────────────────────────────
     const ordersRes = await apiFetch(
       `/api/orders/?created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
       {},
@@ -102,15 +101,122 @@ export default function ReportsOverviewPage() {
     );
     const ordersData = await ordersRes.json();
     const allOrders = ordersData.results || ordersData || [];
-    const totalOrders = allOrders.length;
+
+    // ─── 2. Completed payments ──────────────────────────────────────
+    const salesRes = await apiFetch(
+      `/api/orders/payments/?status=COMPLETED&created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
+      {},
+      true
+    );
+    const salesData = await salesRes.json();
+    const completedPayments = salesData.results || salesData || [];
+    const completedOrderIds = new Set(completedPayments.map(p => p.order));
+
+    // ─── 3. Refunded payments (full and partial) ──────────────────────
+let refundedPayments: any[] = [];
+let totalRefunds = 0;
+try {
+  const refundRes = await apiFetch(
+    `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
+    {},
+    true
+  );
+  const refundData = await refundRes.json();
+  refundedPayments = refundData.results || refundData || [];
+  totalRefunds = refundedPayments.reduce(
+    (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
+    0
+  );
+} catch (error) {
+  console.warn("Refunds endpoint not available, using 0");
+}
+    const refundedOrderIds = new Set(refundedPayments.map(p => p.order));
+    console.log(`🔍 Overview COGS URL: /api/accounting/cogs-transactions/?created_at__gte=${gte}&created_at__lte=${lte}`);
+
+    // ─── 4. Total orders (completed + refunded) ──────────────────────
+    const allPaidOrderIds = new Set([...completedOrderIds, ...refundedOrderIds]);
+    const totalOrders = allPaidOrderIds.size;
+
+    // ─── 5. Gross Sales from order items (only completed) ──────────
+    let grossSales = 0;
+    allOrders.forEach((order: any) => {
+      if (!completedOrderIds.has(order.id)) return;
+      const subtotal = (order.items || []).reduce(
+        (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
+        0
+      );
+      grossSales += subtotal;
+    });
+
+    // ─── 6. Discounts (only completed orders) ──────────────────────
+    let totalDiscounts = 0;
+    allOrders.forEach((order: any) => {
+      if (!completedOrderIds.has(order.id)) return;
+      const discSum = (order.discounts || []).reduce(
+        (s: number, d: any) => s + Number(d.amount),
+        0
+      );
+      totalDiscounts += discSum;
+    });
+
+    // ─── 7. Cancelled orders ────────────────────────────────────────────
     const cancelledOrders = allOrders.filter(
       (o: any) => o.status === "CANCELLED"
     ).length;
 
-    // ─── 3. Average order value ──────────────────────────────────────
-    const averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+    // ─── 8. COGS ────────────────────────────────────────────────────────
+    let totalCogs = 0;
+        let grossProfitReportData = null;
+        try {
+          grossProfitReportData = await getGrossProfitReport(startStr, endStr, branchId);
+          if (grossProfitReportData) {
+            totalCogs = parseFloat(grossProfitReportData.total_cogs || '0');
+          }
+        } catch (error) {
+          console.warn("Gross Profit Report not available, using 0");
+        }
+    
+        // ─── COGS: Daily items for chart ──────────────────────────────────
+    // ─── COGS: Daily items for chart ──────────────────────────────────
+    let cogsItems: any[] = [];
+    try {
+      // ✅ Add branch parameter to match the summary endpoint
+      const branchParam = branchId ? `&branch=${branchId}` : '';
+      const cogsUrl = `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}${branchParam}&page_size=2000`;
+      console.log(`🔍 COGS Items URL: ${cogsUrl}`);
+      
+      const cogsRes = await apiFetch(cogsUrl, {}, true);
+      const cogsData = await cogsRes.json();
+      cogsItems = cogsData.results || cogsData || [];
+      console.log(`📦 COGS Items Response:`, cogsItems);
+    } catch (error) {
+      console.warn("COGS items endpoint not available, using empty array");
+    }
 
-    // ─── 4. Recent transactions (last 5, regardless of period) ──────
+    // ─── 9. Expenses ──────────────────────────────────────────────────────
+    // let totalExpenses = 0;
+    // try {
+    //   const expRes = await apiFetch(
+    //     `/api/accounting/expenses/?expense_date__gte=${gte}&expense_date__lte=${lte}&page_size=1000`,
+    //     {},
+    //     true
+    //   );
+    //   const expData = await expRes.json();
+    //   const expenses = expData.results || expData || [];
+    //   totalExpenses = expenses.reduce(
+    //     (sum: number, e: any) => sum + Number(e.amount || 0),
+    //     0
+    //   );
+    // } catch (error) {
+    //   console.warn("Expense endpoint not available, using 0");
+    // }
+
+    // ─── 10. Derived metrics ──────────────────────────────────────────
+    const netSales = grossSales - totalDiscounts - totalRefunds;
+    const grossProfit = netSales - totalCogs;
+    const netProfit = grossProfit;
+
+    // ─── 11. Recent transactions ──────────────────────────────────────
     const recentRes = await apiFetch(
       `/api/orders/payments/?ordering=-created_at&page_size=5`,
       {},
@@ -119,21 +225,11 @@ export default function ReportsOverviewPage() {
     const recentData = await recentRes.json();
     const recentTransactions = recentData.results || recentData || [];
 
-    // ─── 5. Gross profit (placeholder: 40% of sales) ────────────────
-    const grossProfit = totalSales * 0.4;
-
-    // ─── 6. Expenses (placeholder: 20% of sales) ──────────────────────
-    const totalExpenses = totalSales * 0.2;
-
-    // ─── 7. Net profit ──────────────────────────────────────────────────
-    const netProfit = grossProfit - totalExpenses;
-
     setStats({
-      totalSales,
+      totalSales: netSales,
       totalOrders,
-      averageOrderValue,
       grossProfit,
-      totalExpenses,
+      // totalExpenses,
       netProfit,
       cancelledOrders,
       recentTransactions,
@@ -223,7 +319,7 @@ export default function ReportsOverviewPage() {
               <DollarSign className="h-6 w-6 text-indigo-400" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Sales</p>
+              <p className="text-sm text-muted-foreground">Net Sales</p>
               <p className="text-2xl font-bold">{formatCurrency(stats.totalSales)}</p>
             </div>
           </CardContent>
@@ -240,21 +336,6 @@ export default function ReportsOverviewPage() {
             <div>
               <p className="text-sm text-muted-foreground">Total Orders</p>
               <p className="text-2xl font-bold">{stats.totalOrders}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 cursor-pointer hover:shadow-lg hover:shadow-purple-500/10 transition-all"
-          onClick={() => navigateTo("sales")}
-        >
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 rounded-full bg-purple-500/20">
-              <TrendingUp className="h-6 w-6 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Avg. Order Value</p>
-              <p className="text-2xl font-bold">{formatCurrency(stats.averageOrderValue)}</p>
             </div>
           </CardContent>
         </Card>
@@ -292,7 +373,7 @@ export default function ReportsOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card
+        {/* <Card
           className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20 cursor-pointer hover:shadow-lg hover:shadow-orange-500/10 transition-all"
           onClick={() => navigateTo("profit-loss")}
         >
@@ -305,7 +386,7 @@ export default function ReportsOverviewPage() {
               <p className="text-2xl font-bold">{formatCurrency(stats.totalExpenses)}</p>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card
           className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20 cursor-pointer hover:shadow-lg hover:shadow-red-500/10 transition-all"

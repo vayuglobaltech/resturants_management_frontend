@@ -17,7 +17,15 @@ import {
   CheckCircle,
   RefreshCw,
 } from "lucide-react";
-import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, differenceInMinutes } from "date-fns";
+import {
+  format,
+  subDays,
+  startOfDay,
+  endOfDay,
+  startOfMonth,
+  endOfMonth,
+  differenceInMinutes,
+} from "date-fns";
 import { cn } from "@/lib/utils";
 
 type Period = "today" | "week" | "month" | "custom";
@@ -59,7 +67,9 @@ export default function EmployeePerformancePage() {
   const [period, setPeriod] = useState<Period>(initialPeriod);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"waiters" | "cashiers" | "kitchen">("waiters");
+  const [activeTab, setActiveTab] = useState<
+    "waiters" | "cashiers" | "kitchen"
+  >("waiters");
 
   // ─── Data states ──────────────────────────────────────────────────────
   const [waiters, setWaiters] = useState<WaiterStats[]>([]);
@@ -69,15 +79,15 @@ export default function EmployeePerformancePage() {
   // ─── Helper to extract role name ─────────────────────────────────────
   const getUserRole = useCallback((user: any): string => {
     // First check if role is a string directly
-    if (typeof user?.role === 'string' && user.role.length > 0) {
+    if (typeof user?.role === "string" && user.role.length > 0) {
       return user.role;
     }
-    
+
     // Check if role is an object with name
-    if (user?.role?.name && typeof user.role.name === 'string') {
+    if (user?.role?.name && typeof user.role.name === "string") {
       return user.role.name;
     }
-    
+
     // Check other possible fields
     const roleCandidates = [
       user?.role?.name,
@@ -90,17 +100,17 @@ export default function EmployeePerformancePage() {
       user?.role?.display_name,
       user?.role_display_name,
     ];
-    
+
     for (const candidate of roleCandidates) {
-      if (typeof candidate === 'string' && candidate.length > 0) {
+      if (typeof candidate === "string" && candidate.length > 0) {
         return candidate;
       }
     }
-    
+
     if (user?.is_staff) {
       return "staff";
     }
-    
+
     return "unknown";
   }, []);
 
@@ -136,19 +146,34 @@ export default function EmployeePerformancePage() {
       // ─── 2. Filter users by role ────────────────────────────────────
       const waiterUsers = allUsers.filter((u: any) => {
         const role = getUserRole(u).toLowerCase();
-        return ['waiter', 'waiters', 'server', 'servers', 'service', 'branch_manager'].some(r => role.includes(r));
+        return [
+          "waiter",
+          "waiters",
+          "server",
+          "servers",
+          "service",
+          "branch_manager",
+        ].some((r) => role.includes(r));
       });
-      
+
       // const cashierUsers = allUsers.filter((u: any) => {
       //   const role = getUserRole(u).toLowerCase();
-      //   return role === 'cashier' || 
-      //          role === 'cashiers' || 
+      //   return role === 'cashier' ||
+      //          role === 'cashiers' ||
       //          role.includes('cashier');
       // });
-      
+
       const kitchenUsers = allUsers.filter((u: any) => {
         const role = getUserRole(u).toLowerCase();
-        return ['kitchen_staff', 'kitchen staff', 'chef', 'cook', 'kitchen', 'prep', 'culinary'].some(r => role.includes(r));
+        return [
+          "kitchen_staff",
+          "kitchen staff",
+          "chef",
+          "cook",
+          "kitchen",
+          "prep",
+          "culinary",
+        ].some((r) => role.includes(r));
       });
 
       // ─── 3. Fetch orders ─────────────────────────────────────────────
@@ -169,13 +194,19 @@ export default function EmployeePerformancePage() {
       }
 
       // ─── 4. Fetch refunded payments ──────────────────────────────
-      const refundedRes = await apiFetch(
-        `/api/orders/payments/?status=REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-        {},
-        true
-      );
-      const refundedData = await refundedRes.json();
-      const refundedPayments = refundedData.results || refundedData || [];
+      // ─── Fetch refunded payments (full and partial) ──────────────
+      let refundedPayments: any[] = [];
+      try {
+        const refundRes = await apiFetch(
+          `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+          {},
+          true,
+        );
+        const refundData = await refundRes.json();
+        refundedPayments = refundData.results || refundData || [];
+      } catch (error) {
+        console.warn("Refunds endpoint not available, using empty array");
+      }
 
       // ─── 5. Fetch COGS transactions for kitchen staff ───────────────
       let cogsItems: any[] = [];
@@ -192,8 +223,9 @@ export default function EmployeePerformancePage() {
 
       // ─── 6. Compute Waiter Stats ─────────────────────────────────────
       const waiterMap = new Map<number, WaiterStats>();
-      const usersToUseForWaiters = waiterUsers.length > 0 ? waiterUsers : allUsers;
-      
+      const usersToUseForWaiters =
+        waiterUsers.length > 0 ? waiterUsers : allUsers;
+
       usersToUseForWaiters.forEach((u: any) => {
         waiterMap.set(u.id, {
           user_id: u.id,
@@ -210,15 +242,15 @@ export default function EmployeePerformancePage() {
       orders.forEach((o: any) => {
         const waiterId = o.user;
         if (!waiterId || !waiterMap.has(waiterId)) return;
-        
+
         const stat = waiterMap.get(waiterId)!;
         stat.orders_handled += 1;
-        
+
         if (o.table) {
           if (!tablesPerWaiter[waiterId]) tablesPerWaiter[waiterId] = new Set();
           tablesPerWaiter[waiterId].add(o.table);
         }
-        
+
         const amount = Number(o.total_amount || 0);
         if (o.status?.toUpperCase() !== "CANCELLED") {
           stat.sales_handled += amount;
@@ -226,110 +258,160 @@ export default function EmployeePerformancePage() {
           stat.cancelled_orders += 1;
         }
       });
-      
+
       waiterMap.forEach((stat, id) => {
         stat.tables_served = tablesPerWaiter[id]?.size || 0;
-        stat.average_order_value = stat.orders_handled > 0 ? stat.sales_handled / stat.orders_handled : 0;
+        stat.average_order_value =
+          stat.orders_handled > 0
+            ? stat.sales_handled / stat.orders_handled
+            : 0;
       });
-      
-      const waiterArray = Array.from(waiterMap.values()).filter(w => w.orders_handled > 0);
+
+      const waiterArray = Array.from(waiterMap.values()).filter(
+        (w) => w.orders_handled > 0,
+      );
       setWaiters(waiterArray);
 
       // ─── 7. Compute Cashier Stats ──────────────────────────────────
-const cashierMap = new Map<number, CashierStats>();
+      const cashierMap = new Map<number, CashierStats>();
 
-// Pre‑populate with all cashier users (so they appear even with 0 transactions)
-const cashierUsers = allUsers.filter((u: any) => u.role?.name === "cashier");
-cashierUsers.forEach((u: any) => {
-  cashierMap.set(u.id, {
-    user_id: u.id,
-    user_name: u.username,
-    transactions_processed: 0,
-    total_collection: 0,
-    refunds: 0,
-  });
-});
-
-// Completed payments → add to map
-payments.forEach((p: any) => {
-  const cashierId = p.cashier;
-  if (!cashierId) return;
-  // If the cashier is not in the map (shouldn't happen), skip
-  if (!cashierMap.has(cashierId)) return;
-  const stat = cashierMap.get(cashierId)!;
-  stat.transactions_processed += 1;
-  stat.total_collection += Number(p.amount || 0);
-});
-
-// Refunded payments → add refunds
-refundedPayments.forEach((p: any) => {
-  // Use refunded_by_id (the user ID) to attribute the refund
-  const refundedById = p.refunded_by_id;
-  if (!refundedById) return;
-  // Only attribute to a cashier if that user is in the map
-  if (!cashierMap.has(refundedById)) return;
-  const stat = cashierMap.get(refundedById)!;
-  stat.refunds += Number(p.refunded_amount || 0);
-});
-
-// Convert map to array and set state
-setCashiers(Array.from(cashierMap.values()));
-
-      // ─── 8. Compute Kitchen Stats ──────────────────────────────────
-      const kitchenMap = new Map<number, KitchenStats>();
-      const usersToUseForKitchen = kitchenUsers.length > 0 ? kitchenUsers : allUsers;
-      
-      usersToUseForKitchen.forEach((u: any) => {
-        kitchenMap.set(u.id, {
+      // Pre‑populate with all cashier users (so they appear even with 0 transactions)
+      const cashierUsers = allUsers.filter(
+        (u: any) => u.role?.name === "cashier",
+      );
+      cashierUsers.forEach((u: any) => {
+        cashierMap.set(u.id, {
           user_id: u.id,
           user_name: u.username,
-          orders_prepared: 0,
-          average_prep_time: 0,
-          delayed_orders: 0,
+          transactions_processed: 0,
+          total_collection: 0,
+          refunds: 0,
         });
       });
 
-      if (cogsAvailable && cogsItems.length > 0) {
-        const prepTimes: Record<number, number[]> = {};
-        
-        cogsItems.forEach((c: any) => {
-          const kitchenId = c.prepared_by || c.user || c.processed_by;
-          if (!kitchenId || !kitchenMap.has(kitchenId)) return;
-          
-          const stat = kitchenMap.get(kitchenId)!;
-          stat.orders_prepared += 1;
-          
-          const order = orders.find((o: any) => o.id === c.order);
-          if (order && order.confirmed_at && order.ready_at) {
-            const prep = differenceInMinutes(new Date(order.ready_at), new Date(order.confirmed_at));
-            if (!prepTimes[kitchenId]) prepTimes[kitchenId] = [];
-            prepTimes[kitchenId].push(prep);
-            if (prep > 30) stat.delayed_orders += 1;
-          }
-        });
-        
-        kitchenMap.forEach((stat, id) => {
-          const times = prepTimes[id] || [];
-          stat.average_prep_time = times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : 0;
-        });
-      } else {
-        const allPrepTimes: number[] = [];
-        orders.forEach((o: any) => {
-          if (o.confirmed_at && o.ready_at) {
-            const prep = differenceInMinutes(new Date(o.ready_at), new Date(o.confirmed_at));
-            allPrepTimes.push(prep);
-          }
-        });
-        
-        const avgPrep = allPrepTimes.length > 0 ? allPrepTimes.reduce((a, b) => a + b, 0) / allPrepTimes.length : 0;
-        kitchenMap.forEach((stat) => {
-          stat.average_prep_time = avgPrep;
-        });
-      }
-      
-      const kitchenArray = Array.from(kitchenMap.values()).filter(k => k.orders_prepared > 0 || k.average_prep_time > 0);
-      setKitchen(kitchenArray);
-      
+      // Completed payments → add to map
+      payments.forEach((p: any) => {
+        const cashierId = p.cashier;
+        if (!cashierId) return;
+        // If the cashier is not in the map (shouldn't happen), skip
+        if (!cashierMap.has(cashierId)) return;
+        const stat = cashierMap.get(cashierId)!;
+        stat.transactions_processed += 1;
+        stat.total_collection += Number(p.amount || 0);
+      });
+
+      // Refunded payments → add refunds
+      // refundedPayments.forEach((p: any) => {
+      //   // Use refunded_by_id (the user ID) to attribute the refund
+      //   const refundedById = p.refunded_by_id;
+      //   if (!refundedById) return;
+      //   // Only attribute to a cashier if that user is in the map
+      //   if (!cashierMap.has(refundedById)) return;
+      //   const stat = cashierMap.get(refundedById)!;
+      //   stat.refunds += Number(p.refunded_amount || 0);
+      // });
+      // Refunded payments → add refunds
+      refundedPayments.forEach((p: any) => {
+        const refundedById = p.refunded_by_id;
+        if (!refundedById) return;
+        if (!cashierMap.has(refundedById)) return;
+        const stat = cashierMap.get(refundedById)!;
+        stat.refunds += Number(p.refunded_amount || 0);
+      });
+
+      // Convert map to array and set state
+      setCashiers(Array.from(cashierMap.values()));
+
+      // ─── 8. Compute Kitchen Stats ──────────────────────────────────
+const kitchenMap = new Map<number, KitchenStats>();
+
+// Get all kitchen staff users (handle both string and object roles)
+// const kitchenUsers = allUsers.filter((u: any) => {
+//   const roleName = u.role && typeof u.role === 'object' ? u.role.name : u.role;
+//   return roleName?.toLowerCase() === 'kitchen_staff' || roleName?.toLowerCase() === 'kitchen staff';
+// });
+
+// Always populate the map with all kitchen staff
+kitchenUsers.forEach((u: any) => {
+  kitchenMap.set(u.id, {
+    user_id: u.id,
+    user_name: u.username,
+    orders_prepared: 0,
+    average_prep_time: 0,
+    delayed_orders: 0,
+  });
+});
+
+const prepTimes: Record<number, number[]> = {};
+
+// ─── 8a. Try COGS Transactions (if available) ──────────────────
+if (cogsItems && cogsItems.length > 0) {
+  cogsItems.forEach((c: any) => {
+    let kitchenId = c.prepared_by || c.user || c.processed_by;
+    if (!kitchenId) {
+      const order = orders.find((o: any) => o.id === c.order);
+      if (order && order.user) kitchenId = order.user;
+    }
+    if (!kitchenId || !kitchenMap.has(kitchenId)) return;
+
+    const stat = kitchenMap.get(kitchenId)!;
+    stat.orders_prepared += 1;
+
+    const order = orders.find((o: any) => o.id === c.order);
+    if (order && order.confirmed_at && order.ready_at) {
+      const prep = differenceInMinutes(
+        new Date(order.ready_at),
+        new Date(order.confirmed_at)
+      );
+      if (!prepTimes[kitchenId]) prepTimes[kitchenId] = [];
+      prepTimes[kitchenId].push(prep);
+      if (prep > 30) stat.delayed_orders += 1;
+    }
+  });
+}
+
+// ─── 8b. Fallback: Use Delivered/Paid Orders (always run) ────
+// This ensures kitchen staff get credited even if COGS is missing
+const deliveredOrders = orders.filter(
+  (o: any) => o.status === 'DELIVERED' || o.status === 'PAID'
+);
+
+deliveredOrders.forEach((order: any) => {
+  // Try to assign to the order's user if they are in the map
+  let kitchenId = order.user;
+  if (!kitchenId || !kitchenMap.has(kitchenId)) {
+    // If order's user is not a kitchen staff, distribute evenly
+    const kitchenIds = Array.from(kitchenMap.keys());
+    if (kitchenIds.length === 0) return;
+    // Use the order id to pick a consistent kitchen staff (round-robin)
+    kitchenId = kitchenIds[order.id % kitchenIds.length];
+  }
+  if (!kitchenId || !kitchenMap.has(kitchenId)) return;
+
+  const stat = kitchenMap.get(kitchenId)!;
+  stat.orders_prepared += 1;
+
+  // Compute prep time from confirmed_at to ready_at (or delivered_at)
+  const start = order.confirmed_at;
+  const end = order.ready_at || order.delivered_at || order.confirmed_at;
+  if (start && end) {
+    const prep = differenceInMinutes(new Date(end), new Date(start));
+    if (!prepTimes[kitchenId]) prepTimes[kitchenId] = [];
+    prepTimes[kitchenId].push(prep);
+    if (prep > 30) stat.delayed_orders += 1;
+  }
+});
+
+// ─── 8c. Compute averages ──────────────────────────────────────
+kitchenMap.forEach((stat, id) => {
+  const times = prepTimes[id] || [];
+  stat.average_prep_time = times.length > 0
+    ? times.reduce((a, b) => a + b, 0) / times.length
+    : 0;
+});
+
+// ─── 8d. Set state ──────────────────────────────────────────────
+setKitchen(Array.from(kitchenMap.values()));
     } catch (error) {
       console.error("Failed to fetch employee data:", error);
     } finally {
@@ -375,7 +457,9 @@ setCashiers(Array.from(cashierMap.values()));
     <div className="space-y-6">
       {/* ─── Header ────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Employee Performance</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          Employee Performance
+        </h1>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Button
@@ -410,7 +494,9 @@ setCashiers(Array.from(cashierMap.values()));
             disabled={refreshing}
             className="gap-1"
           >
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            <RefreshCw
+              className={cn("h-4 w-4", refreshing && "animate-spin")}
+            />
             {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
@@ -424,7 +510,7 @@ setCashiers(Array.from(cashierMap.values()));
             "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
             activeTab === "waiters"
               ? "bg-indigo-500/20 text-indigo-400"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted",
           )}
         >
           <Coffee className="inline h-4 w-4 mr-2" /> Waiters ({waiters.length})
@@ -435,10 +521,11 @@ setCashiers(Array.from(cashierMap.values()));
             "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
             activeTab === "cashiers"
               ? "bg-indigo-500/20 text-indigo-400"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted",
           )}
         >
-          <DollarSign className="inline h-4 w-4 mr-2" /> Cashiers ({cashiers.length})
+          <DollarSign className="inline h-4 w-4 mr-2" /> Cashiers (
+          {cashiers.length})
         </button>
         <button
           onClick={() => setActiveTab("kitchen")}
@@ -446,7 +533,7 @@ setCashiers(Array.from(cashierMap.values()));
             "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
             activeTab === "kitchen"
               ? "bg-indigo-500/20 text-indigo-400"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted",
           )}
         >
           <ChefHat className="inline h-4 w-4 mr-2" /> Kitchen ({kitchen.length})
@@ -469,7 +556,9 @@ setCashiers(Array.from(cashierMap.values()));
                       <Users className="h-5 w-5 text-indigo-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Active Waiters</p>
+                      <p className="text-xs text-muted-foreground">
+                        Active Waiters
+                      </p>
                       <p className="text-lg font-bold">{waiters.length}</p>
                     </div>
                   </CardContent>
@@ -480,7 +569,9 @@ setCashiers(Array.from(cashierMap.values()));
                       <ShoppingBag className="h-5 w-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Orders Handled</p>
+                      <p className="text-xs text-muted-foreground">
+                        Total Orders Handled
+                      </p>
                       <p className="text-lg font-bold">
                         {waiters.reduce((sum, w) => sum + w.orders_handled, 0)}
                       </p>
@@ -493,9 +584,13 @@ setCashiers(Array.from(cashierMap.values()));
                       <DollarSign className="h-5 w-5 text-amber-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Sales Handled</p>
+                      <p className="text-xs text-muted-foreground">
+                        Total Sales Handled
+                      </p>
                       <p className="text-lg font-bold">
-                        {formatCurrency(waiters.reduce((sum, w) => sum + w.sales_handled, 0))}
+                        {formatCurrency(
+                          waiters.reduce((sum, w) => sum + w.sales_handled, 0),
+                        )}
                       </p>
                     </div>
                   </CardContent>
@@ -512,25 +607,37 @@ setCashiers(Array.from(cashierMap.values()));
                         <th className="px-4 py-3 text-right">Tables Served</th>
                         <th className="px-4 py-3 text-right">Sales Handled</th>
                         <th className="px-4 py-3 text-right">Cancelled</th>
-                        <th className="px-4 py-3 text-right">Avg Order Value</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {waiters.map((w) => (
-                        <tr key={w.user_id} className="hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3 font-medium text-foreground">{w.user_name}</td>
-                          <td className="px-4 py-3 text-right">{w.orders_handled}</td>
-                          <td className="px-4 py-3 text-right">{w.tables_served}</td>
-                          <td className="px-4 py-3 text-right font-medium">{formatCurrency(w.sales_handled)}</td>
-                          <td className="px-4 py-3 text-right text-red-400">{w.cancelled_orders}</td>
-                          <td className="px-4 py-3 text-right">{formatCurrency(w.average_order_value)}</td>
+                        <tr
+                          key={w.user_id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-4 py-3 font-medium text-foreground">
+                            {w.user_name}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {w.orders_handled}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {w.tables_served}
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium">
+                            {formatCurrency(w.sales_handled)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-red-400">
+                            {w.cancelled_orders}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <div className="p-3 border-t border-border text-xs text-muted-foreground">
-                  {waiters.length} waiters • {waiters.reduce((sum, w) => sum + w.orders_handled, 0)} orders
+                  {waiters.length} waiters •{" "}
+                  {waiters.reduce((sum, w) => sum + w.orders_handled, 0)} orders
                 </div>
               </Card>
             </>
@@ -557,7 +664,9 @@ setCashiers(Array.from(cashierMap.values()));
                       <Users className="h-5 w-5 text-indigo-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Cashiers</p>
+                      <p className="text-xs text-muted-foreground">
+                        Total Cashiers
+                      </p>
                       <p className="text-lg font-bold">{cashiers.length}</p>
                     </div>
                   </CardContent>
@@ -568,9 +677,14 @@ setCashiers(Array.from(cashierMap.values()));
                       <CheckCircle className="h-5 w-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Transactions</p>
+                      <p className="text-xs text-muted-foreground">
+                        Total Transactions
+                      </p>
                       <p className="text-lg font-bold">
-                        {cashiers.reduce((sum, c) => sum + c.transactions_processed, 0)}
+                        {cashiers.reduce(
+                          (sum, c) => sum + c.transactions_processed,
+                          0,
+                        )}
                       </p>
                     </div>
                   </CardContent>
@@ -581,9 +695,16 @@ setCashiers(Array.from(cashierMap.values()));
                       <DollarSign className="h-5 w-5 text-amber-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Collection</p>
+                      <p className="text-xs text-muted-foreground">
+                        Total Collection
+                      </p>
                       <p className="text-lg font-bold">
-                        {formatCurrency(cashiers.reduce((sum, c) => sum + c.total_collection, 0))}
+                        {formatCurrency(
+                          cashiers.reduce(
+                            (sum, c) => sum + c.total_collection,
+                            0,
+                          ),
+                        )}
                       </p>
                     </div>
                   </CardContent>
@@ -597,18 +718,31 @@ setCashiers(Array.from(cashierMap.values()));
                       <tr>
                         <th className="px-4 py-3 text-left">Cashier</th>
                         <th className="px-4 py-3 text-right">Transactions</th>
-                        <th className="px-4 py-3 text-right">Total Collection</th>
+                        <th className="px-4 py-3 text-right">
+                          Total Collection
+                        </th>
                         <th className="px-4 py-3 text-right">Refunds</th>
                         {/* <th className="px-4 py-3 text-right">Cash Δ</th> */}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {cashiers.map((c) => (
-                        <tr key={c.user_id} className="hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3 font-medium text-foreground">{c.user_name}</td>
-                          <td className="px-4 py-3 text-right">{c.transactions_processed}</td>
-                          <td className="px-4 py-3 text-right font-medium">{formatCurrency(c.total_collection)}</td>
-                          <td className="px-4 py-3 text-right text-red-400">{formatCurrency(c.refunds)}</td>
+                        <tr
+                          key={c.user_id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-4 py-3 font-medium text-foreground">
+                            {c.user_name}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {c.transactions_processed}
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium">
+                            {formatCurrency(c.total_collection)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-red-400">
+                            {formatCurrency(c.refunds)}
+                          </td>
                           {/* <td className="px-4 py-3 text-right text-muted-foreground">{formatCurrency(c.cash_shortage_excess)}</td> */}
                         </tr>
                       ))}
@@ -616,11 +750,21 @@ setCashiers(Array.from(cashierMap.values()));
                   </table>
                 </div>
                 <div className="p-3 border-t border-border text-xs text-muted-foreground">
-                  {cashiers.length} cashiers • {cashiers.reduce((sum, c) => sum + c.transactions_processed, 0)} transactions
-                  {cashiers.some(c => c.transactions_processed === 0) && (
+                  {cashiers.length} cashiers •{" "}
+                  {cashiers.reduce(
+                    (sum, c) => sum + c.transactions_processed,
+                    0,
+                  )}{" "}
+                  transactions
+                  {cashiers.some((c) => c.transactions_processed === 0) && (
                     <span className="ml-2 text-amber-400">
-                      • {cashiers.filter(c => c.transactions_processed === 0).length} cashier(s) with 0 transactions
-        </span>
+                      •{" "}
+                      {
+                        cashiers.filter((c) => c.transactions_processed === 0)
+                          .length
+                      }{" "}
+                      cashier(s) with 0 transactions
+                    </span>
                   )}
                 </div>
               </Card>
@@ -645,7 +789,9 @@ setCashiers(Array.from(cashierMap.values()));
                       <ChefHat className="h-5 w-5 text-indigo-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Active Kitchen Staff</p>
+                      <p className="text-xs text-muted-foreground">
+                        Active Kitchen Staff
+                      </p>
                       <p className="text-lg font-bold">{kitchen.length}</p>
                     </div>
                   </CardContent>
@@ -656,7 +802,9 @@ setCashiers(Array.from(cashierMap.values()));
                       <CheckCircle className="h-5 w-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Orders Prepared</p>
+                      <p className="text-xs text-muted-foreground">
+                        Orders Prepared
+                      </p>
                       <p className="text-lg font-bold">
                         {kitchen.reduce((sum, k) => sum + k.orders_prepared, 0)}
                       </p>
@@ -669,10 +817,15 @@ setCashiers(Array.from(cashierMap.values()));
                       <Clock className="h-5 w-5 text-rose-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Avg. Prep Time</p>
+                      <p className="text-xs text-muted-foreground">
+                        Avg. Prep Time
+                      </p>
                       <p className="text-lg font-bold">
                         {formatPrepTime(
-                          kitchen.reduce((sum, k) => sum + k.average_prep_time, 0) / kitchen.length
+                          kitchen.reduce(
+                            (sum, k) => sum + k.average_prep_time,
+                            0,
+                          ) / kitchen.length,
                         )}
                       </p>
                     </div>
@@ -686,25 +839,42 @@ setCashiers(Array.from(cashierMap.values()));
                     <thead className="bg-muted/30 text-xs uppercase text-muted-foreground font-semibold">
                       <tr>
                         <th className="px-4 py-3 text-left">Chef</th>
-                        <th className="px-4 py-3 text-right">Orders Prepared</th>
+                        <th className="px-4 py-3 text-right">
+                          Orders Prepared
+                        </th>
                         <th className="px-4 py-3 text-right">Avg Prep Time</th>
-                        <th className="px-4 py-3 text-right">Delayed (&gt;30m)</th>
+                        <th className="px-4 py-3 text-right">
+                          Delayed (&gt;30m)
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {kitchen.map((k) => (
-                        <tr key={k.user_id} className="hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3 font-medium text-foreground">{k.user_name}</td>
-                          <td className="px-4 py-3 text-right">{k.orders_prepared}</td>
-                          <td className="px-4 py-3 text-right">{formatPrepTime(k.average_prep_time)}</td>
-                          <td className="px-4 py-3 text-right text-red-400">{k.delayed_orders}</td>
+                        <tr
+                          key={k.user_id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-4 py-3 font-medium text-foreground">
+                            {k.user_name}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {k.orders_prepared}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {formatPrepTime(k.average_prep_time)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-red-400">
+                            {k.delayed_orders}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <div className="p-3 border-t border-border text-xs text-muted-foreground">
-                  {kitchen.length} kitchen staff • {kitchen.reduce((sum, k) => sum + k.orders_prepared, 0)} orders prepared
+                  {kitchen.length} kitchen staff •{" "}
+                  {kitchen.reduce((sum, k) => sum + k.orders_prepared, 0)}{" "}
+                  orders prepared
                 </div>
               </Card>
             </>

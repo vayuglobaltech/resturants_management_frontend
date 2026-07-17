@@ -9,8 +9,9 @@ import {
   createTransaction,
   getBranches,
   getIngredients,
-  getProfile
+  apiFetch
 } from '@/lib/api';
+import { Package, Plus, Search, X, CheckCircle, AlertCircle, Loader2, Store } from 'lucide-react';
 
 interface Transaction {
   id: number;
@@ -43,25 +44,6 @@ interface Ingredient {
   branch?: number;
 }
 
-// Extended user type with branch property
-interface ExtendedUser {
-  id?: number;
-  username?: string;
-  email?: string;
-  branch?: number | { id: number; name: string };
-  profile?: {
-    branch?: number | { id: number; name: string };
-  };
-  role?: {
-    id?: number;
-    name?: string;
-    branch?: number | { id: number; name: string };
-  };
-  is_superuser?: boolean;
-  is_staff?: boolean;
-  [key: string]: any;
-}
-
 const TRANSACTION_TYPES = [
   { value: 'purchase', label: 'Purchase', icon: '📦', color: 'emerald' },
   { value: 'usage', label: 'Usage', icon: '🔧', color: 'blue' },
@@ -85,17 +67,10 @@ const InventoryTransactions: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [userBranch, setUserBranch] = useState<number | null>(null);
-  const [userBranchName, setUserBranchName] = useState<string>('');
+  const [validBranchId, setValidBranchId] = useState<number | null>(null);
+  const [isBranchValidated, setIsBranchValidated] = useState(false);
+  const [branchName, setBranchName] = useState<string>('');
   
-  // Filter states
-  const [filters, setFilters] = useState({
-    branch: '',
-    ingredient: '',
-    transaction_type: '',
-    status: '',
-  });
-
   // Modal states
   const [showModal, setShowModal] = useState<boolean>(false);
   const [formLoading, setFormLoading] = useState<boolean>(false);
@@ -114,151 +89,168 @@ const InventoryTransactions: React.FC = () => {
   const canManage = user ? canManageTransactions(user) : false;
   const userRole = user ? getRoleName(user) : null;
 
-  // Get user's branch from user object
-  const getUserBranch = (): number | null => {
-    if (!user) return null;
-    
-    const extendedUser = user as ExtendedUser;
-    
-    // Check if user has branch directly
-    if (extendedUser.branch) {
-      if (typeof extendedUser.branch === 'object' && 'id' in extendedUser.branch) {
-        return extendedUser.branch.id;
-      }
-      if (typeof extendedUser.branch === 'number') {
-        return extendedUser.branch;
-      }
-    }
-    
-    // Check if user has branch in profile
-    if (extendedUser.profile && extendedUser.profile.branch) {
-      if (typeof extendedUser.profile.branch === 'object' && 'id' in extendedUser.profile.branch) {
-        return extendedUser.profile.branch.id;
-      }
-      if (typeof extendedUser.profile.branch === 'number') {
-        return extendedUser.profile.branch;
-      }
-    }
-    
-    // Check if user has branch in role
-    if (extendedUser.role && extendedUser.role.branch) {
-      if (typeof extendedUser.role.branch === 'object' && 'id' in extendedUser.role.branch) {
-        return extendedUser.role.branch.id;
-      }
-      if (typeof extendedUser.role.branch === 'number') {
-        return extendedUser.role.branch;
-      }
-    }
-    
-    return null;
-  };
-
-  // Load user's branch from the API
-  const loadUserBranch = async () => {
-    try {
-      // First try to get from user object
-      const userBranchId = getUserBranch();
-      if (userBranchId) {
-        setUserBranch(userBranchId);
-        console.log('User branch found in user object:', userBranchId);
-        return userBranchId;
+  // ─── Fetch user profile and validate branch (same as DashboardOverview) ───
+  useEffect(() => {
+    const fetchUserProfileAndValidate = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
       }
 
-      // If not found in user object, fetch from API
-      const userData = await getProfile();
-      console.log('User profile data from API:', userData);
-      
-      // Extract branch from user data
-      let fetchedBranchId = null;
-      if (userData.branch) {
-        if (typeof userData.branch === 'object' && 'id' in userData.branch) {
-          fetchedBranchId = userData.branch.id;
-        } else if (typeof userData.branch === 'number') {
-          fetchedBranchId = userData.branch;
+      try {
+        setLoading(true);
+        
+        // First, fetch the user profile to get the branch
+        console.log("📡 Fetching user profile for branch...");
+        const res = await apiFetch('/api/users/profile/', {}, true);
+        
+        let profileBranchName = "";
+        let profileBranchId = null;
+        
+        if (res.ok) {
+          const profile = await res.json();
+          console.log("📋 User profile from API:", profile);
+          
+          // Try different possible field names for branch
+          if (profile.branch?.name) {
+            profileBranchName = profile.branch.name;
+            profileBranchId = profile.branch.id;
+          } else if (profile.branch_name) {
+            profileBranchName = profile.branch_name;
+          } else if (profile.branch?.branch_name) {
+            profileBranchName = profile.branch.branch_name;
+          }
+          
+          console.log("✅ Found branch name in profile:", profileBranchName);
+        } else {
+          console.error("Failed to fetch profile:", res.status);
         }
-      } else if (userData.profile?.branch) {
-        if (typeof userData.profile.branch === 'object' && 'id' in userData.profile.branch) {
-          fetchedBranchId = userData.profile.branch.id;
-        } else if (typeof userData.profile.branch === 'number') {
-          fetchedBranchId = userData.profile.branch;
+        
+        // Now fetch available branches
+        console.log("🔍 Fetching available branches...");
+        const branchData = await getBranches();
+        const branchList = branchData.results || branchData || [];
+        console.log("📋 Available branches:", branchList);
+        
+        if (branchList.length === 0) {
+          setActionMsg({ type: 'error', text: 'No branches available in the system' });
+          setLoading(false);
+          return;
         }
-      } else if (userData.branch_id) {
-        fetchedBranchId = userData.branch_id;
+        
+        let selectedBranch = null;
+        let selectedBranchName = "";
+        
+        // FIRST: Try to use branch from profile
+        if (profileBranchName) {
+          const matchedBranch = branchList.find((b: any) => 
+            b.name?.toLowerCase() === profileBranchName.toLowerCase()
+          );
+          if (matchedBranch) {
+            selectedBranch = matchedBranch;
+            selectedBranchName = matchedBranch.name;
+            console.log("✅ Using branch from profile:", selectedBranchName);
+          } else {
+            // If branch not in list, use the profile branch name
+            selectedBranchName = profileBranchName;
+            selectedBranch = branchList[0];
+            console.log("📌 Using profile branch name (not in list):", selectedBranchName);
+          }
+        }
+        
+        // SECOND: Try by user's branch ID from auth
+        if (!selectedBranch) {
+          const userBranchId = (user as any)?.branch?.id;
+          if (userBranchId) {
+            const branchById = branchList.find((b: any) => b.id === userBranchId);
+            if (branchById) {
+              selectedBranch = branchById;
+              selectedBranchName = branchById.name;
+              console.log("✅ Using branch from user ID:", selectedBranchName);
+            }
+          }
+        }
+        
+        // THIRD: Try by user's branch name from auth
+        if (!selectedBranch) {
+          const userBranchName = (user as any)?.branch?.name;
+          if (userBranchName) {
+            const branchByName = branchList.find((b: any) => 
+              b.name?.toLowerCase() === userBranchName.toLowerCase()
+            );
+            if (branchByName) {
+              selectedBranch = branchByName;
+              selectedBranchName = branchByName.name;
+              console.log("✅ Using branch from user name:", selectedBranchName);
+            }
+          }
+        }
+        
+        // FINAL: Fallback to first branch
+        if (!selectedBranch && branchList.length > 0) {
+          selectedBranch = branchList[0];
+          selectedBranchName = selectedBranch.name || "Default Branch";
+          console.log("📌 Using first available branch as fallback:", selectedBranchName);
+        }
+        
+        if (selectedBranch) {
+          setValidBranchId(selectedBranch.id);
+          setBranchName(selectedBranchName);
+          setIsBranchValidated(true);
+          console.log("✅ Final branch:", selectedBranchName);
+          
+          // Set form data branch
+          setFormData(prev => ({
+            ...prev,
+            branch: selectedBranch.id.toString()
+          }));
+        } else {
+          setActionMsg({ type: 'error', text: 'No valid branch found' });
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("❌ Failed to validate branch:", error);
+        setActionMsg({ type: 'error', text: 'Failed to load branch data' });
+        setLoading(false);
       }
-      
-      if (fetchedBranchId) {
-        setUserBranch(fetchedBranchId);
-        return fetchedBranchId;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Error loading user branch:', error);
-      return null;
-    }
-  };
+    };
 
-  // Load branches
+    if (user) {
+      fetchUserProfileAndValidate();
+    }
+  }, [user]);
+
+  // ─── Load ingredients after branch is validated ──────────────────────────
+  useEffect(() => {
+    if (isBranchValidated && validBranchId !== null) {
+      loadIngredients();
+      fetchTransactions();
+    }
+  }, [isBranchValidated, validBranchId]);
+
+  // ─── Load branches ──────────────────────────────────────────────────────
   const loadBranches = async () => {
     try {
       const data = await getBranches();
-      console.log('Branches response:', data);
-      
-      let branchesArray = [];
-      if (Array.isArray(data)) {
-        branchesArray = data;
-      } else if (data?.results && Array.isArray(data.results)) {
-        branchesArray = data.results;
-      } else if (data?.data && Array.isArray(data.data)) {
-        branchesArray = data.data;
-      } else {
-        // Try to extract any array from the response
-        for (const key of Object.keys(data)) {
-          if (Array.isArray(data[key])) {
-            branchesArray = data[key];
-            break;
-          }
-        }
-      }
-      
-      if (branchesArray.length > 0) {
-        setBranches(branchesArray);
-        
-        // Set user's branch name
-        if (userBranch) {
-          const branch = branchesArray.find((b: Branch) => b.id === userBranch);
-          if (branch) {
-            setUserBranchName(branch.name);
-          }
-        }
-        
-        console.log('Branches loaded:', branchesArray);
-        return branchesArray;
-      }
-      
-      return [];
+      const branchList = data.results || data || [];
+      setBranches(branchList);
+      return branchList;
     } catch (error) {
       console.error('Error loading branches:', error);
-      setBranches([]);
       return [];
     }
   };
 
-  // Load ingredients - fetch based on user's branch
-  const loadIngredients = async (branchId?: number) => {
+  // ─── Load ingredients ──────────────────────────────────────────────────
+  const loadIngredients = async () => {
     try {
-      const branchToUse = branchId || userBranch;
-      
-      // Build params with branch filter if available
       const params: Record<string, string> = {};
-      if (branchToUse) {
-        params.branch = branchToUse.toString();
+      if (validBranchId) {
+        params.branch = validBranchId.toString();
       }
       
       console.log('Fetching ingredients with params:', params);
-      
       const data = await getIngredients(params);
-      console.log('Ingredients response:', data);
       
       let ingredientsArray = [];
       if (Array.isArray(data)) {
@@ -268,7 +260,6 @@ const InventoryTransactions: React.FC = () => {
       } else if (data?.data && Array.isArray(data.data)) {
         ingredientsArray = data.data;
       } else {
-        // Try to extract any array from the response
         for (const key of Object.keys(data)) {
           if (Array.isArray(data[key])) {
             ingredientsArray = data[key];
@@ -277,13 +268,8 @@ const InventoryTransactions: React.FC = () => {
         }
       }
       
-      if (ingredientsArray.length > 0) {
-        setIngredients(ingredientsArray);
-        console.log('Ingredients loaded:', ingredientsArray);
-      } else {
-        console.log('No ingredients found for branch:', branchToUse);
-        setIngredients([]);
-      }
+      setIngredients(ingredientsArray);
+      console.log('Ingredients loaded:', ingredientsArray);
       return ingredientsArray;
     } catch (error) {
       console.error('Error loading ingredients:', error);
@@ -292,28 +278,23 @@ const InventoryTransactions: React.FC = () => {
     }
   };
 
-  // Fetch transactions with filters
+  // ─── Fetch transactions ────────────────────────────────────────────────
   const fetchTransactions = async () => {
+    if (!validBranchId) {
+      console.log('No valid branch found, waiting...');
+      return;
+    }
+    
     setLoading(true);
     try {
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = {
+        branch: validBranchId.toString(),
+      };
       
-      // If user has a branch, filter by it by default
-      if (userBranch && !filters.branch) {
-        params.branch = userBranch.toString();
-      }
-      
-      if (filters.branch) params.branch = filters.branch;
-      if (filters.ingredient) params.ingredient = filters.ingredient;
-      if (filters.transaction_type) params.transaction_type = filters.transaction_type;
-      if (filters.status) params.status = filters.status;
-      
-      console.log('Fetching transactions with params:', params); 
+      console.log('Fetching transactions for branch:', validBranchId);
       const data = await getTransactions(params);
       const transactionsArray = Array.isArray(data) ? data : 
                                data?.results ? data.results : [];
-      
-      console.log('Raw transactions data:', transactionsArray);
       
       // Create maps for faster lookups
       const branchMap = new Map<number, string>();
@@ -344,7 +325,7 @@ const InventoryTransactions: React.FC = () => {
           ingredientName = ingredientMap.get(ingredientId) || `Ingredient #${ingredientId}`;
         }
         
-        // Handle performed_by (who created the transaction)
+        // Handle performed_by
         if (typeof tx.performed_by === 'object' && tx.performed_by !== null) {
           performedByName = tx.performed_by.username || tx.performed_by.email || `User #${tx.performed_by.id || '?'}`;
         } else if (tx.performed_by) {
@@ -372,51 +353,15 @@ const InventoryTransactions: React.FC = () => {
     }
   };
 
-  // Initial data load
-  const fetchData = async () => {
-    try {
-      // First load user's branch
-      const loadedBranchId = await loadUserBranch();
-      console.log('Loaded branch ID:', loadedBranchId);
-      
-      // Load branches and wait for them to complete
-      const loadedBranches = await loadBranches();
-      console.log('Branches loaded in fetchData:', loadedBranches);
-      
-      // Load ingredients for user's branch and wait for them to complete
-      const loadedIngredients = await loadIngredients(loadedBranchId || undefined);
-      console.log('Ingredients loaded in fetchData:', loadedIngredients);
-      
-      // Set filter to user's branch
-      if (loadedBranchId) {
-        setFilters(prev => ({ ...prev, branch: loadedBranchId.toString() }));
-      }
-      
-      // Now fetch transactions with all data loaded
-      await fetchTransactions();
-    } catch (error) {
-      console.error('Error in fetchData:', error);
-      setActionMsg({ type: 'error', text: 'Failed to load data. Please refresh the page.' });
-    }
-  };
-
+  // ─── Load branches on component mount ──────────────────────────────────
   useEffect(() => {
-    if (!authLoading && user) {
-      fetchData();
-    }
-  }, [authLoading, user]);
-
-  // Refetch when filters change
-  useEffect(() => {
-    if (!authLoading && user && branches.length > 0) {
-      fetchTransactions();
-    }
-  }, [filters.branch, filters.ingredient, filters.transaction_type, filters.status]);
+    loadBranches();
+  }, []);
 
   // Reset form
   const resetForm = () => {
     setFormData({
-      branch: userBranch ? userBranch.toString() : '',
+      branch: validBranchId ? validBranchId.toString() : '',
       ingredient: '',
       transaction_type: '',
       quantity: '',
@@ -434,8 +379,7 @@ const InventoryTransactions: React.FC = () => {
       return;
     }
     resetForm();
-    // Refresh ingredients when opening modal
-    loadIngredients(userBranch || undefined);
+    loadIngredients();
     setShowModal(true);
   };
 
@@ -472,14 +416,13 @@ const InventoryTransactions: React.FC = () => {
       setShowModal(false);
       resetForm();
       fetchTransactions();
+      loadIngredients();
     } catch (error: any) {
       setActionMsg({ type: 'error', text: error?.detail || error.message || 'Failed to save transaction.' });
     } finally {
       setFormLoading(false);
     }
   };
-
-
 
   // Filter data based on search
   const filteredData = transactions.filter(item => {
@@ -504,7 +447,7 @@ const InventoryTransactions: React.FC = () => {
     return (
       <div className="flex justify-center items-center h-[60vh]">
         <div className="text-center">
-          <span className="w-8 h-8 rounded-full border-4 border-orange-500/30 border-t-orange-500 animate-spin inline-block" />
+          <Loader2 className="w-8 h-8 text-orange-500 animate-spin mx-auto" />
           <p className="text-muted-foreground mt-4">Loading...</p>
         </div>
       </div>
@@ -516,21 +459,19 @@ const InventoryTransactions: React.FC = () => {
   }
 
   return (
-    <div className="animate-fadeUp">
+    <div className="space-y-6 px-2 sm:px-0">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Inventory Transactions</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Track all inventory movements across branches.
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Package className="h-6 w-6 text-orange-500" />
+            Inventory Transactions
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track all inventory movements for your branch.
             {userRole && (
-              <span className="ml-2 text-xs bg-background px-2 py-1 rounded-lg border border-border">
+              <span className="ml-2 text-xs bg-muted/30 px-2 py-1 rounded-lg border border-border">
                 Role: {userRole.replace('_', ' ').toUpperCase()}
-              </span>
-            )}
-            {userBranchName && (
-              <span className="ml-2 text-xs bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 text-blue-400">
-                Branch: {userBranchName}
               </span>
             )}
           </p>
@@ -540,14 +481,15 @@ const InventoryTransactions: React.FC = () => {
           {canManage && (
             <button
               onClick={openCreateModal}
-              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-orange-600 hover:bg-orange-700 shadow-[0_4px_16px_rgba(234,88,12,0.3)] transition-all"
+              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-orange-600 hover:bg-orange-700 shadow-[0_4px_16px_rgba(234,88,12,0.3)] transition-all flex items-center gap-2"
             >
-              + New Transaction
+              <Plus className="h-4 w-4" />
+              New Transaction
             </button>
           )}
           
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">🔍</span>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -558,82 +500,43 @@ const InventoryTransactions: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="mb-6 p-4 rounded-xl bg-muted/30 border border-border backdrop-blur-md">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <select
-            value={filters.branch}
-            onChange={(e) => setFilters(prev => ({ ...prev, branch: e.target.value }))}
-            className="px-4 py-2 bg-background border border-border rounded-xl text-foreground text-sm focus:border-orange-500/70 focus:bg-muted/30 focus:ring-1 focus:ring-orange-500/70 outline-none transition-all"
-          >
-            <option value="" className="text-black">All Branches</option>
-            {branches.map(branch => (
-              <option key={branch.id} value={branch.id} className="text-black">
-                {branch.name} {branch.id === userBranch ? '(Your Branch)' : ''}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filters.ingredient}
-            onChange={(e) => setFilters(prev => ({ ...prev, ingredient: e.target.value }))}
-            className="px-4 py-2 bg-background border border-border rounded-xl text-foreground text-sm focus:border-orange-500/70 focus:bg-muted/30 focus:ring-1 focus:ring-orange-500/70 outline-none transition-all"
-          >
-            <option value="" className="text-black">All Ingredients</option>
-            {ingredients.map(ingredient => (
-              <option key={ingredient.id} value={ingredient.id} className="text-black">
-                {ingredient.name} ({ingredient.unit}) {ingredient.current_stock && `- Stock: ${ingredient.current_stock}`}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filters.transaction_type}
-            onChange={(e) => setFilters(prev => ({ ...prev, transaction_type: e.target.value }))}
-            className="px-4 py-2 bg-background border border-border rounded-xl text-foreground text-sm focus:border-orange-500/70 focus:bg-muted/30 focus:ring-1 focus:ring-orange-500/70 outline-none transition-all"
-          >
-            <option value="" className="text-black">All Types</option>
-            {TRANSACTION_TYPES.map(type => (
-              <option key={type.value} value={type.value} className="text-black">{type.icon} {type.label}</option>
-            ))}
-          </select>
-
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-            className="px-4 py-2 bg-background border border-border rounded-xl text-foreground text-sm focus:border-orange-500/70 focus:bg-muted/30 focus:ring-1 focus:ring-orange-500/70 outline-none transition-all"
-          >
-            <option value="" className="text-black">All Status</option>
-            <option value="PENDING" className="text-black">⏳ Pending</option>
-            <option value="APPROVED" className="text-black">✅ Approved</option>
-            <option value="REJECTED" className="text-black">❌ Rejected</option>
-          </select>
-        </div>
+      {/* Branch Info - Same style as DashboardOverview */}
+      <div className="flex items-center gap-2 rounded-full border px-3 py-2 w-fit" style={{ borderColor: "var(--page-border)", color: "var(--page-muted)" }}>
+        <Store size={16} style={{ color: "var(--page-accent)" }} />
+        <span className="text-sm font-medium" style={{ color: "var(--page-text)" }}>
+          {branchName || "No Branch"}
+        </span>
       </div>
 
       {/* Action Messages */}
       {actionMsg && (
-        <div className={`mb-6 px-4 py-3 rounded-xl border text-sm animate-fadeDown flex justify-between items-center ${
+        <div className={`px-4 py-3 rounded-xl border text-sm flex justify-between items-center ${
           actionMsg.type === 'success' 
-            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' 
-            : 'bg-red-500/10 border-red-500/25 text-red-400'
+            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400' 
+            : 'bg-red-500/10 border-red-500/25 text-red-600 dark:text-red-400'
         }`}>
-          <span>{actionMsg.type === 'success' ? '✅ ' : '⚠️ '} {actionMsg.text}</span>
-          <button onClick={() => setActionMsg(null)} className="text-xl leading-none opacity-60 hover:opacity-100">&times;</button>
+          <span className="flex items-center gap-2">
+            {actionMsg.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+            {actionMsg.text}
+          </span>
+          <button onClick={() => setActionMsg(null)} className="text-xl leading-none opacity-60 hover:opacity-100">
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 
       {/* Loading */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <span className="w-8 h-8 rounded-full border-4 border-orange-500/30 border-t-orange-500 animate-spin" />
+          <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
         </div>
       ) : (
         /* Transactions Grid */
         <div className="grid grid-cols-1 gap-4">
           {filteredData.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground bg-muted/30 border border-border rounded-2xl">
-              {searchTerm || Object.values(filters).some(f => f) ? 'No transactions found matching your filters.' : 'No transactions yet. Create your first transaction!'}
+            <div className="py-12 text-center text-muted-foreground bg-muted/30 border border-border rounded-2xl">
+              <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              {searchTerm ? 'No transactions found matching your search.' : 'No transactions yet for your branch. Create your first transaction!'}
             </div>
           ) : (
             filteredData.map((item) => {
@@ -710,7 +613,7 @@ const InventoryTransactions: React.FC = () => {
         </div>
       )}
 
-      {/* Create Modal - No Edit Mode */}
+      {/* Create Modal */}
       {showModal && canManage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
           <div className="relative w-full max-w-2xl bg-slate-900 rounded-2xl border border-border shadow-2xl p-6 md:p-8 animate-slideUp max-h-[90vh] overflow-y-auto">
@@ -720,9 +623,9 @@ const InventoryTransactions: React.FC = () => {
                 setShowModal(false);
                 resetForm();
               }}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors text-2xl z-10"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors z-10"
             >
-              ×
+              <X className="h-6 w-6" />
             </button>
             
             <h2 className="text-2xl font-bold text-foreground mb-6 pr-8">
@@ -731,32 +634,20 @@ const InventoryTransactions: React.FC = () => {
             
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Branch - Auto-filled with user's branch */}
+                {/* Branch - Auto-filled with user's branch name */}
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Branch *</label>
-                  <select
-                    required
+                  <div className="w-full px-4 py-2.5 bg-muted/30 border border-orange-500/30 rounded-xl text-foreground cursor-not-allowed flex items-center gap-2">
+                    <Store className="h-4 w-4 text-orange-400" />
+                    <span>{branchName || 'Your Branch'}</span>
+                  </div>
+                  <input
+                    type="hidden"
                     value={formData.branch}
-                    onChange={(e) => setFormData({...formData, branch: e.target.value})}
-                    className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all appearance-none"
-                    disabled={!!userBranch}
-                  >
-                    <option value="" className="text-black">Select a branch</option>
-                    {branches.length === 0 ? (
-                      <option value="" className="text-black" disabled>No branches available</option>
-                    ) : (
-                      branches.map((branch) => (
-                        <option key={branch.id} value={branch.id} className="text-black">
-                          {branch.name} {branch.id === userBranch ? '(Your Branch)' : ''}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  {userBranchName && (
-                    <p className="text-xs text-blue-400 mt-1">
-                      Using your assigned branch: {userBranchName}
-                    </p>
-                  )}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Transactions will be recorded for your branch
+                  </p>
                 </div>
                 
                 {/* Ingredient */}
@@ -768,14 +659,12 @@ const InventoryTransactions: React.FC = () => {
                     onChange={(e) => setFormData({...formData, ingredient: e.target.value})}
                     className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all appearance-none"
                   >
-                    <option value="" className="text-black">Select an ingredient</option>
+                    <option value="">Select an ingredient</option>
                     {ingredients.length === 0 ? (
-                      <option value="" className="text-black" disabled>
-                        {userBranch ? 'No ingredients found for your branch' : 'No ingredients available'}
-                      </option>
+                      <option value="" disabled>No ingredients found for your branch</option>
                     ) : (
                       ingredients.map((ingredient) => (
-                        <option key={ingredient.id} value={ingredient.id} className="text-black">
+                        <option key={ingredient.id} value={ingredient.id}>
                           {ingredient.name} ({ingredient.unit})
                           {ingredient.current_stock && ` - Stock: ${ingredient.current_stock}`}
                         </option>
@@ -793,9 +682,9 @@ const InventoryTransactions: React.FC = () => {
                     onChange={(e) => setFormData({...formData, transaction_type: e.target.value})}
                     className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all appearance-none"
                   >
-                    <option value="" className="text-black">Select type</option>
+                    <option value="">Select type</option>
                     {TRANSACTION_TYPES.map((type) => (
-                      <option key={type.value} value={type.value} className="text-black">
+                      <option key={type.value} value={type.value}>
                         {type.icon} {type.label}
                       </option>
                     ))}
@@ -838,9 +727,9 @@ const InventoryTransactions: React.FC = () => {
                     onChange={(e) => setFormData({...formData, status: e.target.value})}
                     className="w-full px-4 py-2 bg-background border border-border rounded-xl text-foreground outline-none focus:border-orange-500/50 focus:bg-muted/30 transition-all appearance-none"
                   >
-                    <option value="PENDING" className="text-black">⏳ Pending</option>
-                    <option value="APPROVED" className="text-black">✅ Approved</option>
-                    <option value="REJECTED" className="text-black">❌ Rejected</option>
+                    <option value="PENDING">⏳ Pending</option>
+                    <option value="APPROVED">✅ Approved</option>
+                    <option value="REJECTED">❌ Rejected</option>
                   </select>
                 </div>
 
@@ -874,13 +763,13 @@ const InventoryTransactions: React.FC = () => {
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-orange-600 hover:bg-orange-700 transition-all shadow-[0_4px_16px_rgba(234,88,12,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-foreground bg-orange-600 hover:bg-orange-700 transition-all shadow-[0_4px_16px_rgba(234,88,12,0.3)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {formLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 rounded-full border-2 border-border border-t-white animate-spin" />
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Creating...
-                    </span>
+                    </>
                   ) : (
                     'Create Transaction'
                   )}
