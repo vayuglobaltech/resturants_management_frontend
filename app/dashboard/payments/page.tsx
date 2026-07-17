@@ -38,11 +38,18 @@ import Link from "next/link";
 import { Modal } from "@/components/ui/Modal";
 
 type Payment = {
+  refunded_amount: any;
   id: string;
   order_number: string;
   amount: number;
   payment_method: string;
-  status: "COMPLETED" | "PENDING" | "FAILED" | string;
+  status:
+    | "COMPLETED"
+    | "PENDING"
+    | "FAILED"
+    | "PARTIALLY_REFUNDED"
+    | "REFUNDED"
+    | string;
   created_at: string;
   cashier_name?: string;
 };
@@ -64,6 +71,8 @@ const STATUS_OPTIONS = [
   { value: "COMPLETED", label: "Completed" },
   { value: "PENDING", label: "Pending" },
   { value: "FAILED", label: "Failed" },
+  { value: "PARTIALLY_REFUNDED", label: "Partially Refunded" },
+  { value: "REFUNDED", label: "Complete Refunded" },
 ];
 
 const METHOD_OPTIONS = [
@@ -113,17 +122,21 @@ export default function PaymentsPage() {
   });
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [refundTarget, setRefundTarget] = useState<any>(null);
+  const [refundAmount, setRefundAmount] = useState<string>("");
   const [refunding, setRefunding] = useState(false);
 
   const handleRefund = async () => {
     if (!refundTarget) return;
     setRefunding(true);
     try {
+      const payload = {
+        amount: refundAmount ? parseFloat(refundAmount) : null,
+      };
       const res = await apiFetch(
         `/api/orders/payments/${refundTarget.id}/refund/`,
         {
           method: "POST",
-          body: JSON.stringify({}), // empty payload = full refund
+          body: JSON.stringify(payload),
         },
         true,
       );
@@ -131,8 +144,13 @@ export default function PaymentsPage() {
         const error = await res.json();
         throw error;
       }
-      toast.success("Payment refunded successfully!");
+      toast.success(
+        refundAmount
+          ? `Refund of $${refundAmount} processed successfully!`
+          : "Full refund processed successfully!",
+      );
       setRefundTarget(null);
+      setRefundAmount("");
       fetchPayments(); // refresh list
     } catch (error: any) {
       toast.error(error?.detail || "Failed to process refund.");
@@ -257,6 +275,13 @@ export default function PaymentsPage() {
           label: "Refunded",
           icon: XCircle,
           className: "bg-amber-500/20 text-amber-400",
+        };
+
+      case "PARTIALLY_REFUNDED":
+        return {
+          label: "Partially Refunded",
+          icon: AlertCircle,
+          className: "bg-blue-500/20 text-blue-400",
         };
       default:
         return {
@@ -482,7 +507,7 @@ export default function PaymentsPage() {
                           <th className="px-4 py-3 text-left">Amount</th>
                           <th className="px-4 py-3 text-left">Method</th>
                           <th className="px-4 py-3 text-left">Cashier</th>
-                          <th className="px-4 py-3 text-left">Status</th>
+                          <th className="px-4 py-3 pl-18 text-left">Status</th>
                           <th className="px-4 py-3 text-left hidden sm:table-cell">
                             Date
                           </th>
@@ -514,18 +539,30 @@ export default function PaymentsPage() {
                                 {payment.payment_method.toLowerCase() || "—"}
                               </td>
                               <td className="px-4 py-3">
-            {payment.cashier_name || "—"}  {/* ✅ new */}
-          </td>
+                                {payment.cashier_name || "—"} {/* ✅ new */}
+                              </td>
                               <td className="px-4 py-3">
-                                <span
-                                  className={cn(
-                                    "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border",
-                                    statusConfig.className,
-                                  )}
-                                >
-                                  <StatusIcon className="h-3 w-3" />
-                                  {statusConfig.label}
-                                </span>
+                                <div className="flex flex-col items-center gap-2">
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border",
+                                      statusConfig.className,
+                                    )}
+                                  >
+                                    <StatusIcon className="h-3 w-3" />
+                                    {statusConfig.label}
+                                  </span>
+                                  {(payment.status === "PARTIALLY_REFUNDED" ||
+                                    payment.status === "REFUNDED") &&
+                                    payment.refunded_amount > 0 && (
+                                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                                        Refunded: $
+                                        {Number(
+                                          payment.refunded_amount,
+                                        ).toFixed(2)}
+                                      </span>
+                                    )}
+                                </div>
                               </td>
                               <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                                 {payment.created_at
@@ -638,6 +675,17 @@ export default function PaymentsPage() {
                         </span>
                       </div>
 
+                      <div className="flex items-center gap-2">
+                        {(payment.status === "PARTIALLY_REFUNDED" ||
+                          payment.status === "REFUNDED") &&
+                          payment.refunded_amount > 0 && (
+                            <span className="text-[12px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                              Refunded: $
+                              {Number(payment.refunded_amount).toFixed(2)}
+                            </span>
+                          )}
+                      </div>
+
                       <div className="pt-2 border-t border-border/50">
                         <Link href={`/dashboard/payments/${payment.id}`}>
                           <Button
@@ -651,16 +699,16 @@ export default function PaymentsPage() {
                       </div>
                       <div className="pt-2 border-t border-border/50">
                         {(payment.status === "COMPLETED" ||
-                                  payment.status === "PARTIALLY_REFUNDED") && (
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setRefundTarget(payment)}
-                                    className="w-full gap-1"
-                                  >
-                                    Refund
-                                  </Button>
-                                )}
+                          payment.status === "PARTIALLY_REFUNDED") && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setRefundTarget(payment)}
+                            className="w-full gap-1"
+                          >
+                            Refund
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -701,19 +749,18 @@ export default function PaymentsPage() {
       <Modal
         isOpen={!!refundTarget}
         onClose={() => setRefundTarget(null)}
-        title="Confirm Refund"
+        title="Process Refund"
         icon={<DollarSign className="h-8 w-8 text-amber-500" />}
         description={
           <div className="space-y-3">
             <p>
-              You are about to refund payment{" "}
-              <strong>#{refundTarget?.order_number}</strong>.
+              Refund for payment <strong>#{refundTarget?.order_number}</strong>
             </p>
             <div className="bg-muted/30 p-3 rounded-lg text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Payment Amount</span>
+                <span className="text-muted-foreground">Original Amount</span>
                 <span className="font-medium">
-                  ${Number(refundTarget?.amount || 0).toFixed(2)}
+                  ${Number(refundTarget?.amount).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -723,26 +770,41 @@ export default function PaymentsPage() {
                 </span>
               </div>
               <div className="flex justify-between border-t border-border pt-1 mt-1">
-                <span className="text-muted-foreground">To be Refunded</span>
+                <span className="text-muted-foreground">
+                  Available to Refund
+                </span>
                 <span className="font-bold text-emerald-400">
                   $
                   {(
-                    Number(refundTarget?.amount || 0) -
+                    Number(refundTarget?.amount) -
                     Number(refundTarget?.refunded_amount || 0)
                   ).toFixed(2)}
                 </span>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              This action cannot be undone.
-            </p>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground">
+                Refund Amount
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                placeholder={`Max: $${(Number(refundTarget?.amount) - Number(refundTarget?.refunded_amount || 0)).toFixed(2)}`}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Leave empty to refund the full remaining amount.
+              </p>
+            </div>
           </div>
         }
         confirmText={refunding ? "Processing..." : "Confirm Refund"}
         cancelText="Cancel"
         onConfirm={handleRefund}
         onCancel={() => setRefundTarget(null)}
-        variant="warning"
+        variant="danger"
         confirmDisabled={refunding}
       />
     </div>

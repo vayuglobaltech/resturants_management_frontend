@@ -88,10 +88,10 @@ export default function GrossProfitReportPage() {
   const [validBranchId, setValidBranchId] = useState<number | null>(null);
   const [isBranchValidated, setIsBranchValidated] = useState(false);
   const [report, setReport] = useState<ProfitReport | null>(null);
-  const [period, setPeriod] = useState<string>('week');
+  const [period, setPeriod] = useState<string>('today');
   const [dateRange, setDateRange] = useState({
-    start_date: getDateRange('week').start_date,
-    end_date: getDateRange('week').end_date,
+    start_date: getDateRange('today').start_date,
+    end_date: getDateRange('today').end_date,
   });
   const [showCustomDate, setShowCustomDate] = useState(false);
 
@@ -223,31 +223,120 @@ export default function GrossProfitReportPage() {
   }, [isBranchValidated, validBranchId, dateRange.start_date, dateRange.end_date, period]);
 
   const fetchReport = async () => {
-    if (!dateRange.start_date || !dateRange.end_date) {
-      toast.error("Please select both start and end dates");
-      return;
-    }
+  if (!dateRange.start_date || !dateRange.end_date) {
+    toast.error("Please select both start and end dates");
+    return;
+  }
 
-    if (validBranchId === null) {
-      toast.error("No valid branch found");
-      return;
-    }
+  if (validBranchId === null) {
+    toast.error("No valid branch found");
+    return;
+  }
 
+  try {
+    setLoading(true);
+    
+    // ─── 1. Fetch all orders (for gross sales & discounts) ──────────
+    const ordersRes = await apiFetch(
+      `/api/orders/?created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
+      {},
+      true
+    );
+    const ordersData = await ordersRes.json();
+    const allOrders = ordersData.results || ordersData || [];
+
+    // ─── 2. Fetch completed payments (for paid orders) ──────────────
+    const salesRes = await apiFetch(
+      `/api/orders/payments/?status=COMPLETED&created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
+      {},
+      true
+    );
+    const salesData = await salesRes.json();
+    const completedPayments = salesData.results || salesData || [];
+    const paidOrderIds = new Set(completedPayments.map(p => p.order));
+
+    // ─── 3. Fetch refunded payments (full and partial) ──────────────
+    let refundedPayments: any[] = [];
     try {
-      setLoading(true);
-      const data = await getGrossProfitReport(
-        dateRange.start_date, 
-        dateRange.end_date,
-        validBranchId // ← Always use the user's branch
+      const refundRes = await apiFetch(
+        `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
+        {},
+        true
       );
-      setReport(data);
+      const refundData = await refundRes.json();
+      refundedPayments = refundData.results || refundData || [];
     } catch (error) {
-      console.error("Failed to fetch report:", error);
-      toast.error("Failed to load report");
-    } finally {
-      setLoading(false);
+      console.warn("Refunds endpoint not available, using empty array");
     }
-  };
+
+    // ─── 4. Calculate Gross Sales & Discounts ──────────────────────
+    let grossSales = 0;
+    let totalDiscounts = 0;
+    allOrders.forEach((order: any) => {
+      if (!paidOrderIds.has(order.id)) return;
+      const subtotal = (order.items || []).reduce(
+        (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
+        0
+      );
+      grossSales += subtotal;
+      const discSum = (order.discounts || []).reduce(
+        (s: number, d: any) => s + Number(d.amount),
+        0
+      );
+      totalDiscounts += discSum;
+    });
+
+    // ─── 5. Calculate Refunds ────────────────────────────────────────
+    const totalRefunds = refundedPayments.reduce(
+      (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
+      0
+    );
+
+    // ─── 6. Net Sales ────────────────────────────────────────────────
+    const netSales = grossSales - totalDiscounts - totalRefunds;
+
+    // ─── 7. Fetch COGS from accounting API ──────────────────────────
+    let totalCogs = 0;
+    let transactionCount = 0;
+    try {
+      const grossProfitData = await getGrossProfitReport(
+        dateRange.start_date,
+        dateRange.end_date,
+        validBranchId
+      );
+      if (grossProfitData) {
+        totalCogs = parseFloat(grossProfitData.total_cogs || '0');
+        transactionCount = grossProfitData.transaction_count || 0;
+      }
+    } catch (error) {
+      console.warn("COGS endpoint failed, using 0");
+    }
+
+    // ─── 8. Build report object ──────────────────────────────────────
+    const grossProfit = netSales - totalCogs;
+    // const margin = netSales > 0 ? (grossProfit / netSales) * 100 : 0;
+    const margin = netSales > 0 ? (grossProfit / grossSales) * 100 : 0;
+
+    setReport({
+      period_start: dateRange.start_date,
+      period_end: dateRange.end_date,
+      total_revenue: grossSales,        // keep this for consistency (gross sales)
+      total_cogs: totalCogs,
+      gross_profit: grossProfit,
+      gross_profit_margin_percentage: margin,
+      transaction_count: transactionCount,
+      net_sales: netSales,
+      discounts: totalDiscounts,
+      refunds: totalRefunds,
+    });
+
+  } catch (error) {
+    console.error("Failed to fetch report:", error);
+    toast.error("Failed to load report");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handlePeriodChange = (newPeriod: string) => {
     setPeriod(newPeriod);
@@ -265,7 +354,6 @@ export default function GrossProfitReportPage() {
     { value: 'today', label: 'Today', icon: Clock },
     { value: 'week', label: 'This Week', icon: Calendar },
     { value: 'month', label: 'This Month', icon: BarChart3 },
-    { value: 'year', label: 'This Year', icon: CalendarIcon },
   ];
 
   // ─── Loading state ──────────────────────────────────────────────────────
@@ -329,7 +417,7 @@ export default function GrossProfitReportPage() {
                     {p.label}
                   </button>
                 ))}
-                <button
+                {/* <button
                   onClick={handleCustomDate}
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5",
@@ -340,7 +428,7 @@ export default function GrossProfitReportPage() {
                 >
                   <CalendarIcon className="h-3.5 w-3.5" />
                   Custom
-                </button>
+                </button> */}
               </div>
             </div>
           </div>
@@ -462,13 +550,13 @@ export default function GrossProfitReportPage() {
           {/* Period Info */}
           <Card className="bg-muted/30 border-border">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-center text-md">
                 <span className="text-muted-foreground">Period:</span>
-                <span className="text-foreground">
+                <span className="text-foreground px-2">
                   {new Date(report.period_start).toLocaleDateString()} - {new Date(report.period_end).toLocaleDateString()}
                 </span>
-                <span className="text-muted-foreground">Transactions:</span>
-                <span className="text-foreground font-bold">{report.transaction_count}</span>
+                {/* <span className="text-muted-foreground">Transactions:</span>
+                <span className="text-foreground font-bold">{report.transaction_count}</span> */}
               </div>
             </CardContent>
           </Card>
@@ -528,46 +616,6 @@ export default function GrossProfitReportPage() {
                       }}
                     />
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Summary Stats */}
-          <Card className="bg-muted/30 border-border">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Revenue / COGS Ratio</p>
-                  <p className="text-lg font-bold text-foreground">
-                    {safeNumber(report.total_revenue) > 0 
-                      ? (safeNumber(report.total_revenue) / safeNumber(report.total_cogs)).toFixed(2)
-                      : '0.00'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Profit Per Transaction</p>
-                  <p className="text-lg font-bold text-foreground">
-                    {report.transaction_count > 0 
-                      ? formatCurrency(safeNumber(report.gross_profit) / report.transaction_count)
-                      : '$0.00'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Revenue Per Transaction</p>
-                  <p className="text-lg font-bold text-foreground">
-                    {report.transaction_count > 0 
-                      ? formatCurrency(safeNumber(report.total_revenue) / report.transaction_count)
-                      : '$0.00'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">COGS Per Transaction</p>
-                  <p className="text-lg font-bold text-foreground">
-                    {report.transaction_count > 0 
-                      ? formatCurrency(safeNumber(report.total_cogs) / report.transaction_count)
-                      : '$0.00'}
-                  </p>
                 </div>
               </div>
             </CardContent>

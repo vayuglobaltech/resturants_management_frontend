@@ -49,6 +49,8 @@ import {
 
 type Period = "today" | "week" | "month" | "custom";
 type Order = {
+  payment_status: string;
+  refunded_amount: number;
   table: number | undefined;
   id: number;
   order_number: string;
@@ -339,6 +341,7 @@ export default function OrderReportPage() {
     const m = Math.round(minutes % 60);
     return `${h}h ${m}m`;
   };
+  
 
   // ─── Loading ──────────────────────────────────────────────────────────
   if (loading) {
@@ -637,6 +640,7 @@ export default function OrderReportPage() {
                   filteredAndSorted.map((order) => {
                     // Get prep time from menu
                     const prepTime = getPrepTime(order);
+                    const displayStatus = order.payment_status || order.status;
                     
                     return (
                       <tr key={order.id} className="hover:bg-muted/30 transition-colors">
@@ -645,12 +649,13 @@ export default function OrderReportPage() {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">Dine‑in</td>
                         <td className="px-4 py-3">
-                          {order.table_number_display || order.table_number || order.table || "—"}
+                          {order.table_number_display || "—"}
                         </td>
                         <td className="px-4 py-3">{order.user_name || "—"}</td>
-                        <td className="px-4 py-3 text-right font-medium">
-                          {formatCurrency(Number(order.total_amount || 0))}
-                        </td>
+                        {order.payment_status === 'REFUNDED' || order.payment_status === 'PARTIALLY_REFUNDED'
+    ? `$${Number(order.refunded_amount || 0).toFixed(2)}`
+    : formatCurrency(Number(order.total_amount || 0))
+  }
                         <td className="px-4 py-3">
                           <span
                             className={cn(
@@ -664,7 +669,7 @@ export default function OrderReportPage() {
                                 : "bg-blue-500/20 text-blue-400 border-blue-500/30"
                             )}
                           >
-                            {order.status}
+                            {displayStatus}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
