@@ -59,7 +59,8 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
   const canManage = useCanManage();
 
   // ─── Check if user is a waiter (redirect) ──────────────────────────
-  const userRole = user?.role && typeof user.role === "object" ? user.role.name : user?.role;
+  const userRole =
+    typeof user?.role === "string" ? user.role : user?.role?.name;
   const isWaiter = userRole?.toLowerCase() === "waiter";
 
   useEffect(() => {

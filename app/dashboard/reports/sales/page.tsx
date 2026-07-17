@@ -59,6 +59,7 @@ type Summary = {
   netSales: number;
   totalOrders: number;
   averageOrderValue: number;
+  serviceCharges: number;
 };
 
 export default function SalesReportPage() {
@@ -75,6 +76,7 @@ export default function SalesReportPage() {
     netSales: 0,
     totalOrders: 0,
     averageOrderValue: 0,
+    serviceCharges: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -247,6 +249,7 @@ export default function SalesReportPage() {
       netSales: netSales,
       totalOrders: totalOrders,
       averageOrderValue: totalOrders > 0 ? netSales / totalOrders : 0,
+      serviceCharges: 0,
     });
 
   } catch (error) {
