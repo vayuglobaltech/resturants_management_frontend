@@ -79,6 +79,9 @@ interface ProfitReport {
   gross_profit: string | number;
   gross_profit_margin_percentage: string | number;
   transaction_count: number;
+  net_sales?: string | number;
+  discounts?: string | number;
+  refunds?: string | number;
 }
 
 export default function GrossProfitReportPage() {
@@ -253,7 +256,7 @@ export default function GrossProfitReportPage() {
     );
     const salesData = await salesRes.json();
     const completedPayments = salesData.results || salesData || [];
-    const paidOrderIds = new Set(completedPayments.map(p => p.order));
+    const paidOrderIds = new Set(completedPayments.map((p: any) => p.order));
 
     // ─── 3. Fetch refunded payments (full and partial) ──────────────
     let refundedPayments: any[] = [];

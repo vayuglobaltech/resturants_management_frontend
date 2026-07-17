@@ -340,7 +340,7 @@ const ProductAvailabilityManagement: React.FC = () => {
   };
 
   // Filter data based on search
-  const filteredData = availabilities.filter(item => {
+  const filteredData = availabilities.filter((item: any) => {
     const searchLower = searchTerm.toLowerCase();
     const productName = typeof item.product === 'object' && item.product !== null 
       ? item.product.name 

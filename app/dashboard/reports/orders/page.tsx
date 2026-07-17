@@ -227,10 +227,10 @@ export default function OrderReportPage() {
   // ─── Statistics ──────────────────────────────────────────────────────
   const stats = useMemo<OrderStats>(() => {
     const total = orders.length;
-    const completed = orders.filter(o => ["DELIVERED", "PAID"].includes(o.status?.toUpperCase())).length;
-    const cancelled = orders.filter(o => o.status?.toUpperCase() === "CANCELLED").length;
+    const completed = orders.filter((o: any) => ["DELIVERED", "PAID"].includes(o.status?.toUpperCase())).length;
+    const cancelled = orders.filter((o: any) => o.status?.toUpperCase() === "CANCELLED").length;
     const active = total - completed - cancelled;
-    const delayed = orders.filter(o => {
+    const delayed = orders.filter((o: any) => {
       const created = new Date(o.created_at);
       const endTime = o.delivered_at || o.ready_at || o.created_at;
       const minutes = differenceInMinutes(new Date(endTime), created);
@@ -239,7 +239,7 @@ export default function OrderReportPage() {
 
     // Average preparation time from menu
     const prepTimes = orders
-      .map(o => {
+      .map((o: any) => {
         if (o.items && o.items.length > 0) {
           return o.items[0]?.prep_time_minutes || null;
         }
@@ -261,7 +261,7 @@ export default function OrderReportPage() {
   // ─── Orders by status ──────────────────────────────────────────────
   const ordersByStatus = useMemo<OrdersByStatus>(() => {
     const statusMap: Record<string, number> = {};
-    orders.forEach(o => {
+    orders.forEach((o: any) => {
       const st = o.status || "UNKNOWN";
       statusMap[st] = (statusMap[st] || 0) + 1;
     });
@@ -271,7 +271,7 @@ export default function OrderReportPage() {
   // ─── Orders by hour ──────────────────────────────────────────────
   const ordersByHour = useMemo<OrdersByHour>(() => {
     const hourMap: Record<string, number> = {};
-    orders.forEach(o => {
+    orders.forEach((o: any) => {
       const hour = format(new Date(o.created_at), "HH:00");
       hourMap[hour] = (hourMap[hour] || 0) + 1;
     });
@@ -297,7 +297,7 @@ export default function OrderReportPage() {
     let result = [...orders];
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
-      result = result.filter(o =>
+      result = result.filter((o: any) =>
         o.order_number?.toLowerCase().includes(term) ||
         o.user_name?.toLowerCase().includes(term) ||
         String(o.table_number_display || o.table_number || o.table || "").includes(term)
@@ -653,10 +653,11 @@ export default function OrderReportPage() {
                           {order.table_number_display || "—"}
                         </td>
                         <td className="px-4 py-3">{order.user_name || "—"}</td>
-                        {order.payment_status === 'REFUNDED' || order.payment_status === 'PARTIALLY_REFUNDED'
-    ? `$${Number(order.refunded_amount || 0).toFixed(2)}`
-    : formatCurrency(Number(order.total_amount || 0))
-  }
+                        <td className="px-4 py-3 text-right">
+                          {order.payment_status === 'REFUNDED' || order.payment_status === 'PARTIALLY_REFUNDED'
+                            ? `$${Number(order.refunded_amount || 0).toFixed(2)}`
+                            : formatCurrency(Number(order.total_amount || 0))}
+                        </td>
                         <td className="px-4 py-3">
                           <span
                             className={cn(

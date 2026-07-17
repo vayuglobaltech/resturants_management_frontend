@@ -127,7 +127,7 @@ interface PeakHoursChartProps {
 function PeakHoursChart({ data }: PeakHoursChartProps) {
   // If no data or all zeros, show empty state
   const hasData = data.length > 0 && data.some(d => d.orders > 0);
-  const maxOrders = hasData ? Math.max(...data.map(d => d.orders)) : 1;
+  const maxOrders = hasData ? Math.max(...data.map((d: any) => d.orders)) : 1;
 
   return (
     <Card className="bg-muted/30 border-border">
@@ -297,7 +297,7 @@ interface DailySalesTrendProps {
 }
 
 function DailySalesTrend({ data }: DailySalesTrendProps) {
-  const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
+  const maxRevenue = Math.max(...data.map((d: any) => d.revenue), 1);
 
   return (
     <Card className="bg-muted/30 border-border">

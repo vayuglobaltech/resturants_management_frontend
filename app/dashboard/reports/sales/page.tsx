@@ -58,6 +58,7 @@ type Summary = {
   refunds: number;
   netSales: number;
   totalOrders: number;
+  averageOrderValue: number;
 };
 
 export default function SalesReportPage() {
@@ -73,6 +74,7 @@ export default function SalesReportPage() {
     refunds: 0,
     netSales: 0,
     totalOrders: 0,
+    averageOrderValue: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -138,7 +140,7 @@ export default function SalesReportPage() {
     );
     const completedData = await completedRes.json();
     const completedPayments = completedData.results || completedData || [];
-    const completedOrderIds = new Set(completedPayments.map(p => p.order));
+    const completedOrderIds = new Set(completedPayments.map((p: any) => p.order));
 
    // ─── 3. Refunded payments (full and partial) ──────────────────
     let refundedPayments: any[] = [];
@@ -153,7 +155,7 @@ export default function SalesReportPage() {
     } catch (error) {
       console.warn("Refunds endpoint not available, using empty array");
     }
-    const refundedOrderIds = new Set(refundedPayments.map(p => p.order));
+    const refundedOrderIds = new Set(refundedPayments.map((p: any) => p.order));
 
     // ─── 4. All orders that have any payment (completed or refunded) ──
     const allPaidOrderIds = new Set([...completedOrderIds, ...refundedOrderIds]);
@@ -229,6 +231,7 @@ export default function SalesReportPage() {
         refunds: refunds,
         netSales: netSales,
         orders: ordersCount,
+        avgOrderValue: ordersCount > 0 ? netSales / ordersCount : 0,
       });
     });
 
@@ -243,6 +246,7 @@ export default function SalesReportPage() {
       refunds: totalRefunds,
       netSales: netSales,
       totalOrders: totalOrders,
+      averageOrderValue: totalOrders > 0 ? netSales / totalOrders : 0,
     });
 
   } catch (error) {
@@ -515,141 +519,70 @@ const formatCurrency = (value: number | null | undefined) => {
             </ResponsiveContainer>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 rounded-full bg-purple-500/20">
-                  <ShoppingBag className="h-6 w-6 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Orders</p>
-                  <p className="text-2xl font-bold">{summary.totalOrders}</p>
-                </div>
-              </CardContent>
-            </Card>
+        </CardContent>
+      </Card>
+
+      {/* ─── Daily Breakdown Table ────────────────────────────────────── */}
+      <Card className="border-border">
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <h3 className="font-semibold text-foreground">Daily Breakdown</h3>
+            <span className="text-xs text-muted-foreground">
+              {salesData.length} days
+            </span>
           </div>
-
-          {/* ─── Chart ────────────────────────────────────────────────────── */}
-          <Card className="border-border">
-            <CardContent className="p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-4">
-                Sales Trend
-              </h3>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={salesData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis
-                      dataKey="date"
-                      className="text-xs text-muted-foreground"
-                    />
-                    <YAxis
-                      tickFormatter={(value) => `$${value}`}
-                      className="text-xs text-muted-foreground"
-                    />
-                    <Tooltip
-                      formatter={(value: number) => `$${value.toFixed(2)}`}
-                      labelStyle={{ color: "#fff" }}
-                      contentStyle={{
-                        backgroundColor: "#1e293b",
-                        border: "1px solid #334155",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend />
-                    <Bar
-                      dataKey="grossSales"
-                      fill="#818cf8"
-                      name="Gross Sales"
-                      radius={[4, 4, 0, 0]}
-                    />
-                      <Bar
-                        dataKey="netSales"
-                        fill="#34d399"
-                        name="Net Sales"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    <Bar
-                      dataKey="discounts"
-                      fill="#fb7185"
-                      name="Discounts"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="refunds"
-                      fill="#f59e0b"
-                      name="Refunds"
-                      radius={[4, 4, 0, 0]}
-                    />                  
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ─── Daily Breakdown Table ────────────────────────────────────── */}
-          <Card className="border-border">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <h3 className="font-semibold text-foreground">Daily Breakdown</h3>
-                <span className="text-xs text-muted-foreground">
-                  {salesData.length} days
-                </span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/30 text-xs uppercase text-muted-foreground font-semibold">
-                    <tr>
-                      <th className="px-4 py-3 text-left">Date</th>
-                      <th className="px-4 py-3 text-left">Orders</th>
-                      <th className="px-4 py-3 text-left">Gross Sales</th>
-                      <th className="px-4 py-3 text-left">Discounts</th>
-                      <th className="px-4 py-3 text-left">Refunds</th>
-                      <th className="px-4 py-3 text-left">Net Sales</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30 text-xs uppercase text-muted-foreground font-semibold">
+                <tr>
+                  <th className="px-4 py-3 text-left">Date</th>
+                  <th className="px-4 py-3 text-left">Orders</th>
+                  <th className="px-4 py-3 text-left">Gross Sales</th>
+                  <th className="px-4 py-3 text-left">Discounts</th>
+                  <th className="px-4 py-3 text-left">Refunds</th>
+                  <th className="px-4 py-3 text-left">Net Sales</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {salesData.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
+                      No sales data for this period.
+                    </td>
+                  </tr>
+                ) : (
+                  salesData.map((day) => (
+                    <tr
+                      key={day.date}
+                      className="hover:bg-muted/30 transition-colors"
+                    >
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        {day.date}
+                      </td>
+                      <td className="px-4 py-3">{day.orders}</td>
+                      <td className="px-4 py-3 font-medium">
+                        {formatCurrency(day.grossSales)}
+                      </td>
+                      <td className="px-4 py-3 text-rose-400">
+                        {formatCurrency(day.discounts)}
+                      </td>
+                      <td className="px-4 py-3 text-amber-400">
+                        {formatCurrency(day.refunds)}
+                      </td>
+                      <td className="px-4 py-3 font-bold text-emerald-400">
+                        {formatCurrency(day.netSales)}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {salesData.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="px-4 py-8 text-center text-muted-foreground"
-                        >
-                          No sales data for this period.
-                        </td>
-                      </tr>
-                    ) : (
-                      salesData.map((day) => (
-                        <tr
-                          key={day.date}
-                          className="hover:bg-muted/30 transition-colors"
-                        >
-                          <td className="px-4 py-3 font-medium text-foreground">
-                            {day.date}
-                          </td>
-                          <td className="px-4 py-3">{day.orders}</td>
-                          <td className="px-4 py-3 font-medium">
-                            {formatCurrency(day.grossSales)}
-                          </td>
-                          <td className="px-4 py-3 text-rose-400">
-                            {formatCurrency(day.discounts)}
-                          </td>
-                          <td className="px-4 py-3 text-amber-400">
-                            {formatCurrency(day.refunds)}
-                          </td>
-                          <td className="px-4 py-3 font-bold text-emerald-400">
-                            {formatCurrency(day.netSales)}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

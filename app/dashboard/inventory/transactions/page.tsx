@@ -298,10 +298,10 @@ const InventoryTransactions: React.FC = () => {
       
       // Create maps for faster lookups
       const branchMap = new Map<number, string>();
-      branches.forEach(b => branchMap.set(b.id, b.name));
+      branches.forEach((b: any) => branchMap.set(b.id, b.name));
       
       const ingredientMap = new Map<number, string>();
-      ingredients.forEach(i => ingredientMap.set(i.id, i.name));
+      ingredients.forEach((i: any) => ingredientMap.set(i.id, i.name));
       
       // Enrich transaction data with names
       const enrichedTransactions = transactionsArray.map((tx: any) => {
@@ -425,7 +425,7 @@ const InventoryTransactions: React.FC = () => {
   };
 
   // Filter data based on search
-  const filteredData = transactions.filter(item => {
+  const filteredData = transactions.filter((item: any) => {
     const searchLower = searchTerm.toLowerCase();
     const typeLabel = TRANSACTION_TYPES.find(t => t.value === item.transaction_type)?.label || item.transaction_type;
     return (

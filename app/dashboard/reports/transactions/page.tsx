@@ -549,7 +549,7 @@ const fetchTransactionsWithData = async (
 
     // Filter by transaction type (payment/inventory)
     if (transactionTypeFilter !== "all") {
-      result = result.filter(tx => tx.type === transactionTypeFilter);
+      result = result.filter((tx: any) => tx.type === transactionTypeFilter);
     }
 
     // Search filter
@@ -609,14 +609,14 @@ const fetchTransactionsWithData = async (
   // Stats
   const stats = useMemo(() => {
     const total = transactions.length;
-    const payments = transactions.filter(t => t.type === "payment").length;
-    const inventory = transactions.filter(t => t.type === "inventory").length;
+    const payments = transactions.filter((t: any) => t.type === "payment").length;
+    const inventory = transactions.filter((t: any) => t.type === "inventory").length;
     
     const completedPayments = transactions.filter(
       t => t.type === "payment" && (t as PaymentTransaction).status === "COMPLETED"
     ).length;
     const totalAmount = transactions
-      .filter(t => t.type === "payment" && (t as PaymentTransaction).status === "COMPLETED")
+      .filter((t: any) => t.type === "payment" && (t as PaymentTransaction).status === "COMPLETED")
       .reduce((sum, t) => sum + parseFloat((t as PaymentTransaction).amount || "0"), 0);
 
     const approvedInventory = transactions.filter(
@@ -662,7 +662,7 @@ const fetchTransactionsWithData = async (
         }
       });
 
-      const csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+      const csvContent = [headers.join(","), ...rows.map((row: any[]) => row.join(","))].join("\n");
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);

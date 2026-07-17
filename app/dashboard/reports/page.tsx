@@ -110,7 +110,7 @@ export default function ReportsOverviewPage() {
     );
     const salesData = await salesRes.json();
     const completedPayments = salesData.results || salesData || [];
-    const completedOrderIds = new Set(completedPayments.map(p => p.order));
+    const completedOrderIds = new Set(completedPayments.map((p: any) => p.order));
 
     // ─── 3. Refunded payments (full and partial) ──────────────────────
 let refundedPayments: any[] = [];
@@ -130,7 +130,7 @@ try {
 } catch (error) {
   console.warn("Refunds endpoint not available, using 0");
 }
-    const refundedOrderIds = new Set(refundedPayments.map(p => p.order));
+    const refundedOrderIds = new Set(refundedPayments.map((p: any) => p.order));
     console.log(`🔍 Overview COGS URL: /api/accounting/cogs-transactions/?created_at__gte=${gte}&created_at__lte=${lte}`);
 
     // ─── 4. Total orders (completed + refunded) ──────────────────────

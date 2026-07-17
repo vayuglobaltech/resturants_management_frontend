@@ -326,7 +326,7 @@ export default function IngredientsPage() {
   };
 
   // ─── Filter ingredients ──────────────────────────────────────────────────
-  const filteredIngredients = ingredients.filter(ing => 
+  const filteredIngredients = ingredients.filter((ing: any) => 
     ing.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     ing.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (ing.category && ing.category.toLowerCase().includes(searchTerm.toLowerCase()))

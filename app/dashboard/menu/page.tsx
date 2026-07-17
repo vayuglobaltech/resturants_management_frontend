@@ -82,7 +82,7 @@ export default function MenuPage() {
   const groupedItems = useMemo(() => {
     if (categoryParam) return { [categoryParam]: filteredItems };
     const grouped: Record<number, any[]> = {};
-    items.forEach(item => {
+    items.forEach((item: any) => {
       const catId = item.category || 0;
       if (!grouped[catId]) grouped[catId] = [];
       grouped[catId].push(item);

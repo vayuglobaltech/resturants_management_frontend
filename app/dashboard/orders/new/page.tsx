@@ -246,7 +246,7 @@ export default function NewOrderPage() {
   // ─── Get unique categories ──────────────────────────────────────────────
   const uniqueCategories = useMemo(() => {
     const categories = menuItems
-      .map(item => item.category_name)
+      .map((item: any) => item.category_name)
       .filter((category): category is string => !!category);
     return [...new Set(categories)].sort();
   }, [menuItems]);

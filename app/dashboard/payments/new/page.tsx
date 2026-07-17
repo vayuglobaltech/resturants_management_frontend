@@ -31,7 +31,7 @@ import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { apiFetch, apiFetchTyped } from "@/lib/api";
+import { apiFetch, apiFetchTyped, getBranches } from "@/lib/api";
 import { listOrders, getOrder, listTables } from "@/lib/ordersApi";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
