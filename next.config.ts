@@ -21,7 +21,7 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ['192.168.1.*', '*.local','data-unrefined-till.ngrok-free.dev', // ✅ Add your ngrok URL here
+  allowedDevOrigins: ['192.168.1.*', '*.local','felisha-intuitional-gruffily.ngrok-free.dev', // ✅ Add your ngrok URL here
     '*.ngrok-free.dev',],
   turbopack: {},
   async headers() {

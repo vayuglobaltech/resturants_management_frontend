@@ -106,7 +106,7 @@ export default function RegisterPage() {
   const labelCls = "text-sm font-medium text-muted-foreground";
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background text-foreground overflow-y-auto transition-colors duration-300">
+    <div className="h-screen flex items-start justify-center px-4 py-12 bg-background text-foreground relative overflow-y-auto overflow-x-hidden transition-colors duration-300">
       {/* bg orbs */}
       <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full blur-[100px] animate-pulse" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
       <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full blur-[90px] animate-pulse [animation-delay:1.5s]" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
