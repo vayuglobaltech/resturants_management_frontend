@@ -235,7 +235,7 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
       activationConstraint: { distance: 5 },
     }),
     useSensor(TouchSensor, {
-      activationConstraint: { delay: 300, tolerance: 5 },
+      activationConstraint: { delay: 1500, tolerance: 80 },
     }),
     useSensor(KeyboardSensor)
   );
