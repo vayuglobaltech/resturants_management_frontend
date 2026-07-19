@@ -82,9 +82,14 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
       const data = await getTable(id);
       setTable(data);
       setSelectedStatus(data.status);
-    } catch (error) {
-      toast.error("Table not found.");
-      router.push("/dashboard/tables");
+    } catch (error: any) {
+      console.error("Failed to fetch table:", error);
+  if (error?.response?.status === 404) {
+    toast.error("Table not found.");
+    router.push("/dashboard/tables");
+  } else {
+    toast.error("You don't have permission to view this table.");
+  }
     } finally {
       setLoading(false);
     }
@@ -120,8 +125,10 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
   }, [id]);
 
   useEffect(() => {
-    if (table) fetchTodayOrders();
-  }, [table]);
+  if (table && canManage) {
+    fetchTodayOrders();
+  }
+}, [table, canManage]);
 
   const handleStatusUpdate = async () => {
     if (!selectedStatus || selectedStatus === table.status) return;

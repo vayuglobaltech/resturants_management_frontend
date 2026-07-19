@@ -25,7 +25,6 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
-import { useMediaQuery } from "@/hooks/useMediaQuery"; // import the hook
 
 const TABLE_STATUSES = ["AVAILABLE", "OCCUPIED", "RESERVED"];
 
@@ -178,7 +177,7 @@ function KanbanColumn({ status, tables, onCardClick }: KanbanColumnProps) {
   );
 }
 
-// ─── Mobile Card Grid (alternative view) ──────────────────────────
+// ─── Mobile Card Grid ──────────────────────────────────────────────
 function MobileTableGrid({ tables, onCardClick }: { tables: any[], onCardClick: (id: number) => void }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -219,31 +218,42 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [activeTable, setActiveTable] = useState<any>(null);
   const isMounted = useRef(true);
-  const isMobile = useMediaQuery("(max-width: 768px)");
+
+  // ─── Mobile detection ──────────────────────────────────────────────
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // ─── Sensors ────────────────────────────────────────────────────────
-  // Use standard sensors with proper touch configuration
+  // Use a PointerSensor for desktop and a TouchSensor for mobile,
+  // but we include both and they will handle their respective events.
   const pointerSensor = useSensor(PointerSensor, {
-    activationConstraint: { distance: 10 },
+    activationConstraint: { distance: 8 },
   });
 
   const touchSensor = useSensor(TouchSensor, {
     activationConstraint: {
-      delay: 400,      // hold for 0.4s before drag – prevents accidental
-      tolerance: 15,   // allow slight finger movement
+      delay: 300,      // 0.3s hold – enough to prevent accidental scroll
+      tolerance: 20,   // allow slight finger movement
     },
   });
 
   const keyboardSensor = useSensor(KeyboardSensor);
 
-  // On mobile, we don't even need sensors if we use the grid view,
-  // but we'll keep them in case you want drag on tablet.
   const sensors = useSensors(
     pointerSensor,
     touchSensor,
     keyboardSensor
   );
 
+  // ─── Fetch tables ──────────────────────────────────────────────────
   const fetchTables = useCallback(async () => {
     try {
       const data = await listTables();
@@ -272,6 +282,7 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
     }, {} as Record<string, any[]>);
   }, [tables]);
 
+  // ─── Drag handlers ──────────────────────────────────────────────────
   const handleDragStart = useCallback((event: any) => {
     const table = tables.find((t) => t.id === event.active.id);
     if (table) {
@@ -296,7 +307,7 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
     const tableId = event.active.id as number;
     let newStatus: string | null = null;
 
-    // Determine new status: if dropped on a column, use that column's id
+    // If dropped on a column, use that column's status
     if (TABLE_STATUSES.includes(over.id as any)) {
       newStatus = over.id as string;
     } else {
