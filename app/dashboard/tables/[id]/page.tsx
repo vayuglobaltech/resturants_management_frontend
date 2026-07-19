@@ -84,12 +84,6 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
       setSelectedStatus(data.status);
     } catch (error: any) {
       console.error("Failed to fetch table:", error);
-  if (error?.response?.status === 404) {
-    toast.error("Table not found.");
-    router.push("/dashboard/tables");
-  } else {
-    toast.error("You don't have permission to view this table.");
-  }
     } finally {
       setLoading(false);
     }

@@ -219,17 +219,7 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
   const [activeTable, setActiveTable] = useState<any>(null);
   const isMounted = useRef(true);
 
-  // ─── Mobile detection ──────────────────────────────────────────────
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // ─── Mobile detection via CSS instead of JS ──────────────────────
 
   // ─── Sensors ────────────────────────────────────────────────────────
   // Use a PointerSensor for desktop and a TouchSensor for mobile,
@@ -367,35 +357,36 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
     );
   }
 
-  // ─── Mobile: show grid instead of kanban ──────────────────────────
-  if (isMobile) {
-    return <MobileTableGrid tables={tables} onCardClick={handleCardClick} />;
-  }
-
-  // ─── Desktop: Kanban ──────────────────────────────────────────────
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-    >
-      <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 snap-x">
-        {TABLE_STATUSES.map((status) => (
-          <div key={status} className="snap-start" style={{ minHeight: "300px" }}>
-            <KanbanColumn
-              status={status}
-              tables={groupedTables[status] || []}
-              onCardClick={handleCardClick}
-            />
-          </div>
-        ))}
+    <>
+      <div className="block md:hidden">
+        <MobileTableGrid tables={tables} onCardClick={handleCardClick} />
       </div>
+      <div className="hidden md:block">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 snap-x">
+            {TABLE_STATUSES.map((status) => (
+              <div key={status} className="snap-start" style={{ minHeight: "300px" }}>
+                <KanbanColumn
+                  status={status}
+                  tables={groupedTables[status] || []}
+                  onCardClick={handleCardClick}
+                />
+              </div>
+            ))}
+          </div>
 
-      <DragOverlay>
-        {activeId && activeTable ? <OverlayTableCard table={activeTable} /> : null}
-      </DragOverlay>
-    </DndContext>
+          <DragOverlay>
+            {activeId && activeTable ? <OverlayTableCard table={activeTable} /> : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
+    </>
   );
 }
