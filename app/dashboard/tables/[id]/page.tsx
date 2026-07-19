@@ -52,8 +52,17 @@ function formatSmartTimestamp(dateString: string): string {
   });
 }
 
-export default function TableDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function TableDetailPage({ params }: { params: any }) {
+  const [resolvedId, setResolvedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Safely unwrap params whether it's a Promise (Next 15) or object (Next 14)
+    Promise.resolve(params).then((p: any) => {
+      if (p && p.id) setResolvedId(p.id);
+    });
+  }, [params]);
+
+  const id = resolvedId;
   const router = useRouter();
   const { user } = useAuth();
   const canManage = useCanManage();
@@ -68,6 +77,7 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
   const [loadingOrders, setLoadingOrders] = useState(false);
 
   const fetchTable = async () => {
+    if (!id) return;
     try {
       const data = await getTable(id);
       setTable(data);
@@ -105,7 +115,9 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
   };
 
   useEffect(() => {
-    fetchTable();
+    if (id) {
+      fetchTable();
+    }
   }, [id]);
 
   useEffect(() => {

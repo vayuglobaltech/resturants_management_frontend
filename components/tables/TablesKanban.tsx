@@ -358,11 +358,11 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
   }
 
   return (
-    <>
-      <div className="block">
-        <MobileTableGrid tables={tables} onCardClick={handleCardClick} />
-      </div>
-      <div className="hidden">
+    <div className="block w-full">
+      <MobileTableGrid tables={tables} onCardClick={handleCardClick} />
+
+      {/* 
+        KANBAN BACKUP - Commented out completely to ensure no interference
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -386,7 +386,7 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
             {activeId && activeTable ? <OverlayTableCard table={activeTable} /> : null}
           </DragOverlay>
         </DndContext>
-      </div>
-    </>
+      */}
+    </div>
   );
 }
