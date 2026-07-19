@@ -228,17 +228,30 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const canModify = useCanModifyOrders();
+  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window;
 
   // Sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 1500, tolerance: 80 },
-    }),
-    useSensor(KeyboardSensor)
-  );
+  // Unconditionally create all sensors
+const pointerSensor = useSensor(PointerSensor, {
+  activationConstraint: { distance: 5 },
+});
+
+const touchSensor = useSensor(TouchSensor, {
+  activationConstraint: {
+    delay: 1500,
+    tolerance: 80,
+  },
+});
+
+const keyboardSensor = useSensor(KeyboardSensor);
+
+// Build the array of sensors to use
+const activeSensors = isTouchDevice
+  ? [touchSensor, keyboardSensor]
+  : [pointerSensor, keyboardSensor];
+
+// Spread the array into separate arguments
+const sensors = useSensors(...activeSensors);
 
   const groupedOrders = useMemo(() => {
     return ORDER_STATUSES.reduce((acc, status) => {
