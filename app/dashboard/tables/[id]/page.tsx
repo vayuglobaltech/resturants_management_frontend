@@ -58,17 +58,7 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
   const { user } = useAuth();
   const canManage = useCanManage();
 
-  // ─── Check if user is a waiter (redirect) ──────────────────────────
-  // const userRole =
-  //   typeof user?.role === "string" ? user.role : user?.role?.name;
-  // const isWaiter = userRole?.toLowerCase() === "waiter";
-
-  // useEffect(() => {
-  //   if (isWaiter) {
-  //     toast.error("You don't have permission to view table details.");
-  //     router.replace("/dashboard/tables");
-  //   }
-  // }, [isWaiter, router]);
+  // ─── Check if user is a waiter (redirect) removed ──────────
 
   const [table, setTable] = useState<any>(null);
   const [loading, setLoading] = useState(true);

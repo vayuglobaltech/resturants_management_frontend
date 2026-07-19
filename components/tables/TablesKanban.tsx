@@ -359,10 +359,10 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
 
   return (
     <>
-      <div className="block md:hidden">
+      <div className="block">
         <MobileTableGrid tables={tables} onCardClick={handleCardClick} />
       </div>
-      <div className="hidden md:block">
+      <div className="hidden">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
