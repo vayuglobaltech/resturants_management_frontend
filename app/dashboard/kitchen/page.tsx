@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { listOrders, updateOrder } from "@/lib/ordersApi";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Loader2, Clock, ChefHat } from "lucide-react";
+import { Loader2, Clock, ChefHat, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -116,6 +116,34 @@ export default function KitchenPage() {
                   <p className="text-xs text-muted-foreground">{order.items?.length || 0} items</p>
                 </div>
               </div>
+
+              {/* ─── Order Items ──────────────────────────────────── */}
+              {order.items && order.items.length > 0 && (
+                <div className="mt-4 border-t border-border/50 pt-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                    <Receipt className="h-3.5 w-3.5" />
+                    <span>Items</span>
+                  </div>
+                  <div className="space-y-1 max-h-36 overflow-y-auto pr-1 scrollbar-thin">
+                    {order.items.map((item: any) => (
+                      <div
+                        key={item.id}
+                        className="flex justify-between text-sm py-0.5"
+                      >
+                        <span className="text-foreground/80">
+                          <span className="text-muted-foreground mr-1">
+                            {item.quantity}×
+                          </span>
+                          {item.product_name || item.product?.name || "Item"}
+                        </span>
+                        <span className="text-muted-foreground text-xs">
+                          ${(parseFloat(item.price_at_order || 0) * (item.quantity || 1)).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {nextStatus && (
                 <Button
