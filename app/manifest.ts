@@ -3,8 +3,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Restaurant Management',
-    short_name: 'Restaurant',
+    name: 'Paros',
+    short_name: 'Paros',
     description: 'Restaurant Management System',
     start_url: '/',
     display: 'standalone',
