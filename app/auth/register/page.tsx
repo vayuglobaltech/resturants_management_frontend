@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerUser, getBranches, getRoles } from "@/lib/api";
 import { Eye, EyeOff } from "lucide-react";
+import { ThemeLogo } from "@/components/ThemeLogo";
 
 interface Branch {
   id: number;
@@ -114,13 +115,15 @@ export default function RegisterPage() {
       <div className="relative z-10 w-full max-w-md">
         <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.12)] px-8 py-10 animate-[fadeUp_0.4s_cubic-bezier(0.22,1,0.36,1)_both]">
 
-          <div className="text-5xl text-center mb-4" style={{ filter: "drop-shadow(0 0 14px color-mix(in srgb, var(--primary) 30%, transparent))" }}>🍽️</div>
+          <div className="flex justify-center mb-4" style={{ filter: "drop-shadow(0 0 14px color-mix(in srgb, var(--primary) 30%, transparent))" }}>
+            <ThemeLogo size={96} alt="Paros" priority />
+          </div>
 
           <h1 className="text-2xl font-bold text-center text-foreground tracking-tight mb-1">
             Create Account
           </h1>
           <p className="text-sm text-center text-muted-foreground mb-7">
-            Join the Restaurant Management System
+            Join Paros
           </p>
 
           {success && (

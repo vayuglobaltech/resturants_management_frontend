@@ -56,7 +56,7 @@ async function createDesktopScreenshot() {
             <rect x="40" y="40" width="200" height="640" rx="12" fill="none" stroke="#D4A359" stroke-width="1" opacity="0.3"/>
             
             <!-- Title -->
-            <text x="128" y="80" font-size="18" text-anchor="middle" fill="#D4A359" font-family="Arial" font-weight="bold">Restaurant</text>
+            <text x="128" y="80" font-size="18" text-anchor="middle" fill="#D4A359" font-family="Arial" font-weight="bold">Paros</text>
             
             <!-- Sidebar items -->
             <rect x="55" y="110" width="170" height="36" rx="8" fill="#D4A359" opacity="0.1"/>
@@ -106,7 +106,7 @@ async function createMobileScreenshot() {
             
             <!-- Status bar -->
             <rect x="40" y="40" width="670" height="40" rx="20" fill="#23211F"/>
-            <text x="375" y="65" font-size="14" text-anchor="middle" fill="#666" font-family="Arial">Restaurant</text>
+            <text x="375" y="65" font-size="14" text-anchor="middle" fill="#666" font-family="Arial">Paros</text>
             <circle cx="680" cy="60" r="10" fill="#D4A359" opacity="0.3"/>
             
             <!-- Header -->

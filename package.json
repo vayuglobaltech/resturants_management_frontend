@@ -1,9 +1,10 @@
 {
-  "name": "resturants_management_frontend",
+  "name": "paros",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "WATCHPACK_POLLING=true next dev --webpack",
+    "dev:turbo": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

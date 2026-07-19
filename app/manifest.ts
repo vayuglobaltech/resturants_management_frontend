@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Paros',
     short_name: 'Paros',
-    description: 'Restaurant Management System',
+    description: 'Paros restaurant management',
     start_url: '/',
     display: 'standalone',
     background_color: '#121110',

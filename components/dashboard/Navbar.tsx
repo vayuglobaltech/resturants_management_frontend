@@ -4,13 +4,14 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, type UserProfile } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { LogOut, User, Settings, Sun, Moon } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { LogOut, User, Sun, Moon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import { getRoleName } from "@/lib/permissions";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeLogo } from "@/components/ThemeLogo";
 
 // ─── Navbar height constant (top-row h-16=64px + tab-row h-10=40px = 104px)
 // We export this so Sidebar and Layout can use it for consistent positioning.
@@ -44,13 +45,11 @@ const FEATURES_BY_ROLE: Record<string, { id: string; label: string }[]> = {
     { id: "discounts", label: "Discounts" },
   ],
   waiter: [
-    { id: "dashboard", label: "Dashboard" },
     { id: "menu", label: "Menu" },
     { id: "orders", label: "Orders" },
     { id: "tables", label: "Tables" },
   ],
   cashier: [
-    { id: "dashboard", label: "Dashboard" },
     { id: "orders", label: "Orders" },
     { id: "menu", label: "Menu" },
     { id: "payments", label: "Payments" },
@@ -64,7 +63,7 @@ const FEATURES_BY_ROLE: Record<string, { id: string; label: string }[]> = {
 };
 
 interface NavbarProps {
-  user: any;
+  user: UserProfile;
   selectedFeature: string;
   onSelectFeature: (id: string) => void;
 }
@@ -82,10 +81,7 @@ export function DashboardNavbar({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
 
-  const roleName =
-    typeof user.role === "object" && "name" in user.role
-      ? user.role.name
-      : "waiter";
+  const roleName = getRoleName(user);
 
   const features = FEATURES_BY_ROLE[roleName] || FEATURES_BY_ROLE.waiter;
 
@@ -147,9 +143,9 @@ export function DashboardNavbar({
         {/* ── Top row (64px) ───────────────────────────────────────────────── */}
         <div className="flex items-center justify-between h-16 px-3 sm:px-5">
           {/* Logo */}
-          <span className="text-lg sm:text-xl font-bold text-foreground whitespace-nowrap select-none">
-            🍽️ Vayu
-            <span className="text-[var(--primary)]">Tech</span>
+          <span className="flex items-center text-lg sm:text-xl font-bold text-foreground whitespace-nowrap select-none">
+            <ThemeLogo size={48} className="-my-2 -ml-2" />
+            <span className="text-[var(--primary)]">Paros</span>
           </span>
 
           {/* Right-side actions */}

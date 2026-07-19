@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { canManageMenu } from "@/lib/permissions";
+import { ThemeLogo } from "@/components/ThemeLogo";
 import {
   listMenuItems,
   createMenuItem,
@@ -168,7 +169,8 @@ export default function MenuPage() {
             </Link>
             <span className="text-white/20">|</span>
             <span className="font-bold text-foreground flex items-center gap-2">
-              🍽️ Menu Management
+              <ThemeLogo size={44} className="-my-2 -ml-2" />
+              Menu Management
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -254,7 +256,7 @@ export default function MenuPage() {
             </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
-              <div className="text-5xl mb-4">🍽️</div>
+              <ThemeLogo size={96} />
               <p className="text-lg font-semibold text-muted-foreground">No menu items found</p>
               <p className="text-sm mt-1">
                 {search ? "Try a different search term." : canManage ? "Click \"+ Add Item\" to get started." : "No items have been added yet."}

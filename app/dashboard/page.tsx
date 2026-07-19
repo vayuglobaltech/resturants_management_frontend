@@ -750,7 +750,7 @@ export default function DashboardOverview() {
       <div className="flex flex-col gap-4 rounded-[24px] border p-5 sm:flex-row sm:items-center sm:justify-between" style={{ backgroundColor: "var(--page-surface)", borderColor: "var(--page-border)", boxShadow: "var(--page-shadow)" }}>
         <div>
           <p className="text-sm font-medium uppercase tracking-[0.3em]" style={{ color: "var(--page-accent)" }}>
-            Vayu Tech • Hospitality Intelligence
+            Paros
           </p>
           <h1 className="mt-2 text-3xl font-semibold" style={{ color: "var(--page-text)" }}>
             Dashboard Overview

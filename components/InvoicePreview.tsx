@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { ThemeLogo } from "@/components/ThemeLogo";
 
 interface InvoiceItem {
   id: number;
@@ -61,7 +62,10 @@ export function InvoicePreview({
     >
       {/* Header */}
       <div className="border-b border-gray-200 pb-4 mb-4">
-        <h1 className="text-2xl font-bold">🍽️ VayuTech Restaurant</h1>
+        <h1 className="flex items-center text-2xl font-bold">
+          <ThemeLogo mode="light" size={48} className="-my-2 -ml-2" />
+          Paros
+        </h1>
         <p className="text-sm text-gray-600">123 Main Street, Kathmandu</p>
         <p className="text-sm text-gray-600">Phone: +977-9841234567</p>
       </div>

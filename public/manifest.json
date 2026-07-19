@@ -1,8 +1,8 @@
 ﻿{
-  "name": "Restaurant Management",
-  "short_name": "Restaurant",
+  "name": "Paros",
+  "short_name": "Paros",
   "id": "/",
-  "description": "Restaurant Management System",
+  "description": "Paros restaurant management",
   "start_url": "/",
   "display": "fullscreen",
   "background_color": "#121110",

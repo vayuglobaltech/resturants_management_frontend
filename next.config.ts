@@ -4,13 +4,15 @@ const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: false, // ✅ Enable PWA in development
+  // Workbox's GenerateSW plugin is not safe to run repeatedly in webpack's
+  // development watch mode. Keep PWA generation enabled for production builds.
+  disable: process.env.NODE_ENV === 'development',
   runtimeCaching: [
     {
       urlPattern: /^https?.*/,
       handler: 'NetworkFirst',
       options: {
-        cacheName: 'vayutech-cache',
+        cacheName: 'paros',
         expiration: {
           maxEntries: 200,
           maxAgeSeconds: 24 * 60 * 60,

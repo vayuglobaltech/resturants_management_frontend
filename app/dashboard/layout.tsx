@@ -8,6 +8,7 @@ import { DashboardSidebar } from "@/components/dashboard/Sidebar";
 import { WebSocketProvider } from "@/context/WebSocketContext";
 import { ToastProvider } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
+import { getRoleName } from "@/lib/permissions";
 
 const featureFromPath = (path: string) => {
   if (path === "/dashboard") return "dashboard";
@@ -39,6 +40,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const isMobile = useMediaQuery("(max-width: 767px)");
   const hideSidebarPages = ['/dashboard/menu', '/dashboard/users','/dashboard','/dashboard/discounts'];
   const shouldHideSidebar = hideSidebarPages.includes(pathname);
+  const roleName = user ? getRoleName(user) : null;
+  const dashboardRedirect =
+    pathname === "/dashboard"
+      ? roleName === "waiter"
+        ? "/dashboard/orders"
+        : roleName === "cashier"
+          ? "/dashboard/payments"
+          : null
+      : null;
 
   // ── Open mobile drawer by default ────────────────────────────────
   useEffect(() => {
@@ -53,6 +63,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     setSelectedFeature(featureFromPath(pathname));
   }, [pathname]);
 
+  useEffect(() => {
+    if (!isLoading && user && dashboardRedirect) {
+      router.replace(dashboardRedirect);
+    }
+  }, [dashboardRedirect, isLoading, router, user]);
+
   const toggleSidebar = () => setSidebarCollapsed((p) => !p);
 
   if (isLoading) {
@@ -64,6 +80,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
   if (!user) return null;
+  if (dashboardRedirect) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background">
+        <div className="w-8 h-8 rounded-full border-[3px] border-primary border-t-transparent animate-spin" />
+        <span className="text-xs text-muted-foreground animate-pulse">
+          Redirecting…
+        </span>
+      </div>
+    );
+  }
 
   return (
     // <WebSocketProvider>

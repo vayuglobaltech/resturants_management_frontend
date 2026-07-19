@@ -12,8 +12,8 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Restaurant Management",
-  description: "Restaurant Management System",
+  title: "Paros",
+  description: "Paros restaurant management",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -22,10 +22,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon.png", type: "image/png", sizes: "32x32" },
-      { url: "/icons/icon-192x192.png", type: "image/png", sizes: "192x192" },
-      { url: "/icons/icon-512x512.png", type: "image/png", sizes: "512x512" },
+      { url: "/icons/icon.png", type: "image/png", sizes: "1254x1254" },
     ],
     apple: [
       { url: "/icons/apple-touch-icon.png", sizes: "180x180" },
@@ -52,7 +49,7 @@ export default function RootLayout({
         {/* PWA Meta Tags */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Restaurant" />
+        <meta name="apple-mobile-web-app-title" content="Paros" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#D4A359" />
         <meta name="format-detection" content="telephone=no" />
