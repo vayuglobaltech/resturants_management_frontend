@@ -79,7 +79,7 @@ export default function TableDetailPage({ params }: { params: any }) {
   const fetchTable = async () => {
     if (!id) return;
     try {
-      const data = await getTable(id);
+      const data = await getTable(id!);
       setTable(data);
       setSelectedStatus(data.status);
     } catch (error: any) {
@@ -93,7 +93,7 @@ export default function TableDetailPage({ params }: { params: any }) {
     if (!id) return;
     setLoadingOrders(true);
     try {
-      const tableId = parseInt(id);
+      const tableId = parseInt(id!);
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
@@ -127,10 +127,10 @@ export default function TableDetailPage({ params }: { params: any }) {
 }, [table, canManage]);
 
   const handleStatusUpdate = async () => {
-    if (!selectedStatus || selectedStatus === table.status) return;
+    if (!id || !selectedStatus || selectedStatus === table.status) return;
     setUpdating(true);
     try {
-      await updateTable(parseInt(id), { status: selectedStatus });
+      await updateTable(parseInt(id!), { status: selectedStatus });
       toast.success(`Table status updated to ${STATUS_LABELS[selectedStatus]}`);
       fetchTable();
     } catch (error: any) {
