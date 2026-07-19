@@ -9,7 +9,7 @@ import {
   DragEndEvent,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
@@ -228,30 +228,22 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const canModify = useCanModifyOrders();
-  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window;
 
   // Sensors
-  // Unconditionally create all sensors
-const pointerSensor = useSensor(PointerSensor, {
-  activationConstraint: { distance: 5 },
-});
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: { distance: 10 },
+  });
 
-const touchSensor = useSensor(TouchSensor, {
-  activationConstraint: {
-    delay: 3500,
-    tolerance: 480,
-  },
-});
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 2500,
+      tolerance: 80,
+    },
+  });
 
-const keyboardSensor = useSensor(KeyboardSensor);
+  const keyboardSensor = useSensor(KeyboardSensor);
 
-// Build the array of sensors to use
-const activeSensors = isTouchDevice
-  ? [touchSensor, keyboardSensor]
-  : [pointerSensor, keyboardSensor];
-
-// Spread the array into separate arguments
-const sensors = useSensors(...activeSensors);
+  const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
 
   const groupedOrders = useMemo(() => {
     return ORDER_STATUSES.reduce((acc, status) => {

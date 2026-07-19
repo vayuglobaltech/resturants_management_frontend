@@ -8,7 +8,7 @@ import {
   DragEndEvent,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
@@ -191,11 +191,11 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
   const isMounted = useRef(true);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: { distance: 10 },
     }),
     useSensor(TouchSensor, {
-      activationConstraint: { delay: 500, tolerance: 5 },
+      activationConstraint: { delay: 1500, tolerance: 50 },
     }),
     useSensor(KeyboardSensor)
   );
