@@ -63,12 +63,12 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
     typeof user?.role === "string" ? user.role : user?.role?.name;
   const isWaiter = userRole?.toLowerCase() === "waiter";
 
-  useEffect(() => {
-    if (isWaiter) {
-      toast.error("You don't have permission to view table details.");
-      router.replace("/dashboard/tables");
-    }
-  }, [isWaiter, router]);
+  // useEffect(() => {
+  //   if (isWaiter) {
+  //     toast.error("You don't have permission to view table details.");
+  //     router.replace("/dashboard/tables");
+  //   }
+  // }, [isWaiter, router]);
 
   const [table, setTable] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -209,7 +209,7 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          {canManage && (
+
             <div className="flex flex-wrap items-center gap-3 p-4 bg-background rounded-lg border border-border">
               <span className="text-sm text-muted-foreground">Change Status:</span>
               <select
@@ -230,7 +230,6 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
                 {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : "Update"}
               </Button>
             </div>
-          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
@@ -254,7 +253,7 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
       </Card>
 
       {/* ─── Today's Summary & History (ONLY for non-waiters) ────────── */}
-      {!isWaiter && (
+      {canManage && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20">
