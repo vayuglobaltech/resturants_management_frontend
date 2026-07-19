@@ -238,8 +238,8 @@ const pointerSensor = useSensor(PointerSensor, {
 
 const touchSensor = useSensor(TouchSensor, {
   activationConstraint: {
-    delay: 1500,
-    tolerance: 80,
+    delay: 3500,
+    tolerance: 480,
   },
 });
 
