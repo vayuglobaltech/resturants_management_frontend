@@ -59,9 +59,9 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
   const canManage = useCanManage();
 
   // ─── Check if user is a waiter (redirect) ──────────────────────────
-  const userRole =
-    typeof user?.role === "string" ? user.role : user?.role?.name;
-  const isWaiter = userRole?.toLowerCase() === "waiter";
+  // const userRole =
+  //   typeof user?.role === "string" ? user.role : user?.role?.name;
+  // const isWaiter = userRole?.toLowerCase() === "waiter";
 
   // useEffect(() => {
   //   if (isWaiter) {
@@ -370,17 +370,6 @@ export default function TableDetailPage({ params }: { params: Promise<{ id: stri
             </CardContent>
           </Card>
         </>
-      )}
-
-      {/* ─── Message for waiters ────────────────────────────────────────── */}
-      {isWaiter && (
-        <Card className="bg-amber-500/5 border-amber-500/20">
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-amber-400">
-              You don't have permission to view order history or revenue details.
-            </p>
-          </CardContent>
-        </Card>
       )}
     </div>
   );

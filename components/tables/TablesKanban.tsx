@@ -8,6 +8,8 @@ import {
   DragEndEvent,
   DragOverlay,
   KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   useDroppable,
@@ -18,22 +20,22 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { MousePointerSensor, TouchPointerSensor } from "@/lib/dndSensors";
 import { listTables, updateTable } from "@/lib/tableApi";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useMediaQuery } from "@/hooks/useMediaQuery"; // import the hook
 
 const TABLE_STATUSES = ["AVAILABLE", "OCCUPIED", "RESERVED"];
 
-const STATUS_COLORS: Record<string, string> = {
+export const STATUS_COLORS: Record<string, string> = {
   AVAILABLE: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   OCCUPIED: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   RESERVED: "bg-blue-500/20 text-blue-400 border-blue-500/30",
 };
 
-const STATUS_LABELS: Record<string, string> = {
+export const STATUS_LABELS: Record<string, string> = {
   AVAILABLE: "Available",
   OCCUPIED: "Occupied",
   RESERVED: "Reserved",
@@ -101,7 +103,7 @@ function TableCard({ table, onClick }: TableCardProps) {
       {...listeners}
       onClick={() => onClick?.(table.id)}
       className={cn(
-        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing select-none will-change-transform"
+        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing select-none will-change-transform relative"
       )}
     >
       <div className="flex items-center justify-between">
@@ -176,6 +178,35 @@ function KanbanColumn({ status, tables, onCardClick }: KanbanColumnProps) {
   );
 }
 
+// ─── Mobile Card Grid (alternative view) ──────────────────────────
+function MobileTableGrid({ tables, onCardClick }: { tables: any[], onCardClick: (id: number) => void }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      {tables.map((table) => {
+        const statusColor = STATUS_COLORS[table.status] || "bg-gray-500";
+        return (
+          <div
+            key={table.id}
+            onClick={() => onCardClick(table.id)}
+            className="relative rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          >
+            <div className={`absolute top-0 left-0 right-0 h-1.5 rounded-t-xl ${statusColor.split(' ')[0]}`} />
+            <div className="mt-2">
+              <p className="text-lg font-bold text-foreground">Table {table.table_number}</p>
+              <p className="text-sm text-muted-foreground">{table.area || 'No area'}</p>
+              <p className="text-xs text-muted-foreground mt-1">{table.capacity} seats</p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className={`inline-block h-2 w-2 rounded-full ${statusColor.split(' ')[0]}`} />
+                <span className="text-xs font-medium">{STATUS_LABELS[table.status] || table.status}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Main Board ──────────────────────────────────────────────────────
 interface TablesKanbanProps {
   onTableUpdate?: () => void;
@@ -188,15 +219,29 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [activeTable, setActiveTable] = useState<any>(null);
   const isMounted = useRef(true);
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
+  // ─── Sensors ────────────────────────────────────────────────────────
+  // Use standard sensors with proper touch configuration
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: { distance: 10 },
+  });
+
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 400,      // hold for 0.4s before drag – prevents accidental
+      tolerance: 15,   // allow slight finger movement
+    },
+  });
+
+  const keyboardSensor = useSensor(KeyboardSensor);
+
+  // On mobile, we don't even need sensors if we use the grid view,
+  // but we'll keep them in case you want drag on tablet.
   const sensors = useSensors(
-    useSensor(MousePointerSensor, {
-      activationConstraint: { distance: 10 },
-    }),
-    useSensor(TouchPointerSensor, {
-      activationConstraint: { delay: 300, tolerance: 5 },
-    }),
-    useSensor(KeyboardSensor)
+    pointerSensor,
+    touchSensor,
+    keyboardSensor
   );
 
   const fetchTables = useCallback(async () => {
@@ -251,9 +296,11 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
     const tableId = event.active.id as number;
     let newStatus: string | null = null;
 
+    // Determine new status: if dropped on a column, use that column's id
     if (TABLE_STATUSES.includes(over.id as any)) {
       newStatus = over.id as string;
     } else {
+      // Dropped on a card – get that card's status
       const targetTable = tables.find((t) => t.id === over.id);
       if (targetTable) newStatus = targetTable.status;
     }
@@ -309,6 +356,12 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
     );
   }
 
+  // ─── Mobile: show grid instead of kanban ──────────────────────────
+  if (isMobile) {
+    return <MobileTableGrid tables={tables} onCardClick={handleCardClick} />;
+  }
+
+  // ─── Desktop: Kanban ──────────────────────────────────────────────
   return (
     <DndContext
       sensors={sensors}
