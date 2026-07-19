@@ -136,7 +136,7 @@ function OrderCard({ order, onClick }: OrderCardProps) {
       {...(isPaid ? {} : { ...attributes, ...listeners })}
       onClick={() => onClick?.(order.id)}
       className={cn(
-        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none select-none will-change-transform"
+        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing select-none will-change-transform"
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -236,8 +236,8 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
 
   const touchSensor = useSensor(TouchSensor, {
     activationConstraint: {
-      delay: 2500,
-      tolerance: 80,
+      delay: 300,
+      tolerance: 5,
     },
   });
 
