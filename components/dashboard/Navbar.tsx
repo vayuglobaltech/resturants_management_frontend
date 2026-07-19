@@ -136,7 +136,7 @@ export function DashboardNavbar({
        *  This value is exported as NAVBAR_HEIGHT so Sidebar / Layout can align.
        */}
       <nav
-        className="fixed top-0 left-0 right-0 z-30 bg-background/90 backdrop-blur-xl border-b border-border transition-colors duration-200"
+        className="fixed top-[env(safe-area-inset-top,0px)] left-0 right-0 z-30 bg-background/90 backdrop-blur-xl border-b border-border transition-colors duration-200"
         role="navigation"
         aria-label="Main navigation"
       >

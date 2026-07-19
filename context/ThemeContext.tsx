@@ -26,6 +26,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = window.document.documentElement;
+    const themeColor = theme === "dark" ? "#121110" : "#FAF8F5";
+
     if (theme === "dark") {
       root.classList.add("dark");
       root.style.colorScheme = "dark";
@@ -33,6 +35,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.remove("dark");
       root.style.colorScheme = "light";
     }
+
+    // Keep the installed PWA's Android status bar in sync with the app theme.
+    document
+      .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+      .forEach((meta) => meta.setAttribute("content", themeColor));
+
+    // iOS reads this at launch, while some versions also apply runtime changes.
+    document
+      .querySelectorAll<HTMLMetaElement>(
+        'meta[name="apple-mobile-web-app-status-bar-style"]',
+      )
+      .forEach((meta) =>
+        meta.setAttribute(
+          "content",
+          theme === "dark" ? "black-translucent" : "default",
+        ),
+      );
+
     localStorage.setItem("theme", theme);
   }, [theme]);
 
