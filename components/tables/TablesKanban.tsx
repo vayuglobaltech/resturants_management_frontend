@@ -8,8 +8,6 @@ import {
   DragEndEvent,
   DragOverlay,
   KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
   useSensor,
   useSensors,
   useDroppable,
@@ -20,6 +18,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { MousePointerSensor, TouchPointerSensor } from "@/lib/dndSensors";
 import { listTables, updateTable } from "@/lib/tableApi";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Users } from "lucide-react";
@@ -191,10 +190,10 @@ export function TablesKanban({ onTableUpdate }: TablesKanbanProps) {
   const isMounted = useRef(true);
 
   const sensors = useSensors(
-    useSensor(MouseSensor, {
+    useSensor(MousePointerSensor, {
       activationConstraint: { distance: 10 },
     }),
-    useSensor(TouchSensor, {
+    useSensor(TouchPointerSensor, {
       activationConstraint: { delay: 300, tolerance: 5 },
     }),
     useSensor(KeyboardSensor)

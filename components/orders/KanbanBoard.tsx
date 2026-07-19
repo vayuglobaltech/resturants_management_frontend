@@ -9,8 +9,6 @@ import {
   DragEndEvent,
   DragOverlay,
   KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
   useSensor,
   useSensors,
   useDroppable,
@@ -21,6 +19,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { MousePointerSensor, TouchPointerSensor } from "@/lib/dndSensors";
 import { updateOrder } from "@/lib/ordersApi";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -230,11 +229,11 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
   const canModify = useCanModifyOrders();
 
   // Sensors
-  const mouseSensor = useSensor(MouseSensor, {
+  const mouseSensor = useSensor(MousePointerSensor, {
     activationConstraint: { distance: 10 },
   });
 
-  const touchSensor = useSensor(TouchSensor, {
+  const touchSensor = useSensor(TouchPointerSensor, {
     activationConstraint: {
       delay: 300,
       tolerance: 5,
