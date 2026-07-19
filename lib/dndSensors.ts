@@ -1,5 +1,5 @@
 // lib/dndSensors.ts
-import { PointerSensor, TouchSensor } from '@dnd-kit/core';
+import { MouseSensor, TouchSensor } from '@dnd-kit/core';
 
-export class MousePointerSensor extends PointerSensor {}
+export class MousePointerSensor extends MouseSensor {}
 export class TouchPointerSensor extends TouchSensor {}
