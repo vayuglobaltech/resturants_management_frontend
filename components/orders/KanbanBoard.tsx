@@ -135,7 +135,8 @@ function OrderCard({ order, onClick }: OrderCardProps) {
       {...(isPaid ? {} : { ...attributes, ...listeners })}
       onClick={() => onClick?.(order.id)}
       className={cn(
-        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing select-none will-change-transform"
+        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing select-none will-change-transform touch-none",
+        isDragging ? "shadow-xl border-indigo-500/50 z-50 ring-2 ring-indigo-500/20" : ""
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -228,15 +229,16 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const canModify = useCanModifyOrders();
 
-  // Sensors
+  // Mouse/trackpad: 10px distance threshold
   const mouseSensor = useSensor(MousePointerSensor, {
     activationConstraint: { distance: 10 },
   });
 
+  // Touch: 250ms hold, 5px tolerance
   const touchSensor = useSensor(TouchPointerSensor, {
     activationConstraint: {
-      delay: 800,
-      tolerance: 10,
+      delay: 1000,
+      tolerance: 25,
     },
   });
 
@@ -264,7 +266,7 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
     setActiveId(null);
   }, []);
 
-  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over) {
@@ -296,7 +298,6 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
       return;
     }
 
-    // ✅ FIXED: Use the helper to get role as string
     const roleString = getUserRoleString(user?.role);
     if (newStatus === "PAID") {
       const allowedRoles = ["admin", "cashier"];
@@ -308,19 +309,21 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
       }
     }
 
-    setUpdatingOrderId(orderId);
-    try {
-      await updateOrder(orderId, { status: newStatus });
-      toast.success(`Order ${order.order_number} moved to ${STATUS_LABELS[newStatus]}`);
-      onOrderUpdate?.();
-    } catch (error: any) {
-      const msg = error?.detail || error?.message || "Failed to update status.";
-      toast.error(msg);
-    } finally {
-      setUpdatingOrderId(null);
-      setActiveOrder(null);
-      setActiveId(null);
-    }
+    // Optimistically clean up drag state
+    setActiveOrder(null);
+    setActiveId(null);
+
+    // Non-blocking update so UI doesn't freeze for 15s
+    updateOrder(orderId, { status: newStatus })
+      .then(() => {
+        toast.success(`Order ${order.order_number} moved to ${STATUS_LABELS[newStatus!]}`);
+        onOrderUpdate?.();
+      })
+      .catch((error: any) => {
+        const msg = error?.detail || error?.message || "Failed to update status.";
+        toast.error(msg);
+        onOrderUpdate?.(); // Re-fetch to revert to correct state
+      });
   }, [orders, user, onOrderUpdate]);
 
   const handleCardClick = useCallback((orderId: number) => {

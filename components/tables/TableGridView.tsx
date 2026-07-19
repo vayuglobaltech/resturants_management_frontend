@@ -37,7 +37,7 @@ export function TableGridView({ tables, onCardClick }: { tables: any[]; onCardCl
           >
             {/* ─── Table number ──────────────────────────── */}
             <span className="text-sm sm:text-2xl font-bold text-foreground/90 group-hover:text-foreground transition-colors">
-              Table {table.table_number}
+              T{table.table_number}
             </span>
 
             {/* ─── Status badge ──────────────────────────── */}
