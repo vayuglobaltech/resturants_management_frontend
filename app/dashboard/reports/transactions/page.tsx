@@ -783,8 +783,8 @@ const fetchTransactionsWithData = async (
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-0 sm:p-2 lg:p-4">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -864,7 +864,7 @@ const fetchTransactionsWithData = async (
           <Card className="bg-rose-500/10 border-rose-500/20 backdrop-blur-sm">
             <CardContent className="p-4">
               <p className="text-rose-400 text-xs">Revenue</p>
-              <p className="text-rose-400 text-2xl font-bold">${stats.totalAmount.toFixed(2)}</p>
+              <p className="text-rose-400 text-2xl font-bold">Rs. {stats.totalAmount.toFixed(2)}</p>
             </CardContent>
           </Card>
         </div>
