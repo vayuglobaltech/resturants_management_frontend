@@ -313,7 +313,7 @@ export function DashboardSidebar({
                 className={cn(
                   "rounded-lg p-2 transition-colors duration-200 relative",
                   isActive
-                    ? "bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400"
+                    ? "bg-yellow-500/10 text-yellow-600 p-4 dark:bg-yellow-500/20 dark:text-yellow-400"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
@@ -325,49 +325,49 @@ export function DashboardSidebar({
           {/* ─── Dynamic items (only for orders/tables) ──────────────── */}
           {(selectedFeature === "orders" || selectedFeature === "tables") &&
             (dynamicItems.length > 0 || loadingDynamic) && (
-            <div className="w-full border-t border-border px-1.5 pt-3">
-              {loadingDynamic ? (
-                <div className="flex justify-center py-2">
-                  <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {dynamicItems.map((dItem) => {
-                    const isActive = isDynamicActive(dItem.href);
-                    const Icon = dItem.icon || Folder;
-                    const showTableNumber = dItem.tableNumber !== undefined;
-                    return (
-                      <Link
-                        key={dItem.id}
-                        href={dItem.href}
-                        className={cn(
-                          "flex items-center justify-center rounded-lg p-2 transition-all duration-200 relative",
-                          isActive
-                            ? "bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
-                      >
-                        {showTableNumber ? (
-                          <span
-                            className={cn(
-                              "flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold",
-                              isActive
-                                ? "bg-yellow-500 text-white dark:bg-yellow-400 dark:text-black"
-                                : "bg-muted text-muted-foreground"
-                            )}
-                          >
-                            T{dItem.tableNumber}
-                          </span>
-                        ) : (
-                          <Icon className="h-5 w-5" />
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+              <div className="w-full border-t border-border mx-2 px-1 pt-3">
+                {loadingDynamic ? (
+                  <div className="flex justify-center py-2">
+                    <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {dynamicItems.map((dItem) => {
+                      const isActive = isDynamicActive(dItem.href);
+                      const Icon = dItem.icon || Folder;
+                      const showTableNumber = dItem.tableNumber !== undefined;
+                      return (
+                        <Link
+                          key={dItem.id}
+                          href={dItem.href}
+                          className={cn(
+                            "flex items-center justify-center rounded-sm transition-all duration-200 relative",
+                            isActive
+                              ? "bg-yellow-500/10 px-5 rounded-lg text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400"
+                              : "text-muted-foreground px-5 rounded-lg hover:text-foreground hover:bg-muted"
+                          )}
+                        >
+                          {showTableNumber ? (
+                            <span
+                              className={cn(
+                                "flex items-center justify-center w-12 h-8 rounded-lg px-4 py-5 text-sm font-bold transition-colors",
+                                isActive
+                                  ? "bg-yellow-500 px-4 text-white dark:bg-yellow-400 dark:text-black"
+                                  : "bg-muted px-4 text-muted-foreground hover:bg-muted/80"
+                              )}
+                            >
+                              T{dItem.tableNumber}
+                            </span>
+                          ) : (
+                            <Icon className="h-5 w-5" />
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
         </div>
       )}
     </div>
@@ -380,7 +380,7 @@ export function DashboardSidebar({
         "bg-card border-r border-border",
         "transition-all duration-300 ease-in-out overflow-hidden",
         collapsed
-          ? "w-12 md:w-14 overflow-y-auto scrollbar-none"
+          ? "w-14 md:w-14 overflow-y-auto scrollbar-none"
           : "w-36 md:w-40"
       )}
     >
