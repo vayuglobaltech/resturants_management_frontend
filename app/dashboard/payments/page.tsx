@@ -498,7 +498,7 @@ export default function PaymentsPage() {
             <div className="overflow-x-auto -mx-2 sm:mx-0">
               <div className="min-w-[750px] px-2 sm:px-0">
                 <Card className="border-border bg-muted/30">
-                  <div className="overflow-x-auto">
+                  <div>
                     <table className="w-full text-sm">
                       <thead className="bg-muted/40 text-xs uppercase text-muted-foreground font-semibold border-b border-border">
                         <tr>

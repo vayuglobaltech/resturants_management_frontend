@@ -291,6 +291,14 @@ export function KanbanBoard({ orders, onOrderUpdate }: KanbanBoardProps) {
       return;
     }
 
+    // ─── 🚫 Block dragging to PAID ──────────────────────────────────
+    if (newStatus === 'PAID') {
+      toast.error('PAID status can only be set via the payment process.');
+      setActiveOrder(null);
+      setActiveId(null);
+      return;
+    }
+
     const order = orders.find((o) => o.id === orderId);
     if (!order || order.status === newStatus) {
       setActiveOrder(null);
