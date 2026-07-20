@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Paros restaurant management',
     start_url: '/',
     display: 'standalone',
-    background_color: '#121110',
-    theme_color: '#D4A359',
+    background_color: '#FAF8F5',
+    theme_color: '#FAF8F5',
     orientation: 'portrait',
     scope: '/',
     icons: [
