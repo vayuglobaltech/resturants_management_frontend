@@ -40,6 +40,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const isMobile = useMediaQuery("(max-width: 767px)");
   const hideSidebarPages = ['/dashboard/menu', '/dashboard/users','/dashboard','/dashboard/discounts'];
   const shouldHideSidebar = hideSidebarPages.includes(pathname);
+  const hideReportsSidebarMobile = isMobile && pathname.startsWith("/dashboard/reports");
   const roleName = user ? getRoleName(user) : null;
   const dashboardRedirect =
     pathname === "/dashboard"
@@ -110,7 +111,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="flex flex-1 overflow-hidden mt-8 print:overflow-visible print:block">
             {/* Sidebar */}
             {/* Sidebar with conditional rendering */}
-      {!shouldHideSidebar && (
+      {!shouldHideSidebar && !hideReportsSidebarMobile && (
         <div className="print:hidden mt-20">
           <DashboardSidebar
             selectedFeature={selectedFeature}
@@ -128,7 +129,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 "flex-1 overflow-y-auto p-4 sm:p-6 mt-20",
                 "transition-all duration-300 ease-in-out",
                 "print:ml-0 print:p-0 print:overflow-visible print:block",
-                !shouldHideSidebar && sidebarCollapsed
+                hideReportsSidebarMobile
+                  ? "ml-0"
+                  : !shouldHideSidebar && sidebarCollapsed
                   ? "ml-10 md:ml-11"
                   : !shouldHideSidebar && "ml-36 md:ml-40",
                 // When sidebar is hidden, no left margin
