@@ -135,7 +135,7 @@ function OrderCard({ order, onClick }: OrderCardProps) {
       {...(isPaid ? {} : { ...attributes, ...listeners })}
       onClick={() => onClick?.(order.id)}
       className={cn(
-        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing select-none will-change-transform touch-none",
+        "group p-4 rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-grab active:cursor-grabbing select-none will-change-transform",
         isDragging ? "shadow-xl border-indigo-500/50 z-50 ring-2 ring-indigo-500/20" : ""
       )}
     >
