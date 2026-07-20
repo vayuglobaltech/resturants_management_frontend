@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getBranches, apiFetch } from "@/lib/api";
-import { getGrossProfitReport } from "@/lib/accountingApi";
+import { calculateFinancialMetrics } from "@/lib/financialMetrics";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +82,8 @@ interface ProfitReport {
   net_sales?: string | number;
   discounts?: string | number;
   refunds?: string | number;
+  missing_cost_count?: number;
+  missing_cost_products?: string[];
 }
 
 export default function GrossProfitReportPage() {
@@ -239,98 +241,25 @@ export default function GrossProfitReportPage() {
   try {
     setLoading(true);
     
-    // ─── 1. Fetch all orders (for gross sales & discounts) ──────────
-    const ordersRes = await apiFetch(
-      `/api/orders/?created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
-      {},
-      true
+    const metrics = await calculateFinancialMetrics(
+      dateRange.start_date,
+      dateRange.end_date,
+      validBranchId,
     );
-    const ordersData = await ordersRes.json();
-    const allOrders = ordersData.results || ordersData || [];
-
-    // ─── 2. Fetch completed payments (for paid orders) ──────────────
-    const salesRes = await apiFetch(
-      `/api/orders/payments/?status=COMPLETED&created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
-      {},
-      true
-    );
-    const salesData = await salesRes.json();
-    const completedPayments = salesData.results || salesData || [];
-    const paidOrderIds = new Set(completedPayments.map((p: any) => p.order));
-
-    // ─── 3. Fetch refunded payments (full and partial) ──────────────
-    let refundedPayments: any[] = [];
-    try {
-      const refundRes = await apiFetch(
-        `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${dateRange.start_date}&created_at__lte=${dateRange.end_date}&page_size=2000`,
-        {},
-        true
-      );
-      const refundData = await refundRes.json();
-      refundedPayments = refundData.results || refundData || [];
-    } catch (error) {
-      console.warn("Refunds endpoint not available, using empty array");
-    }
-
-    // ─── 4. Calculate Gross Sales & Discounts ──────────────────────
-    let grossSales = 0;
-    let totalDiscounts = 0;
-    allOrders.forEach((order: any) => {
-      if (!paidOrderIds.has(order.id)) return;
-      const subtotal = (order.items || []).reduce(
-        (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
-        0
-      );
-      grossSales += subtotal;
-      const discSum = (order.discounts || []).reduce(
-        (s: number, d: any) => s + Number(d.amount),
-        0
-      );
-      totalDiscounts += discSum;
-    });
-
-    // ─── 5. Calculate Refunds ────────────────────────────────────────
-    const totalRefunds = refundedPayments.reduce(
-      (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
-      0
-    );
-
-    // ─── 6. Net Sales ────────────────────────────────────────────────
-    const netSales = grossSales - totalDiscounts - totalRefunds;
-
-    // ─── 7. Fetch COGS from accounting API ──────────────────────────
-    let totalCogs = 0;
-    let transactionCount = 0;
-    try {
-      const grossProfitData = await getGrossProfitReport(
-        dateRange.start_date,
-        dateRange.end_date,
-        validBranchId
-      );
-      if (grossProfitData) {
-        totalCogs = parseFloat(grossProfitData.total_cogs || '0');
-        transactionCount = grossProfitData.transaction_count || 0;
-      }
-    } catch (error) {
-      console.warn("COGS endpoint failed, using 0");
-    }
-
-    // ─── 8. Build report object ──────────────────────────────────────
-    const grossProfit = netSales - totalCogs;
-    // const margin = netSales > 0 ? (grossProfit / netSales) * 100 : 0;
-    const margin = netSales > 0 ? (grossProfit / grossSales) * 100 : 0;
 
     setReport({
       period_start: dateRange.start_date,
       period_end: dateRange.end_date,
-      total_revenue: grossSales,        // keep this for consistency (gross sales)
-      total_cogs: totalCogs,
-      gross_profit: grossProfit,
-      gross_profit_margin_percentage: margin,
-      transaction_count: transactionCount,
-      net_sales: netSales,
-      discounts: totalDiscounts,
-      refunds: totalRefunds,
+      total_revenue: metrics.netSales,
+      total_cogs: metrics.cogs,
+      gross_profit: metrics.grossProfit,
+      gross_profit_margin_percentage: metrics.grossMargin,
+      transaction_count: metrics.paidOrderCount,
+      net_sales: metrics.netSales,
+      discounts: metrics.discounts,
+      refunds: metrics.refunds,
+      missing_cost_count: metrics.missingCostCount,
+      missing_cost_products: metrics.missingCostProducts,
     });
 
   } catch (error) {
@@ -473,6 +402,20 @@ export default function GrossProfitReportPage() {
 
       {report ? (
         <>
+          {Boolean(report.missing_cost_count) && (
+            <Card className="border-amber-500/30 bg-amber-500/10">
+              <CardContent className="flex items-start gap-3 p-4">
+                <Package className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Incomplete product costs</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    COGS is calculated from paid quantities × menu/product cost price. {report.missing_cost_count} sold line item{report.missing_cost_count === 1 ? " is" : "s are"} missing a cost price
+                    {report.missing_cost_products?.length ? `: ${report.missing_cost_products.slice(0, 5).join(", ")}${report.missing_cost_products.length > 5 ? "…" : ""}` : ""}.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-muted/30 border-border">
@@ -482,7 +425,7 @@ export default function GrossProfitReportPage() {
                     <DollarSign className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Revenue</p>
+                    <p className="text-sm text-muted-foreground">Net Sales</p>
                     <p className="text-2xl font-bold text-foreground">{formatCurrency(report.total_revenue)}</p>
                   </div>
                 </div>
@@ -567,11 +510,12 @@ export default function GrossProfitReportPage() {
           {/* Chart */}
           <Card className="bg-muted/30 border-border">
             <CardContent className="p-6">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Revenue vs COGS Breakdown</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-1">Net Sales and Cost Breakdown</h3>
+              <p className="mb-4 text-xs text-muted-foreground">COGS uses the recorded cost price for each paid product quantity.</p>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">Revenue</span>
+                    <span className="text-muted-foreground">Net Sales</span>
                     <span className="text-emerald-400">{formatCurrency(report.total_revenue)}</span>
                   </div>
                   <div className="w-full bg-background rounded-full h-2">

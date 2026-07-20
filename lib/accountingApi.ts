@@ -1,5 +1,6 @@
 // lib/accountingApi.ts
 import { apiFetch } from './api';
+import { calculateFinancialMetrics } from './financialMetrics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -644,23 +645,27 @@ export async function getAccountingSummary(branchId?: number) {
   const monthStr = monthStart.toISOString().split('T')[0];
   
   try {
-    // Fetch all data in parallel with branch filter
-    const [dailySales, grossProfit, pendingExpenses, pendingAdjustments] = await Promise.all([
-      getDailySalesSummary(today, 1, branchId),
-      getGrossProfitReport(monthStr, today, branchId),
+    // Sales and COGS share the same paid-order cost calculation used by reports.
+    const [todayMetrics, monthMetrics, pendingExpenses, pendingAdjustments] = await Promise.all([
+      calculateFinancialMetrics(today, today, branchId),
+      calculateFinancialMetrics(monthStr, today, branchId),
       getExpenses({ is_approved: false, branch: branchId }),
       getInventoryAdjustments({ is_approved: false, branch: branchId }),
     ]);
     
     return {
-      todayRevenue: parseFloat(dailySales.total_sales || '0'),
-      monthlyRevenue: parseFloat(grossProfit.total_revenue || '0'),
-      totalCOGS: parseFloat(grossProfit.total_cogs || '0'),
-      grossProfit: parseFloat(grossProfit.gross_profit || '0'),
-      grossProfitMargin: parseFloat(grossProfit.gross_profit_margin_percentage || '0'),
+      todayRevenue: todayMetrics.netSales,
+      monthlyRevenue: monthMetrics.netSales,
+      totalCOGS: monthMetrics.cogs,
+      grossProfit: monthMetrics.grossProfit,
+      grossProfitMargin: monthMetrics.grossMargin,
       pendingExpenses: pendingExpenses?.results?.length || 0,
       pendingAdjustments: pendingAdjustments?.results?.length || 0,
-      dailySales: dailySales,
+      missingCostCount: monthMetrics.missingCostCount,
+      dailySales: {
+        total_sales: todayMetrics.netSales,
+        number_of_orders: todayMetrics.paidOrderCount,
+      },
     };
   } catch (error) {
     console.error('Failed to fetch accounting summary:', error);

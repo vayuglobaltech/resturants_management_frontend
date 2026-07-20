@@ -34,6 +34,7 @@ import { listOrders } from "@/lib/ordersApi";
 import { listTables } from "@/lib/tableApi";
 import { useTheme } from "@/context/ThemeContext";
 import toast from "react-hot-toast";
+import { BranchManagerDashboard } from "@/components/dashboard/BranchManagerDashboard";
 
 type StatItem = {
   title: string;
@@ -51,6 +52,7 @@ type DashboardStats = {
   grossProfitMargin: number;
   pendingExpenses: number;
   pendingAdjustments: number;
+  missingCostCount?: number;
   activeOrders?: number;
   totalUsers?: number;
   inventoryItems?: number;
@@ -457,6 +459,7 @@ export default function DashboardOverview() {
           const totalCOGS = typeof data.totalCOGS === 'number' ? data.totalCOGS : 0;
           const pendingExpenses = typeof data.pendingExpenses === 'number' ? data.pendingExpenses : 0;
           const pendingAdjustments = typeof data.pendingAdjustments === 'number' ? data.pendingAdjustments : 0;
+          const missingCostCount = typeof data.missingCostCount === 'number' ? data.missingCostCount : 0;
           
           setStats(prev => ({
             ...prev,
@@ -467,6 +470,7 @@ export default function DashboardOverview() {
             grossProfitMargin,
             pendingExpenses,
             pendingAdjustments,
+            missingCostCount,
           }));
           
           console.log("✅ Stats updated:", {
@@ -742,6 +746,17 @@ export default function DashboardOverview() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (roleName === "branch_manager" && validBranchId !== null) {
+    return (
+      <BranchManagerDashboard
+        branchId={validBranchId}
+        branchName={branchName}
+        managerName={user?.first_name || user?.username || "Manager"}
+        stats={stats}
+      />
     );
   }
 

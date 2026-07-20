@@ -3,13 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { 
-  getSalesTransactions, 
-  getCOGSTransactions, 
-  getExpenses,
-  getGrossProfitReport,
-  getDailySalesSummary,
-} from "@/lib/accountingApi";
+import { calculateFinancialMetrics } from "@/lib/financialMetrics";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +56,7 @@ type PnLData = {
   netSales: number;
   cogs: number;
   grossProfit: number;
-  // operatingExpenses: number;
+  operatingExpenses: number;
   netProfit: number;
 };
 
@@ -74,7 +68,7 @@ type PnLSummary = {
   netSales: number;
   cogs: number;
   grossProfit: number;
-  // operatingExpenses: number;
+  operatingExpenses: number;
   netProfit: number;
   netProfitMargin: number;
 };
@@ -101,13 +95,14 @@ export default function ProfitLossPage() {
     netSales: 0,
     cogs: 0,
     grossProfit: 0,
-    // operatingExpenses: 0,
+    operatingExpenses: 0,
     netProfit: 0,
     netProfitMargin: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dataSource, setDataSource] = useState<string>("");
+  const [missingCostProducts, setMissingCostProducts] = useState<string[]>([]);
 
   // ─── Get user's branch ID ─────────────────────────────────────────────
   const getBranchId = useCallback(() => {
@@ -151,75 +146,15 @@ export default function ProfitLossPage() {
     const endStr = format(end, "yyyy-MM-dd");
     const branchId = getBranchId();
 
-    // ─── 1. Fetch ALL orders ──────────────────────────────────────────
-    const ordersRes = await apiFetch(
-      `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-      {},
-      true
-    );
-    const ordersData = await ordersRes.json();
-    const allOrders = ordersData.results || ordersData || [];
+    const metrics = await calculateFinancialMetrics(startStr, endStr, branchId);
 
-    // ─── 2. Completed payments ──────────────────────────────────────
-    const completedRes = await apiFetch(
-      `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-      {},
-      true
-    );
-    const completedData = await completedRes.json();
-    const completedPayments = completedData.results || completedData || [];
-    const paidOrderIds = new Set(completedPayments.map((p: any) => p.order));
-
-    // ─── 3. Refunded payments ──────────────────────────────────────
-    // ─── 3. Refunded payments (full and partial) ──────────────────
-let refundedPayments: any[] = [];
-try {
-  const refundRes = await apiFetch(
-    `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
-    {},
-    true
-  );
-  const refundData = await refundRes.json();
-  refundedPayments = refundData.results || refundData || [];
-} catch (error) {
-  console.warn("Refunds endpoint not available, using empty array");
-}
-
-    // ─── 4. COGS from accounting API ──────────────────────────────
-    let totalCogs = 0;
-    let grossProfitReportData = null;
-    try {
-      grossProfitReportData = await getGrossProfitReport(startStr, endStr, branchId);
-      if (grossProfitReportData) {
-        totalCogs = parseFloat(grossProfitReportData.total_cogs || '0');
-      }
-    } catch (error) {
-      console.warn("Gross Profit Report not available, using 0");
-    }
-
-    // ─── COGS: Daily items for chart ──────────────────────────────────
-// ─── COGS: Daily items for chart ──────────────────────────────────
-let cogsItems: any[] = [];
-try {
-  // ✅ Add branch parameter to match the summary endpoint
-  const branchParam = branchId ? `&branch=${branchId}` : '';
-  const cogsUrl = `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}${branchParam}&page_size=2000`;
-  console.log(`🔍 COGS Items URL: ${cogsUrl}`);
-  
-  const cogsRes = await apiFetch(cogsUrl, {}, true);
-  const cogsData = await cogsRes.json();
-  cogsItems = cogsData.results || cogsData || [];
-  console.log(`📦 COGS Items Response:`, cogsItems);
-} catch (error) {
-  console.warn("COGS items endpoint not available, using empty array");
-}
-
-    // ─── 5. Expenses from accounting API ──────────────────────────
+    // Only approved operating expenses belong in the P&L statement.
     let totalExpenses = 0;
     let expenseItems: any[] = [];
     try {
+      const branchParam = branchId ? `&branch=${branchId}` : '';
       const expRes = await apiFetch(
-        `/api/accounting/expenses/?expense_date__gte=${startStr}&expense_date__lte=${endStr}&page_size=2000`,
+        `/api/accounting/expenses/?expense_date__gte=${startStr}&expense_date__lte=${endStr}&is_approved=true${branchParam}&page_size=2000`,
         {},
         true
       );
@@ -233,42 +168,6 @@ try {
       console.warn("Expense endpoint not available, using 0");
     }
 
-    // ─── 6. Calculate Gross Sales & Discounts from orders ────────────
-    let grossSales = 0;
-    let totalDiscounts = 0;
-    const salesGrouped: Record<string, number> = {};
-    const discountGrouped: Record<string, number> = {};
-
-    allOrders.forEach((order: any) => {
-      if (!paidOrderIds.has(order.id)) return;
-
-      const date = format(new Date(order.created_at), "yyyy-MM-dd");
-      // Gross Sales from items
-      const subtotal = (order.items || []).reduce(
-        (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
-        0
-      );
-      grossSales += subtotal;
-      salesGrouped[date] = (salesGrouped[date] || 0) + subtotal;
-
-      // Discounts
-      const discSum = (order.discounts || []).reduce(
-        (s: number, d: any) => s + Number(d.amount),
-        0
-      );
-      totalDiscounts += discSum;
-      discountGrouped[date] = (discountGrouped[date] || 0) + discSum;
-    });
-
-    // ─── 7. Group COGS by date ──────────────────────────────────────
-    const cogsMap: Record<string, number> = {};
-    cogsItems.forEach((c: any) => {
-      const date = format(new Date(c.created_at), "yyyy-MM-dd");
-      const amount = Number(c.total_cogs || 0);
-      cogsMap[date] = (cogsMap[date] || 0) + amount;
-    });
-
-    // ─── 8. Group expenses by date ──────────────────────────────────
     const expenseMap: Record<string, number> = {};
     expenseItems.forEach((e: any) => {
       const date = format(
@@ -279,71 +178,52 @@ try {
       expenseMap[date] = (expenseMap[date] || 0) + amount;
     });
 
-    // ─── 9. Group refunds by date ──────────────────────────────────
-    const refundGrouped: Record<string, number> = {};
-    refundedPayments.forEach((p: any) => {
-      const date = format(new Date(p.created_at), "yyyy-MM-dd");
-      const refundAmt = Number(p.refunded_amount || 0);
-      refundGrouped[date] = (refundGrouped[date] || 0) + refundAmt;
-    });
-
-    // ─── 10. Build daily P&L data ──────────────────────────────────
-    const allDates = new Set([
-      ...Object.keys(salesGrouped),
-      ...Object.keys(discountGrouped),
-      ...Object.keys(cogsMap),
-      ...Object.keys(expenseMap),
-      ...Object.keys(refundGrouped),
-    ]);
-
-    const totalRefunds = refundedPayments.reduce(
-      (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
-      0
-    );
+    const metricsByDate = new Map(metrics.daily.map((day) => [day.date, day]));
+    const allDates = new Set([...metricsByDate.keys(), ...Object.keys(expenseMap)]);
 
     const result: PnLData[] = Array.from(allDates)
       .sort()
       .map((date) => {
-        const gross = salesGrouped[date] || 0;
-        const discounts = discountGrouped[date] || 0;
-        const refunds = refundGrouped[date] || 0;
-        const netSales = gross - discounts - refunds;
-        const cogs = cogsMap[date] || 0;
-        const grossProfit = netSales - cogs;
+        const day = metricsByDate.get(date);
+        const gross = day?.grossSales ?? 0;
+        const dayDiscounts = day?.discounts ?? 0;
+        const dayRefunds = day?.refunds ?? 0;
+        const netSales = day?.netSales ?? 0;
+        const cogs = day?.cogs ?? 0;
+        const grossProfit = day?.grossProfit ?? 0;
         const operatingExpenses = expenseMap[date] || 0;
         const netProfit = grossProfit - operatingExpenses;
         return {
           date: format(new Date(date), "MMM dd"),
           grossSales: gross,
-          discounts,
-          refunds,
+          discounts: dayDiscounts,
+          refunds: dayRefunds,
           netSales,
           cogs,
           grossProfit,
+          operatingExpenses,
           netProfit,
         };
       });
 
     setPnlData(result);
-
-    // ─── 11. Summary ──────────────────────────────────────────────────
-    const totalNetSales = grossSales - totalDiscounts - totalRefunds;
-    const totalGrossProfit = totalNetSales - totalCogs;
-    const totalNetProfit = totalGrossProfit - totalExpenses;
-    const netProfitMargin = grossSales > 0 ? (totalNetProfit / grossSales) * 100 : 0;
+    const totalNetProfit = metrics.grossProfit - totalExpenses;
+    const netProfitMargin = metrics.netSales > 0 ? (totalNetProfit / metrics.netSales) * 100 : 0;
 
     setSummary({
-      grossSales: grossSales,
-      discounts: totalDiscounts,
-      refunds: totalRefunds,
-      netSales: totalNetSales,
-      cogs: totalCogs,
-      grossProfit: totalGrossProfit,
+      transaction_count: metrics.paidOrderCount,
+      grossSales: metrics.grossSales,
+      discounts: metrics.discounts,
+      refunds: metrics.refunds,
+      netSales: metrics.netSales,
+      cogs: metrics.cogs,
+      grossProfit: metrics.grossProfit,
+      operatingExpenses: totalExpenses,
       netProfit: totalNetProfit,
       netProfitMargin: netProfitMargin,
     });
-
-    setDataSource("Real data from API");
+    setMissingCostProducts(metrics.missingCostProducts);
+    setDataSource("Paid sales with product cost prices");
 
   } catch (error) {
     console.error("Failed to fetch P&L data:", error);
@@ -386,6 +266,8 @@ try {
   // ─── Financial Statement data ────────────────────────────────────────
   const statementItems = [
     { label: "Gross Sales", value: summary.grossSales, type: "revenue" },
+    { label: "Discounts", value: -summary.discounts, type: "deduction" },
+    { label: "Refunds", value: -summary.refunds, type: "deduction" },
     { label: "Net Sales", value: summary.netSales, type: "subtotal" },
     {
       label: "Cost of Goods Sold (COGS)",
@@ -393,11 +275,7 @@ try {
       type: "deduction",
     },
     { label: "Gross Profit", value: summary.grossProfit, type: "subtotal" },
-    // {
-    //   label: "Operating Expenses",
-    //   value: summary.operatingExpenses,
-    //   type: "deduction",
-    // },
+    { label: "Operating Expenses", value: -summary.operatingExpenses, type: "deduction" },
     { label: "Net Profit", value: summary.netProfit, type: "total" },
   ];
 
@@ -408,7 +286,7 @@ try {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Profit & Loss</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            {dataSource && `📊 ${dataSource}`}
+            {dataSource}
             {summary.transaction_count !== undefined && (
               <span className="ml-2">
                 • {summary.transaction_count} transactions
@@ -459,22 +337,20 @@ try {
       </div>
 
       {/* ─── COGS Warning ──────────────────────────────────────────────── */}
-      {summary.cogs === 0 && summary.grossSales > 0 && (
+      {missingCostProducts.length > 0 && (
         <Card className="bg-amber-500/10 border-amber-500/30">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-amber-400 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-amber-400">
-                  COGS Data Missing
+                  Some product costs are missing
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  COGS is showing as 0. This usually means products don't have 
-                  cost prices set or COGS transactions haven't been created.
-                  <br />
+                  COGS was calculated from menu and product cost prices. The following sold items have no cost price: {missingCostProducts.slice(0, 5).join(", ")}
+                  {missingCostProducts.length > 5 ? ` and ${missingCostProducts.length - 5} more` : ""}.
                   <span className="text-amber-400/70">
-                    Tip: Set cost prices on products and ensure COGS transactions 
-                    are created when orders are delivered.
+                    {" "}Add their cost prices to avoid overstating gross profit.
                   </span>
                 </p>
               </div>
@@ -554,7 +430,7 @@ try {
             </div>
           </CardContent>
         </Card>
-        {/* <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+        <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-orange-500/20">
               <DollarSign className="h-5 w-5 text-orange-400" />
@@ -568,7 +444,7 @@ try {
               </p>
             </div>
           </CardContent>
-        </Card> */}
+        </Card>
         <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-purple-500/20">
@@ -599,15 +475,15 @@ try {
                   className="text-xs text-muted-foreground"
                 />
                 <YAxis
-                  tickFormatter={(value) => `$${value}`}
+                  tickFormatter={(value) => `Rs ${value}`}
                   className="text-xs text-muted-foreground"
                 />
                 <Tooltip
                   formatter={(value: any) => {
                     if (value === undefined || value === null || isNaN(Number(value))) {
-                      return '$0.00';
+                      return 'Rs 0.00';
                     }
-                    return `$${Number(value).toFixed(2)}`;
+                    return `Rs ${Number(value).toFixed(2)}`;
                   }}
                   labelStyle={{ color: "#fff" }}
                   contentStyle={{
@@ -627,6 +503,12 @@ try {
                   dataKey="cogs"
                   fill="#fb7185"
                   name="COGS"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="operatingExpenses"
+                  fill="#f97316"
+                  name="Operating Expenses"
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar

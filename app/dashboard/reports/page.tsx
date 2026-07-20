@@ -18,17 +18,17 @@ import {
   CheckCircle,
   Clock,
   ArrowRight,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { getGrossProfitReport } from "@/lib/accountingApi";
+import { calculateFinancialMetrics } from "@/lib/financialMetrics";
 
 type OverviewStats = {
   totalSales: number;
   totalOrders: number;
+  cogs: number;
   grossProfit: number;
-  // totalExpenses: number;
-  netProfit: number;
   cancelledOrders: number;
   recentTransactions: any[];
 };
@@ -41,9 +41,8 @@ export default function ReportsOverviewPage() {
   const [stats, setStats] = useState<OverviewStats>({
     totalSales: 0,
     totalOrders: 0,
+    cogs: 0,
     grossProfit: 0,
-    // totalExpenses: 0,
-    netProfit: 0,
     cancelledOrders: 0,
     recentTransactions: [],
   });
@@ -82,9 +81,6 @@ export default function ReportsOverviewPage() {
     }
   };
   
-  const { gte, lte } = getDateRange(period);
-  const startStr = format(gte, "yyyy-MM-dd");
-  const endStr = format(lte, "yyyy-MM-dd");
   const fetchOverview = async (period: Period) => {
   setLoading(true);
   try {
@@ -93,128 +89,7 @@ export default function ReportsOverviewPage() {
     console.log(`📊 Fetching overview for period: ${period}`);
     console.log(`   Date range: ${gte} to ${lte}`);
 
-    // ─── 1. Fetch all orders ──────────────────────────────────────────
-    const ordersRes = await apiFetch(
-      `/api/orders/?created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
-      {},
-      true
-    );
-    const ordersData = await ordersRes.json();
-    const allOrders = ordersData.results || ordersData || [];
-
-    // ─── 2. Completed payments ──────────────────────────────────────
-    const salesRes = await apiFetch(
-      `/api/orders/payments/?status=COMPLETED&created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
-      {},
-      true
-    );
-    const salesData = await salesRes.json();
-    const completedPayments = salesData.results || salesData || [];
-    const completedOrderIds = new Set(completedPayments.map((p: any) => p.order));
-
-    // ─── 3. Refunded payments (full and partial) ──────────────────────
-let refundedPayments: any[] = [];
-let totalRefunds = 0;
-try {
-  const refundRes = await apiFetch(
-    `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${gte}&created_at__lte=${lte}&page_size=1000`,
-    {},
-    true
-  );
-  const refundData = await refundRes.json();
-  refundedPayments = refundData.results || refundData || [];
-  totalRefunds = refundedPayments.reduce(
-    (sum: number, p: any) => sum + Number(p.refunded_amount || 0),
-    0
-  );
-} catch (error) {
-  console.warn("Refunds endpoint not available, using 0");
-}
-    const refundedOrderIds = new Set(refundedPayments.map((p: any) => p.order));
-    console.log(`🔍 Overview COGS URL: /api/accounting/cogs-transactions/?created_at__gte=${gte}&created_at__lte=${lte}`);
-
-    // ─── 4. Total orders (completed + refunded) ──────────────────────
-    const allPaidOrderIds = new Set([...completedOrderIds, ...refundedOrderIds]);
-    const totalOrders = allPaidOrderIds.size;
-
-    // ─── 5. Gross Sales from order items (only completed) ──────────
-    let grossSales = 0;
-    allOrders.forEach((order: any) => {
-      if (!completedOrderIds.has(order.id)) return;
-      const subtotal = (order.items || []).reduce(
-        (sum: number, item: any) => sum + (Number(item.price_at_order) || 0) * (Number(item.quantity) || 0),
-        0
-      );
-      grossSales += subtotal;
-    });
-
-    // ─── 6. Discounts (only completed orders) ──────────────────────
-    let totalDiscounts = 0;
-    allOrders.forEach((order: any) => {
-      if (!completedOrderIds.has(order.id)) return;
-      const discSum = (order.discounts || []).reduce(
-        (s: number, d: any) => s + Number(d.amount),
-        0
-      );
-      totalDiscounts += discSum;
-    });
-
-    // ─── 7. Cancelled orders ────────────────────────────────────────────
-    const cancelledOrders = allOrders.filter(
-      (o: any) => o.status === "CANCELLED"
-    ).length;
-
-    // ─── 8. COGS ────────────────────────────────────────────────────────
-    let totalCogs = 0;
-        let grossProfitReportData = null;
-        try {
-          grossProfitReportData = await getGrossProfitReport(startStr, endStr, branchId);
-          if (grossProfitReportData) {
-            totalCogs = parseFloat(grossProfitReportData.total_cogs || '0');
-          }
-        } catch (error) {
-          console.warn("Gross Profit Report not available, using 0");
-        }
-    
-        // ─── COGS: Daily items for chart ──────────────────────────────────
-    // ─── COGS: Daily items for chart ──────────────────────────────────
-    let cogsItems: any[] = [];
-    try {
-      // ✅ Add branch parameter to match the summary endpoint
-      const branchParam = branchId ? `&branch=${branchId}` : '';
-      const cogsUrl = `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}${branchParam}&page_size=2000`;
-      console.log(`🔍 COGS Items URL: ${cogsUrl}`);
-      
-      const cogsRes = await apiFetch(cogsUrl, {}, true);
-      const cogsData = await cogsRes.json();
-      cogsItems = cogsData.results || cogsData || [];
-      console.log(`📦 COGS Items Response:`, cogsItems);
-    } catch (error) {
-      console.warn("COGS items endpoint not available, using empty array");
-    }
-
-    // ─── 9. Expenses ──────────────────────────────────────────────────────
-    // let totalExpenses = 0;
-    // try {
-    //   const expRes = await apiFetch(
-    //     `/api/accounting/expenses/?expense_date__gte=${gte}&expense_date__lte=${lte}&page_size=1000`,
-    //     {},
-    //     true
-    //   );
-    //   const expData = await expRes.json();
-    //   const expenses = expData.results || expData || [];
-    //   totalExpenses = expenses.reduce(
-    //     (sum: number, e: any) => sum + Number(e.amount || 0),
-    //     0
-    //   );
-    // } catch (error) {
-    //   console.warn("Expense endpoint not available, using 0");
-    // }
-
-    // ─── 10. Derived metrics ──────────────────────────────────────────
-    const netSales = grossSales - totalDiscounts - totalRefunds;
-    const grossProfit = netSales - totalCogs;
-    const netProfit = grossProfit;
+    const metrics = await calculateFinancialMetrics(gte, lte, branchId);
 
     // ─── 11. Recent transactions ──────────────────────────────────────
     const recentRes = await apiFetch(
@@ -226,12 +101,11 @@ try {
     const recentTransactions = recentData.results || recentData || [];
 
     setStats({
-      totalSales: netSales,
-      totalOrders,
-      grossProfit,
-      // totalExpenses,
-      netProfit,
-      cancelledOrders,
+      totalSales: metrics.netSales,
+      totalOrders: metrics.paidOrderCount,
+      cogs: metrics.cogs,
+      grossProfit: metrics.grossProfit,
+      cancelledOrders: metrics.cancelledOrderCount,
       recentTransactions,
     });
   } catch (error) {
@@ -342,15 +216,15 @@ try {
 
         <Card
           className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 cursor-pointer hover:shadow-lg hover:shadow-amber-500/10 transition-all"
-          onClick={() => navigateTo("profit-loss")}
+          onClick={() => navigateTo("gross-profit")}
         >
           <CardContent className="p-4 flex items-center gap-4">
             <div className="p-3 rounded-full bg-amber-500/20">
-              <TrendingUp className="h-6 w-6 text-amber-400" />
+              <Package className="h-6 w-6 text-amber-400" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Net Profit</p>
-              <p className="text-2xl font-bold">{formatCurrency(stats.netProfit)}</p>
+              <p className="text-sm text-muted-foreground">COGS</p>
+              <p className="text-2xl font-bold">{formatCurrency(stats.cogs)}</p>
             </div>
           </CardContent>
         </Card>
