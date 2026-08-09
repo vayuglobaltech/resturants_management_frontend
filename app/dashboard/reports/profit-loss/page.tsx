@@ -154,7 +154,7 @@ export default function ProfitLossPage() {
     try {
       const branchParam = branchId ? `&branch=${branchId}` : '';
       const expRes = await apiFetch(
-        `/api/accounting/expenses/?expense_date__gte=${startStr}&expense_date__lte=${endStr}&is_approved=true${branchParam}&page_size=2000`,
+        `/api/accounting/expenses/?expense_date__gte=${startStr}&expense_date__lte=${endStr}&is_approved=true${branchParam}&page_size=100`,
         {},
         true
       );

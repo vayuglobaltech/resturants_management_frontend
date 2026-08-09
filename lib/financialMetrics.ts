@@ -91,21 +91,23 @@ const getJson = async (path: string, optional = false): Promise<unknown> => {
   }
 };
 
+const PAGE_SIZE = 100; 
+
 export async function calculateFinancialMetrics(
   startDate: string,
   endDate: string,
   branchId?: number,
 ): Promise<FinancialMetrics> {
   const branch = branchId ? `&branch=${branchId}` : "";
-  const range = `created_at__gte=${startDate}&created_at__lte=${endDate}${branch}&page_size=2000`;
+  const range = `created_at__gte=${startDate}&created_at__lte=${endDate}${branch}&page_size=${PAGE_SIZE}`;
 
   const [ordersResponse, paymentsResponse, refundsResponse, menuResponse, productsResponse] =
     await Promise.all([
       getJson(`/api/orders/?${range}`),
       getJson(`/api/orders/payments/?status=COMPLETED&${range}`),
       getJson(`/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&${range}`, true),
-      getJson("/api/menu/?page_size=2000", true),
-      getJson(`/api/inventory/products/?page_size=2000${branch}`, true),
+      getJson(`/api/menu/?page_size=${PAGE_SIZE}`, true),
+      getJson(`/api/inventory/products/?page_size=${PAGE_SIZE}${branch}`, true),
     ]);
 
   const orders = recordsFrom(ordersResponse);

@@ -75,6 +75,7 @@ export default function EmployeePerformancePage() {
   const [waiters, setWaiters] = useState<WaiterStats[]>([]);
   const [cashiers, setCashiers] = useState<CashierStats[]>([]);
   const [kitchen, setKitchen] = useState<KitchenStats[]>([]);
+  const PAGE_SIZE = 100; 
 
   // ─── Helper to extract role name ─────────────────────────────────────
   const getUserRole = useCallback((user: any): string => {
@@ -139,7 +140,7 @@ export default function EmployeePerformancePage() {
       const endStr = format(end, "yyyy-MM-dd");
 
       // ─── 1. Fetch all users ──────────────────────────────────────────
-      const usersRes = await apiFetch(`/api/users/?page_size=1000`, {}, true);
+      const usersRes = await apiFetch(`/api/users/?page_size=200`, {}, true);
       const usersData = await usersRes.json();
       const allUsers = usersData.results || usersData || [];
 
@@ -177,7 +178,7 @@ export default function EmployeePerformancePage() {
       });
 
       // ─── 3. Fetch orders ─────────────────────────────────────────────
-      const ordersUrl = `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`;
+      const ordersUrl = `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=${PAGE_SIZE}`;
       const ordersRes = await apiFetch(ordersUrl, {}, true);
       const ordersData = await ordersRes.json();
       const orders = ordersData.results || ordersData || [];
@@ -185,7 +186,7 @@ export default function EmployeePerformancePage() {
       // ─── 4. Fetch payments ──────────────────────────────────────────
       let payments: any[] = [];
       try {
-        const paymentsUrl = `/api/orders/payments/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`;
+        const paymentsUrl = `/api/orders/payments/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=${PAGE_SIZE}`;
         const paymentsRes = await apiFetch(paymentsUrl, {}, true);
         const paymentsData = await paymentsRes.json();
         payments = paymentsData.results || paymentsData || [];
@@ -198,7 +199,7 @@ export default function EmployeePerformancePage() {
       let refundedPayments: any[] = [];
       try {
         const refundRes = await apiFetch(
-          `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+          `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=${PAGE_SIZE}`,
           {},
           true,
         );
@@ -212,7 +213,7 @@ export default function EmployeePerformancePage() {
       let cogsItems: any[] = [];
       let cogsAvailable = false;
       try {
-        const cogsUrl = `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`;
+        const cogsUrl = `/api/accounting/cogs-transactions/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=${PAGE_SIZE}`;
         const cogsRes = await apiFetch(cogsUrl, {}, true);
         const cogsData = await cogsRes.json();
         cogsItems = cogsData.results || cogsData || [];

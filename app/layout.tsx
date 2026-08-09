@@ -5,6 +5,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import NotificationInitializer from "@/components/NotificationInitializer";
+
 
 const geist = Geist({
   subsets: ['latin'],
@@ -69,7 +71,9 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <AuthProvider>
           <ThemeProvider>
+          <NotificationInitializer />
             {children}
+          {/* </NotificationInitializer> */}
           </ThemeProvider>
         </AuthProvider>
       </body>

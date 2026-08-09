@@ -61,13 +61,14 @@ export default function ProductPerformancePage() {
   const [sortField, setSortField] = useState<SortField>("quantity_sold");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [error, setError] = useState<string | null>(null);
+  const PAGE_SIZE = 100; 
 
   const fetchProductPerformance = async () => {
     setLoading(true);
     setError(null);
     try {
       // ─── 1. Fetch all products using the configured endpoint ──────────────
-      const productsRes = await apiFetch(`${PRODUCT_API_URL}?page_size=1000&ordering=name`, {}, true);
+      const productsRes = await apiFetch(`${PRODUCT_API_URL}?page_size=200&ordering=name`, {}, true);
       const productsData = await productsRes.json();
       let allProducts = productsData.results || productsData.data || productsData;
       if (!Array.isArray(allProducts)) allProducts = [];
@@ -81,7 +82,7 @@ export default function ProductPerformancePage() {
       }
 
       // ─── 2. Fetch all orders ──────────────────────────────────────────
-      const ordersRes = await apiFetch(`/api/orders/?page_size=2000`, {}, true);
+      const ordersRes = await apiFetch(`/api/orders/?page_size=${PAGE_SIZE}`, {}, true);
       const ordersData = await ordersRes.json();
       let allOrders = ordersData.results || ordersData.data || ordersData;
       if (!Array.isArray(allOrders)) allOrders = [];

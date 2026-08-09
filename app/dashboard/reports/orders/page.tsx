@@ -103,6 +103,7 @@ export default function OrderReportPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   const [menuItemsMap, setMenuItemsMap] = useState<Map<number, any>>(new Map());
+  const PAGE_SIZE = 100; 
 
   // ─── Date range helpers ──────────────────────────────────────────────
   const getDateRange = useCallback((period: Period) => {
@@ -154,7 +155,7 @@ export default function OrderReportPage() {
       // Fetch orders and menu items in parallel
       const [ordersRes, menuData] = await Promise.all([
         apiFetch(
-          `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+          `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=${PAGE_SIZE}`,
           {},
           true
         ),

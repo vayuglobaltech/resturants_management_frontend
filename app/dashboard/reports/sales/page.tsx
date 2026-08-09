@@ -81,6 +81,7 @@ export default function SalesReportPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [branchName, setBranchName] = useState<string>("");
+  const PAGE_SIZE = 100; 
 
   // ─── Get user's branch ID ─────────────────────────────────────────────
   const getBranchId = () => {
@@ -127,7 +128,7 @@ export default function SalesReportPage() {
 
     // ─── 1. Fetch ALL orders ──────────────────────────────────────────
     const ordersRes = await apiFetch(
-      `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+      `/api/orders/?created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=${PAGE_SIZE}`,
       {},
       true
     );
@@ -136,7 +137,7 @@ export default function SalesReportPage() {
 
     // ─── 2. Completed payments ──────────────────────────────────────
     const completedRes = await apiFetch(
-      `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+      `/api/orders/payments/?status=COMPLETED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=${PAGE_SIZE}`,
       {},
       true
     );
@@ -148,7 +149,7 @@ export default function SalesReportPage() {
     let refundedPayments: any[] = [];
     try {
       const refundRes = await apiFetch(
-        `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=2000`,
+        `/api/orders/payments/?status__in=REFUNDED,PARTIALLY_REFUNDED&created_at__gte=${startStr}&created_at__lte=${endStr}&page_size=${PAGE_SIZE}`,
         {},
         true
       );
