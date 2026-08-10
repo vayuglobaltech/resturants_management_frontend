@@ -35,6 +35,9 @@ import {
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { useWebSocket } from '@/hooks/useWebSocket';
+import SwipeNotification from '@/components/SwipeNotification';
+import {updateOrder} from "@/lib/ordersApi"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -178,12 +181,31 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  const roleName = typeof user?.role === "object" && user?.role !== null && "name" in user.role
-    ? String(user.role.name)
-    : typeof user?.role === "string" ? user.role : "";
+  const { messages, removeMessage } = useWebSocket();
+
+  const handleSwipe = async (orderId: number, nextStatus: string) => {
+    try {
+      await updateOrder(orderId, { status: nextStatus });
+      toast.success(`Order #${orderId} status updated to ${nextStatus}`);
+      removeMessage(orderId);
+    } catch (error) {
+      toast.error('Failed to update order status');
+      console.error(error);
+    }
+  };
+
+  const roleName = 
+  (typeof user?.role === 'object' && user?.role !== null && 'name' in user.role)
+    ? String(user.role.name).toLowerCase()
+    : typeof user?.role === 'string'
+    ? user.role.toLowerCase()
+    : (user?.designation?.toLowerCase().replace(/\s+/g, '_')) || '';   // "Kitchen Staff" → "kitchen_staff"
   
+  // Robust role checks: handle both exact match and substring match
+  const isKitchenStaff = roleName === 'kitchen_staff' || roleName.includes('kitchen');
+  const isWaiter = roleName === 'waiter' || roleName.includes('waiter');
   const canCreateOrder = Boolean(roleName && ["cashier","waiter"].includes(roleName));
-  const isManager = user?.role === "admin" || user?.role === "branch_manager";
+  const isManager = roleName === "admin" || roleName === "branch_manager" || user?.is_superuser || user?.is_staff;
 
   const tableId = searchParams.get("table");
   const [activeTableName, setActiveTableName] = useState<string | null>(null);
@@ -415,6 +437,20 @@ export default function OrdersPage() {
       transition={{ duration: 0.4 }}
       className="space-y-4 sm:space-y-6"
     >
+      {(isKitchenStaff || isWaiter) && (
+        <div className="fixed bottom-4 right-4 z-50 space-y-2 max-h-[80vh] overflow-y-auto">
+          {messages
+            .filter((msg) => msg.action_required) // only show actionable ones
+            .map((msg, idx) => (
+              <SwipeNotification
+                key={`${msg.order_id}-${idx}`}
+                message={msg}
+                onSwipe={() => handleSwipe(msg.order_id, msg.next_status)}
+              />
+            ))}
+        </div>
+      )}
+
       {/* ─── Header ────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-1 sm:space-y-2">
