@@ -1,5 +1,5 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getMessaging, getToken, onMessage, Messaging } from "firebase/messaging";
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getMessaging, getToken, onMessage, type Messaging } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -10,12 +10,9 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-// Initialize Firebase (singleton pattern for Next.js)
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-// Initialize Messaging only on the client side
 let messaging: Messaging | null = null;
-if (typeof window !== "undefined") {
+if (typeof window !== 'undefined') {
   messaging = getMessaging(app);
 }
 

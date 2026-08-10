@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+// Load Firebase SDK
+const loadScript = (src) => new Promise((resolve, reject) => {
+  const script = document.createElement('script');
+  script.src = src;
+  script.onload = resolve;
+  script.onerror = reject;
+  document.head.appendChild(script);
+});
+
+async function init() {
+  if (!('serviceWorker' in navigator)) {
+    console.error('Service Worker not supported');
+    return;
+  }
+
+  // 1. Register SW and wait for it to be ready
+  await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+  console.log('SW registered');
+  await navigator.serviceWorker.ready;
+  console.log('SW is ready (active)');
+
+  // 2. Load Firebase
+  await loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
+  console.log('Firebase loaded');
+
+  // 3. Initialize Firebase
+  firebase.initializeApp({
+    apiKey: "AIzaSyAeAse7523kJjaEDkOk2_2TS82b35FsLdU",
+    authDomain: "restaurant-d8c26.firebaseapp.com",
+    projectId: "restaurant-d8c26",
+    storageBucket: "restaurant-d8c26.appspot.com",
+    messagingSenderId: "737042296898",
+    appId: "1:737042296898:web:a855275efb86d910fbbddb"
+  });
+
+  const messaging = firebase.messaging();
+
+  // 4. Request permission and get token
+  try {
+    const token = await messaging.getToken({
+      vapidKey: 'BE1440MIYb76_xV4aAtzDkD3-W0XwlBQDWaCuRcPeyTfR80rbBv8rUkoRgKQVFl9IGBAK18avKYdEE3-SHvhrG4'
+    });
+    console.log('✅ Token:', token);
+  } catch (err) {
+    console.error('❌ Error:', err);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

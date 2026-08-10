@@ -437,19 +437,7 @@ export default function OrdersPage() {
       transition={{ duration: 0.4 }}
       className="space-y-4 sm:space-y-6"
     >
-      {(isKitchenStaff || isWaiter) && (
-        <div className="fixed bottom-4 right-4 z-50 space-y-2 max-h-[80vh] overflow-y-auto">
-          {messages
-            .filter((msg) => msg.action_required) // only show actionable ones
-            .map((msg, idx) => (
-              <SwipeNotification
-                key={`${msg.order_id}-${idx}`}
-                message={msg}
-                onSwipe={() => handleSwipe(msg.order_id, msg.next_status)}
-              />
-            ))}
-        </div>
-      )}
+      {/* Dedicated Notifications page handles actionable orders now */}
 
       {/* ─── Header ────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-end lg:justify-between">

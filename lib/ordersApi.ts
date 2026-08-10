@@ -1,11 +1,16 @@
 import { apiFetch } from "./api";
 
-export async function listOrders(tableId?: string | number) {
+export async function listOrders(
+  tableId?: string | number,
+  params?: Record<string, string | number>
+) {
   try {
-    let url = "/api/orders/";
-    if (tableId) {
-      url += `?table=${tableId}`;
+    const qs = new URLSearchParams();
+    if (tableId) qs.set("table", String(tableId));
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => qs.set(k, String(v)));
     }
+    const url = `/api/orders/${qs.toString() ? `?${qs}` : ""}`;
     const res = await apiFetch(url, {}, true);
     if (!res.ok) throw new Error(`API error ${res.status}`);
     const json = await res.json();

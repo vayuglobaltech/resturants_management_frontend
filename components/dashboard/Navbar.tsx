@@ -6,12 +6,12 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, type UserProfile } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { LogOut, User, Sun, Moon } from "lucide-react";
+import { LogOut, User, Sun, Moon, Bell } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import { getRoleName } from "@/lib/permissions";
-import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeLogo } from "@/components/ThemeLogo";
+import { useNotifCount } from "@/hooks/useNotifCount";
 
 // ─── Navbar height constant (top-row h-16=64px + tab-row h-10=40px = 104px)
 // We export this so Sidebar and Layout can use it for consistent positioning.
@@ -82,6 +82,8 @@ export function DashboardNavbar({
   const tabsRef = useRef<HTMLDivElement>(null);
 
   const roleName = getRoleName(user);
+  const { count: notifCount, role: notifRole } = useNotifCount();
+  const showAlertBell = notifRole === 'kitchen_staff' || notifRole === 'waiter';
 
   const features = FEATURES_BY_ROLE[roleName] || FEATURES_BY_ROLE.waiter;
 
@@ -178,8 +180,25 @@ export function DashboardNavbar({
               </AnimatePresence>
             </button>
 
-            {/* Notification bell */}
-            <NotificationBell />
+            {/* Order Alert Bell – only for kitchen_staff and waiter */}
+            {showAlertBell && (
+              <Link
+                href="/dashboard/notifications"
+                className="relative w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                aria-label={`Order alerts${notifCount > 0 ? ` (${notifCount} pending)` : ''}`}
+              >
+                <Bell className="h-5 w-5" />
+                {notifCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-black leading-none shadow-md"
+                  >
+                    {notifCount > 9 ? '9+' : notifCount}
+                  </motion.span>
+                )}
+              </Link>
+            )}
 
             {/* Role badge – hidden on very small screens */}
             <span className="hidden sm:inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-[color:var(--primary)]/10 text-[var(--primary)] border border-[color:var(--primary)]/20 whitespace-nowrap font-semibold tracking-wide">
