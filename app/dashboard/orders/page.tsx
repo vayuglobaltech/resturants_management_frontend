@@ -357,6 +357,23 @@ export default function OrdersPage() {
     };
   }, [fetchOrders]);
 
+  // ─── Auto‑refresh on WebSocket status updates ──────────────────────────────
+  const fetchOrdersRef = useRef(fetchOrders);
+  useEffect(() => {
+    fetchOrdersRef.current = fetchOrders;
+  }, [fetchOrders]);
+
+  useEffect(() => {
+    const hasStatusUpdate = messages.some(msg => msg.type === 'order_status_update');
+    if (!hasStatusUpdate) return;
+
+    const timer = setTimeout(() => {
+      fetchOrdersRef.current();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [messages]);
+
   // Handlers
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value;

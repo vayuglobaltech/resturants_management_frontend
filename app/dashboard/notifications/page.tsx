@@ -302,6 +302,23 @@ export default function NotificationsPage() {
     fetchOrders();
   }, [fetchOrders]);
 
+  // ─── Auto‑refresh on WebSocket status updates ──────────────────────────────
+  const fetchOrdersRef = useRef(fetchOrders);
+  useEffect(() => {
+    fetchOrdersRef.current = fetchOrders;
+  }, [fetchOrders]);
+
+  useEffect(() => {
+    const hasStatusUpdate = messages.some(msg => msg.type === 'order_status_update');
+    if (!hasStatusUpdate) return;
+
+    const timer = setTimeout(() => {
+      fetchOrdersRef.current(true); // silent refresh – no loading spinner
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [messages]);
+
   // Toast on new WS messages
   useEffect(() => {
     if (messages.length > prevMsgCount.current) {
