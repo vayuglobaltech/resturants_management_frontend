@@ -553,224 +553,219 @@ export default function DiscountsPage() {
       </div>
 
       {/* ─── Add/Edit Modal ─── */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#121826] border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-foreground mb-4">
-              {editingDiscount ? "Edit Discount" : "Add New Discount"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  Name <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+      {/* ─── Add/Edit Modal ─── */}
+{isModalOpen && (
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+    <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto transition-all">
+      <h2 className="text-2xl font-semibold text-foreground mb-6 flex items-center gap-2">
+        {editingDiscount ? (
+          <>
+            <Pencil className="h-5 w-5 text-indigo-400" />
+            Edit Discount
+          </>
+        ) : (
+          <>
+            <Plus className="h-5 w-5 text-indigo-400" />
+            Add New Discount
+          </>
+        )}
+      </h2>
 
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* ─── Name ─────────────────────────── */}
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+            Name <span className="text-red-400">*</span>
+          </label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+            placeholder="e.g. Summer Sale"
+            className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-indigo-500 transition"
+          />
+        </div>
 
-              {/* Type & Value */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">
-                    Type <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, type: e.target.value })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="percentage">Percentage</option>
-                    <option value="fixed">Fixed Amount</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">
-                    Value <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.value}
-                    onChange={(e) =>
-                      setFormData({ ...formData, value: e.target.value })
-                    }
-                    required
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
+        {/* ─── Description ───────────────────── */}
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+            Description
+          </label>
+          <input
+            type="text"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Optional details about the discount"
+            className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-indigo-500 transition"
+          />
+        </div>
 
-              {/* ─── Branch ────────────────────────────────────────────── */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  Branch {isAdmin ? "(optional)" : ""}
-                </label>
-                {isAdmin ? (
-                  <select
-                    value={formData.branch}
-                    onChange={(e) =>
-                      setFormData({ ...formData, branch: e.target.value })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="">All Branches (Global)</option>
-                    {branches.map((branch) => (
-                      <option key={branch.id} value={String(branch.id)}>
-                        {branch.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="w-full rounded-md border border-border bg-background/50 px-3 py-2 text-foreground/80">
-                    {branchName || "Your branch"} (auto‑assigned)
-                    <input type="hidden" name="branch" value={formData.branch} />
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isAdmin
-                    ? "Leave empty to apply globally, or select a specific branch."
-                    : "Discounts are automatically assigned to your branch."}
-                </p>
-              </div>
-
-              {/* Start & End Date */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, start_date: e.target.value })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, end_date: e.target.value })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              {/* Requires code */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="requires_code"
-                  checked={formData.requires_code}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      requires_code: e.target.checked,
-                    })
-                  }
-                  className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
-                />
-                <label
-                  htmlFor="requires_code"
-                  className="text-sm text-muted-foreground"
-                >
-                  Requires promo code
-                </label>
-              </div>
-
-              {/* Promo Code */}
-              {formData.requires_code && (
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">
-                    Promo Code
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.code}
-                    required
-                    onChange={(e) =>
-                      setFormData({ ...formData, code: e.target.value })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              )}
-
-              {/* Active */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={formData.is_active}
-                  onChange={(e) =>
-                    setFormData({ ...formData, is_active: e.target.checked })
-                  }
-                  className="rounded border-border bg-background text-indigo-500 focus:ring-indigo-500"
-                />
-                <label htmlFor="is_active" className="text-sm text-muted-foreground">
-                  Active
-                </label>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 gap-2"
-                >
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : editingDiscount ? (
-                    "Update"
-                  ) : (
-                    "Create"
-                  )}
-                </Button>
-              </div>
-            </form>
+        {/* ─── Type & Value ──────────────────── */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              Type <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-indigo-500 transition"
+            >
+              <option value="percentage">Percentage</option>
+              <option value="fixed">Fixed Amount</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              Value <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.value}
+              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+              required
+              placeholder="0.00"
+              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-indigo-500 transition"
+            />
           </div>
         </div>
-      )}
+
+        {/* ─── Branch ────────────────────────── */}
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+            Branch {isAdmin ? "(optional)" : ""}
+          </label>
+          {isAdmin ? (
+            <select
+              value={formData.branch}
+              onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
+              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-indigo-500 transition"
+            >
+              <option value="">All Branches (Global)</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={String(branch.id)}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="w-full rounded-lg border border-input bg-muted/30 px-4 py-2.5 text-foreground/80 flex items-center justify-between">
+              <span>{branchName || "Your branch"} (auto‑assigned)</span>
+              <input type="hidden" name="branch" value={formData.branch} />
+              <span className="text-muted-foreground/60 text-sm">🔒</span>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground/70 mt-1.5">
+            {isAdmin
+              ? "Leave empty to apply globally, or select a specific branch."
+              : "Discounts are automatically assigned to your branch."}
+          </p>
+        </div>
+
+        {/* ─── Dates ─────────────────────────── */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={formData.start_date}
+              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-indigo-500 transition"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              End Date
+            </label>
+            <input
+              type="date"
+              value={formData.end_date}
+              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-indigo-500 transition"
+            />
+          </div>
+        </div>
+
+        {/* ─── Requires Code + Promo Code ────── */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="requires_code"
+              checked={formData.requires_code}
+              onChange={(e) =>
+                setFormData({ ...formData, requires_code: e.target.checked })
+              }
+              className="h-4 w-4 rounded border-input text-indigo-500 focus:ring-indigo-500/60 focus:ring-2 transition"
+            />
+            <label htmlFor="requires_code" className="text-sm text-foreground/80 cursor-pointer">
+              Requires promo code
+            </label>
+          </div>
+
+          {formData.requires_code && (
+            <div className="pl-7 animate-in slide-in-from-left-2 duration-200">
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                Promo Code <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.code}
+                required
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                placeholder="Enter unique code"
+                className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-indigo-500 transition"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ─── Active ────────────────────────── */}
+        <div className="flex items-center gap-3 pt-2">
+          <input
+            type="checkbox"
+            id="is_active"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+            className="h-4 w-4 rounded border-input text-indigo-500 focus:ring-indigo-500/60 focus:ring-2 transition"
+          />
+          <label htmlFor="is_active" className="text-sm text-foreground/80 cursor-pointer">
+            Active
+          </label>
+        </div>
+
+        {/* ─── Actions ───────────────────────── */}
+        <div className="flex gap-3 pt-3 border-t border-border/60">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setIsModalOpen(false)}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="flex-1 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : editingDiscount ? (
+              "Update"
+            ) : (
+              "Create"
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
 
       {/* ─── Delete Confirmation ─── */}
       <Modal
