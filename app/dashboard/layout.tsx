@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { DashboardNavbar } from "@/components/dashboard/Navbar";
 import { DashboardSidebar } from "@/components/dashboard/Sidebar";
-import { WebSocketProvider } from "@/context/WebSocketContext";
+// import { WebSocketProvider } from "@/context/WebSocketContext";
 import { ToastProvider } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import { getRoleName } from "@/lib/permissions";

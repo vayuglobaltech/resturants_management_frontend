@@ -3,7 +3,7 @@
 
 import { useEffect, useState, createContext, useContext, ReactNode } from "react";
 import { X, AlertCircle, CheckCircle, Info, AlertTriangle } from "lucide-react";
-
+import { Toaster } from 'react-hot-toast';
 export type ToastType = "success" | "error" | "info" | "warning";
 
 interface ToastProps {
@@ -122,6 +122,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           onClose={removeToast}
         />
       ))}
+      {/* ─── react‑hot‑toast Toaster ─────────────────────────────── */}
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            color: 'var(--foreground)',
+            borderRadius: '12px',
+          },
+        }}
+      />
     </ToastContext.Provider>
   );
 }

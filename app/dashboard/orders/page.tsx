@@ -364,10 +364,15 @@ export default function OrdersPage() {
   }, [fetchOrders]);
 
   useEffect(() => {
+    console.log('[Auto‑refresh] messages changed:', messages);
     const hasStatusUpdate = messages.some(msg => msg.type === 'order_status_update');
-    if (!hasStatusUpdate) return;
-
+    if (!hasStatusUpdate) {
+      console.log('[Auto‑refresh] No status update message');
+      return;
+    }
+    console.log('[Auto‑refresh] Will refetch in 500ms');
     const timer = setTimeout(() => {
+      console.log('[Auto‑refresh] Refetching orders...');
       fetchOrdersRef.current();
     }, 500);
 
