@@ -24,7 +24,11 @@ export function useWebSocket() {
 
     isConnecting.current = true;
 
-    const wsUrl = `ws://localhost:8000/ws/notifications/?token=${token}`;
+    // const wsUrl = `ws://localhost:8000/ws/notifications/?token=${token}`;
+    // hooks/useWebSocket.ts
+    const backendHost = process.env.NEXT_PUBLIC_WS_HOST || 'localhost:8000';
+    const protocol = process.env.NEXT_PUBLIC_WS_PROTOCOL || 'ws';
+    const wsUrl = `${protocol}://${backendHost}/ws/notifications/?token=${token}`;
     console.log('[WebSocket] Connecting to:', wsUrl);
 
     const ws = new WebSocket(wsUrl);
