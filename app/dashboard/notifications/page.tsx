@@ -398,60 +398,53 @@ export default function NotificationsPage() {
 
   // ─── Fetch data ────────────────────────────────────────────────────────────
   const fetchOrders = useCallback(
-    async (silent = false) => {
-      if (!config) return;
-      silent ? setRefreshing(true) : setLoading(true);
+  async (silent = false) => {
+    if (!config) return;
+    silent ? setRefreshing(true) : setLoading(true);
 
-      try {
-        if (role === "branch_manager") {
-          const logsData: any = await getOrderStatusLogs();
-          const logs = Array.isArray(logsData)
-            ? logsData
-            : logsData.results || [];
-          setStatusLogs(logs);
-        } else {
-  // For kitchen_staff and waiter – we know config has nextStatus
-  const actionableConfig = config as typeof ROLE_CONFIG.kitchen_staff | typeof ROLE_CONFIG.waiter;
-  const allFetched: NotificationMsg[] = [];
+    try {
+      if (role === "branch_manager") {
+        const logsData: any = await getOrderStatusLogs();
+        const logs = Array.isArray(logsData) ? logsData : (logsData.results || []);
+        setStatusLogs(logs);
+      } else {
+        const actionableConfig = config as typeof ROLE_CONFIG.kitchen_staff | typeof ROLE_CONFIG.waiter;
+        const allFetched: NotificationMsg[] = [];
 
-  for (const status of actionableConfig.fetchStatuses) {
-    const orders = await listOrders(undefined, { status, page_size: 100 });
-    for (const o of orders) {
-      const st = String(o.status ?? "").toUpperCase();
-      const nextSt = actionableConfig.nextStatus?.[st];
-      if (!nextSt) continue;
-      allFetched.push({
-        order_id: o.id,
-        order_number: o.order_number,
-        status: st,
-        table_number: o.table_number_display ?? o.table_number ?? o.table ?? "—",
-        message: o.special_instructions
-          ? `Order #${o.order_number} — ${o.special_instructions.slice(0, 40)}`
-          : `Order #${o.order_number}`,
-        action_required: true,
-        next_status: nextSt,
-        arrived_at: new Date(o.created_at ?? Date.now()).getTime(),
-      });
-    }
-  }
-  const map = new Map<number, NotificationMsg>();
-  allFetched.forEach((m) => map.set(m.order_id, m));
-  setInitialOrders(Array.from(map.values()));
-}
-          const map = new Map<number, NotificationMsg>();
-          allFetched.forEach((m) => map.set(m.order_id, m));
-          setInitialOrders(Array.from(map.values()));
+        for (const status of actionableConfig.fetchStatuses) {
+          const orders = await listOrders(undefined, { status, page_size: 100 });
+          for (const o of orders) {
+            const st = String(o.status ?? "").toUpperCase();
+            const nextSt = actionableConfig.nextStatus?.[st];
+            if (!nextSt) continue;
+            allFetched.push({
+              order_id: o.id,
+              order_number: o.order_number,
+              status: st,
+              table_number: o.table_number_display ?? o.table_number ?? o.table ?? "—",
+              message: o.special_instructions
+                ? `Order #${o.order_number} — ${o.special_instructions.slice(0, 40)}`
+                : `Order #${o.order_number}`,
+              action_required: true,
+              next_status: nextSt,
+              arrived_at: new Date(o.created_at ?? Date.now()).getTime(),
+            });
+          }
         }
-      } catch (err) {
-        console.error("[Notifications] Fetch error:", err);
-        toast.error("Failed to fetch data");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+        const map = new Map<number, NotificationMsg>();
+        allFetched.forEach((m) => map.set(m.order_id, m));
+        setInitialOrders(Array.from(map.values()));
       }
-    },
-    [config, role],
-  );
+    } catch (err) {
+      console.error("[Notifications] Fetch error:", err);
+      toast.error("Failed to fetch data");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  },
+  [config, role]
+);
 
   useEffect(() => {
     fetchOrders();
@@ -517,27 +510,21 @@ export default function NotificationsPage() {
 
   // ─── Merge initial + WS messages for actionable roles ────────────────────
   const displayMessages = useMemo(() => {
-    if (!isActionable || !config) return [];
-    const map = new Map<number, NotificationMsg>();
-    initialOrders.forEach((m) => map.set(m.order_id, m));
-    messages.forEach((m: any) => {
-      const st = String(m.status ?? "").toUpperCase();
-      const nextSt = config.nextStatus?.[st];
-      if (m.action_required && nextSt) {
-        map.set(m.order_id, {
-          ...m,
-          status: st,
-          next_status: nextSt,
-          arrived_at: Date.now(),
-        });
-      } else {
-        map.delete(m.order_id);
-      }
-    });
-    return Array.from(map.values()).sort(
-      (a, b) => (a.arrived_at ?? 0) - (b.arrived_at ?? 0),
-    );
-  }, [initialOrders, messages, config, isActionable]);
+  if (!isActionable || !config) return [];
+  const actionableConfig = config as typeof ROLE_CONFIG.kitchen_staff | typeof ROLE_CONFIG.waiter;
+  const map = new Map<number, NotificationMsg>();
+  initialOrders.forEach((m) => map.set(m.order_id, m));
+  messages.forEach((m: any) => {
+    const st = String(m.status ?? "").toUpperCase();
+    const nextSt = actionableConfig.nextStatus?.[st];
+    if (m.action_required && nextSt) {
+      map.set(m.order_id, { ...m, status: st, next_status: nextSt, arrived_at: Date.now() });
+    } else {
+      map.delete(m.order_id);
+    }
+  });
+  return Array.from(map.values()).sort((a, b) => (a.arrived_at ?? 0) - (b.arrived_at ?? 0));
+}, [initialOrders, messages, config, isActionable]);
 
   // ─── Swipe handler ─────────────────────────────────────────────────────────
   const handleSwipe = useCallback(
@@ -658,11 +645,11 @@ export default function NotificationsPage() {
               <AnimatePresence initial={false}>
                 {displayMessages.map((msg) => (
                   <SwipeCard
-                    key={msg.order_id}
-                    msg={msg}
-                    swipeLabel={config!.swipeLabel?.[msg.status] ?? "Action"}
-                    onSwipe={() => handleSwipe(msg)}
-                  />
+  key={msg.order_id}
+  msg={msg}
+  swipeLabel={(config as typeof ROLE_CONFIG.kitchen_staff | typeof ROLE_CONFIG.waiter).swipeLabel?.[msg.status] ?? "Action"}
+  onSwipe={() => handleSwipe(msg)}
+/>
                 ))}
               </AnimatePresence>
             </>
