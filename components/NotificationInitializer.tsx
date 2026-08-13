@@ -42,7 +42,7 @@ export default function NotificationInitializer() {
               </p>
             </div>,
             {
-              duration: 5000,
+              duration: 10000,
               position: 'bottom-right',
               style: {
                 background: 'var(--card)',
@@ -50,7 +50,7 @@ export default function NotificationInitializer() {
                 color: 'var(--foreground)',
                 borderRadius: '12px',
                 padding: '12px 16px',
-                maxWidth: '400px',
+                maxWidth: '500px',
               },
               icon: '🔔',
             }
