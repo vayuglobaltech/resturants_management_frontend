@@ -410,31 +410,34 @@ export default function NotificationsPage() {
             : logsData.results || [];
           setStatusLogs(logs);
         } else {
-          const allFetched: NotificationMsg[] = [];
-          for (const status of config.fetchStatuses) {
-            const orders = await listOrders(undefined, {
-              status,
-              page_size: 100,
-            });
-            for (const o of orders) {
-              const st = String(o.status ?? "").toUpperCase();
-              const nextSt = config.nextStatus?.[st];
-              if (!nextSt) continue;
-              allFetched.push({
-                order_id: o.id,
-                order_number: o.order_number,
-                status: st,
-                table_number:
-                  o.table_number_display ?? o.table_number ?? o.table ?? "—",
-                message: o.special_instructions
-                  ? `Order #${o.order_number} — ${o.special_instructions.slice(0, 40)}`
-                  : `Order #${o.order_number}`,
-                action_required: true,
-                next_status: nextSt,
-                arrived_at: new Date(o.created_at ?? Date.now()).getTime(),
-              });
-            }
-          }
+  // For kitchen_staff and waiter – we know config has nextStatus
+  const actionableConfig = config as typeof ROLE_CONFIG.kitchen_staff | typeof ROLE_CONFIG.waiter;
+  const allFetched: NotificationMsg[] = [];
+
+  for (const status of actionableConfig.fetchStatuses) {
+    const orders = await listOrders(undefined, { status, page_size: 100 });
+    for (const o of orders) {
+      const st = String(o.status ?? "").toUpperCase();
+      const nextSt = actionableConfig.nextStatus?.[st];
+      if (!nextSt) continue;
+      allFetched.push({
+        order_id: o.id,
+        order_number: o.order_number,
+        status: st,
+        table_number: o.table_number_display ?? o.table_number ?? o.table ?? "—",
+        message: o.special_instructions
+          ? `Order #${o.order_number} — ${o.special_instructions.slice(0, 40)}`
+          : `Order #${o.order_number}`,
+        action_required: true,
+        next_status: nextSt,
+        arrived_at: new Date(o.created_at ?? Date.now()).getTime(),
+      });
+    }
+  }
+  const map = new Map<number, NotificationMsg>();
+  allFetched.forEach((m) => map.set(m.order_id, m));
+  setInitialOrders(Array.from(map.values()));
+}
           const map = new Map<number, NotificationMsg>();
           allFetched.forEach((m) => map.set(m.order_id, m));
           setInitialOrders(Array.from(map.values()));
