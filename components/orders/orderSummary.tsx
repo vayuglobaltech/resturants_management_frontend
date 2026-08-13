@@ -41,6 +41,8 @@ interface OrderSummaryProps {
   canApplyDiscount: boolean;
   discounts: any[];
   selectedDiscountId: string;
+  customerCount?: number;   
+  maxCapacity?: number;
   loadingDiscounts: boolean;
   promoCode: string;
   submitting: boolean;
@@ -67,6 +69,8 @@ export default function OrderSummary({
   discounts,
   selectedDiscountId,
   loadingDiscounts,
+  customerCount,
+  maxCapacity,
   promoCode,
   submitting,
   specialInstructions,
@@ -127,6 +131,11 @@ export default function OrderSummary({
           )}
         </div>
       )}
+
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">Customers</span>
+        <span>{customerCount ?? 1} / {maxCapacity ?? 10}</span>
+      </div>
 
       {/* ─── Cart Items ──────────────────────────────────────────────────── */}
       <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">

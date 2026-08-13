@@ -21,11 +21,12 @@ import {
   Eye,
   ChevronUp,
   Tag,
+  Users,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { listTables } from "@/lib/ordersApi";
+import { getOrder, listTables } from "@/lib/ordersApi";
 import { listMenuItems } from "@/lib/menuApi";
-import { createOrder, getActiveDiscounts } from "@/lib/ordersApi";
+import { listOrders , createOrder, getActiveDiscounts } from "@/lib/ordersApi";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -33,6 +34,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedOrder } from "@/components/ProtectedOrder";
 import { useSearchParams } from "next/navigation";
+import { Slider } from "@/components/ui/Slider"; // <-- imported custom slider
+import { apiFetch } from "@/lib/api";
 
 interface MenuItem {
   id: number;
@@ -52,6 +55,7 @@ interface Table {
   id: number;
   table_number: number;
   status: string;
+  capacity?: number; // assuming capacity exists on Table model
 }
 
 interface FormData {
@@ -73,6 +77,11 @@ export default function NewOrderPage() {
   const [availabilities, setAvailabilities] = useState<any[]>([]);
   const [tableError, setTableError] = useState<string>("");
 
+  // ─── Customer Count State ──────────────────────────────────────────────
+  const [customerCount, setCustomerCount] = useState(1);
+  const [inputValue, setInputValue] = useState("1");
+  const [maxCapacity, setMaxCapacity] = useState(10);
+
   // ─── Discount State ──────────────────────────────────────────────────────
   const [discounts, setDiscounts] = useState<any[]>([]);
   const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
@@ -81,6 +90,7 @@ export default function NewOrderPage() {
   const [promoCode, setPromoCode] = useState("");
   const [cartSplash, setCartSplash] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [fetchingPreviousOrder, setFetchingPreviousOrder] = useState(false);
 
   const {
     register,
@@ -107,19 +117,19 @@ export default function NewOrderPage() {
   // ─── Get available product IDs for user's branch ────────────────────────
   const availableProductIds = useMemo(() => {
     const userBranchId = (user as any)?.branch?.id;
-    
+
     let filteredAvail = availabilities;
     if (userBranchId) {
       filteredAvail = availabilities.filter((a: any) => {
-        const aBranch = typeof a.branch === 'object' ? a.branch.id : a.branch;
+        const aBranch = typeof a.branch === "object" ? a.branch.id : a.branch;
         return aBranch === userBranchId;
       });
     }
-    
+
     return new Set(
       filteredAvail
         .filter((a: any) => a.is_available === true)
-        .map((a: any) => typeof a.product === 'object' ? a.product.id : a.product)
+        .map((a: any) => (typeof a.product === "object" ? a.product.id : a.product))
     );
   }, [availabilities, user]);
 
@@ -137,12 +147,12 @@ export default function NewOrderPage() {
         const [tablesData, menuData, availData] = await Promise.all([
           listTables(),
           listMenuItems(),
-          getProductAvailabilities().catch(() => [])
+          getProductAvailabilities().catch(() => []),
         ]);
-        
+
         setTables(tablesData.results || tablesData || []);
         setMenuItems(menuData.results || menuData || []);
-        
+
         const availArray = Array.isArray(availData) ? availData : availData?.results || [];
         setAvailabilities(availArray);
       } catch (error) {
@@ -176,20 +186,68 @@ export default function NewOrderPage() {
     fetchDiscounts();
   }, []);
 
+  // ─── Update max capacity when table changes ─────────────────────────────
+  useEffect(() => {
+  const fetchPreviousOrder = async () => {
+    if (!selectedTableId) {
+      setCustomerCount(1);
+      setInputValue("1");
+      return;
+    }
+
+    const table = tables.find((t) => String(t.id) === String(selectedTableId));
+    if (!table || table.status !== "OCCUPIED") {
+      setCustomerCount(1);
+      setInputValue("1");
+      return;
+    }
+
+    setFetchingPreviousOrder(true);
+    try {
+      const tableId = String(selectedTableId);
+      const response = await apiFetch(
+        `/api/orders/?table=${tableId}&page_size=1&ordering=-created_at`,
+        {},
+        true
+      );
+      const data = await response.json();
+      const orders = data.results || data || [];
+
+      if (orders.length > 0) {
+        const latestOrder = orders[0];
+        let count = latestOrder.customer_count;
+        if (count === undefined || count === null) {
+          const detail = await getOrder(latestOrder.id);
+          count = detail.customer_count || 1;
+        }
+        const clamped = Math.min(count, maxCapacity);
+        setCustomerCount(clamped);
+        setInputValue(String(clamped));
+      } else {
+        setCustomerCount(1);
+        setInputValue("1");
+      }
+    } catch (error) {
+      console.error("Failed to fetch previous order:", error);
+      setCustomerCount(1);
+      setInputValue("1");
+    } finally {
+      setFetchingPreviousOrder(false);
+    }
+  };
+
+  fetchPreviousOrder();
+}, [selectedTableId, tables, maxCapacity]);
+
   // ─── Compute Cart Total ──────────────────────────────────────────────────
   const total = useMemo(() => {
-    return cart.reduce(
-      (sum, item) => sum + parseFloat(item.price) * item.quantity,
-      0,
-    );
+    return cart.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
   }, [cart]);
 
   // ─── Compute Discount Amount ────────────────────────────────────────────
   useEffect(() => {
     if (selectedDiscountId) {
-      const discount = discounts.find(
-        (d) => String(d.id) === selectedDiscountId,
-      );
+      const discount = discounts.find((d) => String(d.id) === selectedDiscountId);
       if (discount) {
         let amount = 0;
         if (discount.type === "percentage") {
@@ -216,7 +274,7 @@ export default function NewOrderPage() {
       const existing = prev.find((i) => i.id === item.id);
       if (existing) {
         return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i,
+          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
       return [...prev, { ...item, quantity: 1 }];
@@ -254,48 +312,86 @@ export default function NewOrderPage() {
   // ─── Filter Menu Items - ONLY SHOW AVAILABLE ITEMS ────────────────────
   const filteredItems = useMemo(() => {
     let filtered = menuItems;
-    
-    // Filter by availability
+
     if (availabilities.length > 0) {
       filtered = filtered.filter((item) => availableProductIds.has(item.id));
     }
-    
-    // Filter by search term
+
     if (searchTerm.trim()) {
       filtered = filtered.filter((item) =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()),
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
-    // Filter by category
+
     if (selectedCategory) {
       filtered = filtered.filter((item) =>
-        item.category_name?.toLowerCase() === selectedCategory.toLowerCase(),
+        item.category_name?.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
-    
+
     return filtered;
   }, [menuItems, availabilities, availableProductIds, searchTerm, selectedCategory]);
 
-  // ─── Handle Table Change ──────────────────────────────────────────────────
-  const handleTableChange = (value: string) => {
-    setValue("table", value);
-    if (value) {
-      clearErrors("table");
-      setTableError("");
+  // Update max capacity when table changes
+useEffect(() => {
+  if (selectedTableId) {
+    const table = tables.find((t) => String(t.id) === selectedTableId);
+    if (table && table.capacity) {
+      setMaxCapacity(table.capacity);
+      const clamped = Math.min(customerCount, table.capacity);
+      setCustomerCount(clamped);
+      setInputValue(String(clamped));
+    } else {
+      setMaxCapacity(10);
     }
-    trigger("table");
-  };
+  } else {
+    setMaxCapacity(10);
+    setCustomerCount(1);
+    setInputValue("1");
+  }
+}, [selectedTableId, tables]);
+// ─── Handle Table Change ──────────────────────────────────────────────
+const handleTableChange = (value: string) => {
+  setValue("table", value);
+  if (value) {
+    clearErrors("table");
+    setTableError("");
+  }
+  trigger("table");
+};
+
+const handleSliderChange = (val: number) => {
+  const clamped = Math.min(Math.max(val, 1), maxCapacity);
+  setCustomerCount(clamped);
+  setInputValue(String(clamped));
+};
+
+const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setInputValue(e.target.value);
+};
+
+const handleInputBlur = () => {
+  let val = parseInt(inputValue, 10);
+  if (isNaN(val) || val < 1) val = 1;
+  val = Math.min(val, maxCapacity);
+  setCustomerCount(val);
+  setInputValue(String(val));
+};
+
+const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (e.key === "Enter") {
+    e.currentTarget.blur();
+  }
+};
 
   // ─── Submit Order ────────────────────────────────────────────────────────
   const onSubmit = async (data: FormData) => {
-    // Validate table selection
     if (!data.table) {
       setTableError("Please select a table");
       toast.error("Please select a table.");
       return;
     }
-    
+
     if (cart.length === 0) {
       toast.error("Please add at least one item.");
       return;
@@ -314,6 +410,7 @@ export default function NewOrderPage() {
         discount_id: selectedDiscountId ? parseInt(selectedDiscountId) : null,
         promo_code: promoCode || null,
         status: preSelectedStatus,
+        customer_count: customerCount, // <-- added
       };
       await createOrder(payload);
       toast.success("Order created successfully!");
@@ -334,12 +431,6 @@ export default function NewOrderPage() {
     );
   }
 
-  // ─── Clear all filters ───────────────────────────────────────────────────
-  const clearFilters = () => { 
-    setSearchTerm("");
-    setSelectedCategory("");
-  };
-
   const roleName =
     typeof user?.role === "object" && user?.role !== null && "name" in user.role
       ? String(user.role.name)
@@ -347,17 +438,21 @@ export default function NewOrderPage() {
         ? user.role
         : "";
   const canApplyDiscount = Boolean(
-    roleName && ["admin", "branch_manager", "cashier"].includes(roleName),
+    roleName && ["admin", "branch_manager", "cashier"].includes(roleName)
   );
-  
+
   const handleDiscountChange = (id: string) => {
     setSelectedDiscountId(id);
     setPromoCode("");
   };
 
-  // ─── Mobile Summary Toggle ──────────────────────────────────────────────
   const toggleCart = () => {
     setIsCartOpen(!isCartOpen);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("");
   };
 
   return (
@@ -396,27 +491,20 @@ export default function NewOrderPage() {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
           {/* ─── Left Panel: Menu Browser ─── */}
           <div className="flex-1 space-y-4">
-            {/* ─── Table Selection with View Summary Button ─── */}
+            {/* ─── Table Selection ─── */}
             <div className="rounded-[24px] border border-[var(--primary)]/20 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
               <div className="flex flex-col sm:flex-row sm:items-end gap-3">
                 <div className="flex-1">
-                  <label
-                    htmlFor="table"
-                    className="mb-2 block text-sm font-medium text-foreground"
-                  >
+                  <label htmlFor="table" className="mb-2 block text-sm font-medium text-foreground">
                     Select Table *
                   </label>
 
                   {preSelectedTable ? (
                     <div className="rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 px-3 py-3 text-sm text-foreground shadow-sm">
                       Table{" "}
-                      {tables.find((t) => String(t.id) === preSelectedTable)
-                        ?.table_number || preSelectedTable}
-                      <input
-                        type="hidden"
-                        value={preSelectedTable}
-                        {...register("table")}
-                      />
+                      {tables.find((t) => String(t.id) === preSelectedTable)?.table_number ||
+                        preSelectedTable}
+                      <input type="hidden" value={preSelectedTable} {...register("table")} />
                     </div>
                   ) : (
                     <select
@@ -463,6 +551,93 @@ export default function NewOrderPage() {
               </div>
             </div>
 
+            {/* ─── Customer Count ────────────────────────────────────────────── */}
+            {/* ─── Customer Count ────────────────────────────────────────────── */}
+<div className="rounded-[24px] border border-[var(--primary)]/20 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
+  <div className="flex flex-col gap-1.5">
+    <div className="flex items-center justify-between">
+      <label className="text-sm font-medium text-foreground flex items-center gap-2">
+        <Users className="h-4 w-4" /> Number of Customers
+      </label>
+      <span className="text-sm font-medium text-foreground">
+        {customerCount} / {maxCapacity}
+      </span>
+    </div>
+
+    {/* ─── Slider with labels ─── */}
+    <div className="relative w-full">
+      <Slider
+  min={1}
+  max={maxCapacity}
+  step={1}
+  value={[customerCount]}
+  onValueChange={(vals) => {
+    const val = vals[0];
+    setCustomerCount(val);
+    setInputValue(String(val));
+  }}
+  disabled={!selectedTableId || fetchingPreviousOrder}
+  className="w-full cursor-grab active:cursor-grabbing"
+/>
+
+{fetchingPreviousOrder && (
+  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+    <Loader2 className="h-3 w-3 animate-spin" />
+    Loading previous order...
+  </div>
+)}
+
+      {/* Tick marks & labels – aligned exactly with track */}
+      <div className="flex justify-between px-0.5 mt-1 w-full">
+        {Array.from({ length: maxCapacity }, (_, i) => i + 1).map((num) => (
+          <span
+            key={num}
+            className={cn(
+              "text-[10px] font-medium transition-colors select-none",
+              num <= customerCount
+                ? "text-[var(--primary)]"
+                : "text-muted-foreground/60"
+            )}
+          >
+            {num}
+          </span>
+        ))}
+      </div>
+    </div>
+
+    {/* ─── Input ─── */}
+    <div className="flex items-center gap-3 mt-1">
+      <div className="w-16">
+        <Input
+          type="text"
+          inputMode="numeric"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onBlur={() => {
+            let val = parseInt(inputValue, 10);
+            if (isNaN(val) || val < 1) val = 1;
+            val = Math.min(val, maxCapacity);
+            setCustomerCount(val);
+            setInputValue(String(val));
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            }
+          }}
+          disabled={!selectedTableId}
+          className="h-8 text-center text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {selectedTableId
+          ? `Maximum capacity: ${maxCapacity}`
+          : "Please select a table first"}
+      </p>
+    </div>
+  </div>
+</div>
+
             {/* ─── Search and Category Filter ─── */}
             <div className="rounded-[24px] border border-[var(--primary)]/20 bg-card/85 p-3 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-4">
               <div className="flex flex-col gap-2">
@@ -490,7 +665,6 @@ export default function NewOrderPage() {
                   )}
                 </div>
 
-                {/* ─── Category Filter - Always Visible ─── */}
                 <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-2.5">
                   <button
                     onClick={() => setSelectedCategory("")}
@@ -518,7 +692,7 @@ export default function NewOrderPage() {
                     </button>
                   ))}
                 </div>
-                
+
                 <p className="ml-1 text-xs text-muted-foreground">
                   {filteredItems.length} item(s) found
                 </p>
@@ -526,7 +700,7 @@ export default function NewOrderPage() {
             </div>
 
             {/* Menu grid */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-h-[70vh]  lg:overflow-y-auto lg:pr-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-h-[70vh] lg:overflow-y-auto lg:pr-1">
               {filteredItems.length === 0 ? (
                 <div className="col-span-2 rounded-[24px] border border-dashed border-[var(--primary)]/30 bg-[var(--primary)]/5 py-8 text-center text-muted-foreground shadow-sm">
                   <AlertCircle className="mx-auto h-10 w-10 text-[var(--primary)]/40" />
@@ -553,14 +727,14 @@ export default function NewOrderPage() {
                       onClick={() => addToCart(item)}
                       disabled={!item.is_available}
                       className={cn(
-                        "group relative  rounded-[22px] border p-3.5 text-left shadow-sm transition-all duration-300 mt-3",
+                        "group relative rounded-[22px] border p-3.5 text-left shadow-sm transition-all duration-300 mt-3",
                         item.is_available
                           ? "border-[var(--primary)]/20 bg-gradient-to-br from-background via-background to-[var(--primary)]/5 hover:-translate-y-0.5 hover:border-[var(--primary)]/50 hover:shadow-[0_16px_40px_-22px_rgba(234,179,8,0.7)]"
                           : "cursor-not-allowed border-[var(--primary)]/20 bg-muted/30 opacity-60"
                       )}
                     >
                       {quantityInCart > 0 && (
-                        <div className="absolute -right-1 -top-2 flex h-7 w-7  items-center justify-center rounded-full bg-[var(--primary)] text-xs font-bold text-[var(--primary-foreground)] shadow-lg">
+                        <div className="absolute -right-1 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--primary)] text-xs font-bold text-[var(--primary-foreground)] shadow-lg">
                           {quantityInCart}
                         </div>
                       )}
@@ -626,6 +800,8 @@ export default function NewOrderPage() {
                 tables={tables}
                 selectedTableId={selectedTableId}
                 tableError={tableError || errors.table?.message}
+                customerCount={customerCount}           // <-- pass to summary
+                maxCapacity={maxCapacity}              // <-- pass to summary
                 onTableChange={handleTableChange}
                 onUpdateQuantity={updateQuantity}
                 onRemoveItem={removeItem}
@@ -648,7 +824,6 @@ export default function NewOrderPage() {
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed inset-0 z-50 flex items-end lg:hidden"
             >
-              {/* Backdrop */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -657,7 +832,6 @@ export default function NewOrderPage() {
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               />
 
-              {/* Summary Panel */}
               <motion.div
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
@@ -686,10 +860,8 @@ export default function NewOrderPage() {
                   </button>
                 </div>
 
-                {/* Divider */}
                 <div className="mb-4 h-px bg-gradient-to-r from-[var(--primary)]/20 via-[var(--primary)]/40 to-[var(--primary)]/20" />
 
-                {/* Order Summary Content */}
                 <OrderSummary
                   cart={cart}
                   total={total}
@@ -706,6 +878,8 @@ export default function NewOrderPage() {
                   tables={tables}
                   selectedTableId={selectedTableId}
                   tableError={tableError || errors.table?.message}
+                  customerCount={customerCount}
+                  maxCapacity={maxCapacity}
                   onTableChange={handleTableChange}
                   onUpdateQuantity={updateQuantity}
                   onRemoveItem={removeItem}
@@ -715,7 +889,6 @@ export default function NewOrderPage() {
                   onSubmit={handleSubmit(onSubmit)}
                 />
 
-                {/* Bottom Close Button */}
                 <button
                   onClick={toggleCart}
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 py-3 text-sm font-medium text-muted-foreground transition hover:bg-[var(--primary)]/10"

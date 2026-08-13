@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getOrder, updateOrder, addOrderItem, deleteOrderItem, getActiveDiscounts } from "@/lib/ordersApi";
+import {
+  getOrder,
+  updateOrder,
+  addOrderItem,
+  deleteOrderItem,
+  getActiveDiscounts,
+} from "@/lib/ordersApi";
 import { getRecipeByProduct, getBranchInventory } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useCanModifyOrders } from "@/hooks/usePermissions";
-import { useCanManage } from "@/hooks/useCanManage";
 import {
   ArrowLeft,
   Clock,
@@ -23,18 +28,18 @@ import {
   ChevronUp,
   Plus,
   Trash2,
-  Pencil,
+  Users,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/input";
-import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { listMenuItems } from "@/lib/menuApi";
 
-// Status colors
+// ─── Status & Role Configuration ─────────────────────────────────────────────
+
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   CONFIRMED: "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -54,29 +59,28 @@ const ROLE_TRANSITIONS: Record<string, string[]> = {
   branch_manager: [],
 };
 
-// ✅ Helper function to safely get user role
 const getUserRole = (user: any): string | null => {
   if (!user) return null;
-  
-  // If role is an object with name property
-  if (user.role && typeof user.role === 'object' && 'name' in user.role) {
+  if (user.role && typeof user.role === "object" && "name" in user.role) {
     return (user.role as any).name;
   }
-  
-  // If role is a string
-  if (typeof user.role === 'string') {
-    return user.role;
-  }
-  
+  if (typeof user.role === "string") return user.role;
   return null;
 };
 
-export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+// ─── Component ─────────────────────────────────────────────────────────────────
+
+export default function OrderDetailsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const router = useRouter();
   const { user } = useAuth();
   const canModify = useCanModifyOrders();
 
+  // ─── State ──────────────────────────────────────────────────────────────────
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -85,46 +89,56 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [recipeData, setRecipeData] = useState<Record<number, any>>({});
   const [inventoryData, setInventoryData] = useState<Record<number, number>>({});
 
-  // ─── Add item state ──────────────────────────────────────────────────
+  // Add item
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItemProduct, setNewItemProduct] = useState("");
   const [newItemQty, setNewItemQty] = useState(1);
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [fetchingMenu, setFetchingMenu] = useState(false);
 
-  // ─── Discount state ──────────────────────────────────────────────────
+  // Discounts
   const [discounts, setDiscounts] = useState<any[]>([]);
   const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
   const [updatingDiscount, setUpdatingDiscount] = useState(false);
   const [promoCode, setPromoCode] = useState("");
 
-  const fetchOrder = async () => {
+  // ─── Customer Count ──────────────────────────────────────────────────────────
+  // ─── Customer Count State ──────────────────────────────────────────────
+  const [customerCount, setCustomerCount] = useState(order?.customer_count || 1);
+  const [inputValue, setInputValue] = useState(String(customerCount));
+  const maxCapacity = order?.table_capacity || 10;
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ─── Data Fetching ──────────────────────────────────────────────────────────
+
+  const fetchOrder = useCallback(async () => {
     try {
       const data = await getOrder(id);
       setOrder(data);
       setSelectedStatus(data.status);
-      // Always reset the dropdown so the user can pick a NEW discount to add
+      setCustomerCount(data.customer_count ?? 1);
       setSelectedDiscountId("");
       setPromoCode("");
     } catch (error) {
-      console.error("Failed to fetch order details:", error);
+      console.error("Failed to fetch order:", error);
       toast.error("Order not found.");
       router.push("/dashboard/orders");
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
 
   useEffect(() => {
     fetchOrder();
-  }, [id]);
+  }, [fetchOrder]);
 
-  // ✅ Get user role safely
   const role = getUserRole(user);
-  
-  // ─── Fetch active discounts (only for cashier/manager/admin) ──────
-  const canApplyDiscount = user && ["admin", "branch_manager", "cashier"].includes(role || "");
-  
+  const canApplyDiscount = !!(
+    user &&
+    ["admin", "branch_manager", "cashier"].includes(role || "")
+  );
+
+  // Fetch active discounts
   useEffect(() => {
     if (!canApplyDiscount) return;
     const fetchDiscounts = async () => {
@@ -137,6 +151,61 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     };
     fetchDiscounts();
   }, [canApplyDiscount]);
+
+  // Sync when order loads
+  useEffect(() => {
+    if (order) {
+      const count = order.customer_count || 1;
+      setCustomerCount(count);
+      setInputValue(String(count));
+    }
+  }, [order]);
+
+  // Debounced save function (only called with a valid, clamped number)
+  const saveCustomerCount = (newCount: number) => {
+    if (newCount === order.customer_count) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await updateOrder(id, { customer_count: newCount });
+        toast.success("Customer count updated", { icon: "👥" });
+        fetchOrder();
+      } catch (error: any) {
+        const msg = error?.customer_count || error?.detail || "Update failed";
+        toast.error(msg);
+      }
+    }, 500);
+  };
+
+  // Slider handler (clamped)
+  const handleSliderChange = (val: number) => {
+    const clamped = Math.min(Math.max(val, 1), maxCapacity);
+    setCustomerCount(clamped);
+    setInputValue(String(clamped));
+    saveCustomerCount(clamped);
+  };
+
+  // Input handlers
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+  };
+
+  const handleInputBlur = () => {
+    let val = parseInt(inputValue, 10);
+    if (isNaN(val) || val < 1) val = 1;
+    val = Math.min(val, maxCapacity);
+    setCustomerCount(val);
+    setInputValue(String(val));
+    saveCustomerCount(val);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.currentTarget.blur();
+    }
+  };
+
+  // ─── Status Update ─────────────────────────────────────────────────────────
 
   const getAvailableStatuses = () => {
     if (!order) return [];
@@ -159,9 +228,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     return allowed.filter((s) => allowedFromCurrent.includes(s));
   };
 
-  // ─── Filter out PAID for non‑cashier/admins ──────────────────────────────
-  const rawAvailableStatuses = getAvailableStatuses();
-  const availableStatuses = rawAvailableStatuses.filter((status) => {
+  const availableStatuses = getAvailableStatuses().filter((status) => {
     if (status === "PAID") {
       return role && ["admin", "cashier"].includes(role);
     }
@@ -176,35 +243,35 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       toast.success(`Order status updated to ${selectedStatus}`);
       fetchOrder();
     } catch (error: any) {
-      const msg = error?.detail || error?.message || "Failed to update status.";
-      toast.error(msg);
+      toast.error(error?.detail || error?.message || "Status update failed");
     } finally {
       setUpdating(false);
     }
   };
 
-  // ─── Handle apply discount ──────────────────────────────────────────
+  // ─── Discount Handlers ─────────────────────────────────────────────────────
+
   const handleApplyDiscount = async () => {
     if (!selectedDiscountId) return;
     setUpdatingDiscount(true);
     try {
-      await updateOrder(id, { 
+      await updateOrder(id, {
         discount_id: parseInt(selectedDiscountId),
-        promo_code: promoCode || null
+        promo_code: promoCode || null,
       });
       toast.success("Discount applied!");
       setSelectedDiscountId("");
       setPromoCode("");
-      fetchOrder(); // refresh order details
+      fetchOrder();
     } catch (error: any) {
-      const msg = error?.discount || error?.detail || error?.promo_code || error?.message || "Failed to apply discount.";
-      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      const msg =
+        error?.discount || error?.detail || error?.promo_code || "Discount failed";
+      toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
     } finally {
       setUpdatingDiscount(false);
     }
   };
 
-  // ─── Handle remove a single discount ─────────────────────────────────
   const handleRemoveAllDiscounts = async () => {
     setUpdatingDiscount(true);
     try {
@@ -213,20 +280,20 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       setSelectedDiscountId("");
       setPromoCode("");
       fetchOrder();
-    } catch (error: any) {
-      toast.error("Failed to remove discounts.");
+    } catch (error) {
+      toast.error("Failed to remove discounts");
     } finally {
       setUpdatingDiscount(false);
     }
   };
 
-  // ─── Toggle Recipe ─────────────────────────────────────────────
+  // ─── Recipe Toggle ─────────────────────────────────────────────────────────
+
   const toggleRecipe = async (itemId: number, productId: number, branchId: number) => {
     if (expandedItems[itemId]) {
       setExpandedItems((prev) => ({ ...prev, [itemId]: false }));
       return;
     }
-
     setExpandedItems((prev) => ({ ...prev, [itemId]: true }));
 
     if (!recipeData[productId]) {
@@ -252,7 +319,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  // ─── Add Item ──────────────────────────────────────────────────
+  // ─── Add / Remove Items ───────────────────────────────────────────────────
+
   const fetchMenuItems = async () => {
     setFetchingMenu(true);
     try {
@@ -266,9 +334,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   useEffect(() => {
-    if (showAddItem) {
-      fetchMenuItems();
-    }
+    if (showAddItem) fetchMenuItems();
   }, [showAddItem]);
 
   const handleAddItem = async () => {
@@ -304,6 +370,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  // ─── Loading / Not Found ──────────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -323,35 +391,32 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     );
   }
 
+  // ─── Derived Values ──────────────────────────────────────────────────────
+
   const statusColor = STATUS_COLORS[order.status] || "bg-slate-500/20 text-muted-foreground border-slate-500/30";
-
-  // ─── Compute discount total ──────────────────────────────────
-  const totalDiscount = order.discounts?.reduce((sum: number, d: any) => sum + parseFloat(d.amount), 0) || 0;
-
-  // ─── IDs of discounts already applied to this order ─────────
+  const totalDiscount =
+    order.discounts?.reduce((sum: number, d: any) => sum + parseFloat(d.amount), 0) || 0;
   const appliedDiscountIds = new Set(
     (order.discounts || []).map((d: any) => String(d.discount))
   );
-
-  // ─── Available discounts = active discounts minus already applied ──
   const availableDiscounts = discounts.filter(
     (d: any) => !appliedDiscountIds.has(String(d.id))
   );
+  const rawSubtotal =
+    order.items?.reduce(
+      (sum: number, item: any) => sum + parseFloat(item.price_at_order) * item.quantity,
+      0
+    ) || 0;
 
-  // ─── Raw subtotal (items total before discounts) ────────────
-  const rawSubtotal = order.items?.reduce(
-    (sum: number, item: any) => sum + parseFloat(item.price_at_order) * item.quantity, 0
-  ) || 0;
+  const isOrderLocked = order?.status === "PAID" || order?.status === "CANCELLED";
+  const canApplyDiscountHere =
+    canApplyDiscount && !isOrderLocked;
 
-  // ─── Check if the current user can apply discounts ────────────────
-  const canApplyDiscountHere = user &&
-    ["admin", "branch_manager", "cashier"].includes(role || "") &&
-    order?.status !== "PAID" &&
-    order?.status !== "CANCELLED";
+  // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
+      {/* ─── Header ────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/dashboard/orders" className="hover:text-foreground transition-colors">
@@ -398,7 +463,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Order Items */}
+        {/* ─── Left: Order Items ──────────────────────────────────────────── */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="border-border bg-muted/30">
             <CardHeader className="pb-4 border-b border-border">
@@ -420,7 +485,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {/* Add Item Form */}
               {showAddItem && canModify && (
                 <div className="p-4 border-b border-border bg-muted/30">
                   <div className="flex flex-wrap items-end gap-3">
@@ -431,7 +495,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                         onChange={(e) => setNewItemProduct(e.target.value)}
                         className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       >
-                        <option value="">Select...</option>
+                        <option value="">Select…</option>
                         {fetchingMenu ? (
                           <option disabled>Loading...</option>
                         ) : (
@@ -468,7 +532,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 </div>
               )}
 
-              {/* Order Items List */}
               <div className="divide-y divide-white/[0.05]">
                 {order.items && order.items.length > 0 ? (
                   order.items.map((item: any) => {
@@ -484,8 +547,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                               <span className="text-indigo-400 font-bold">{item.quantity}x</span>
                             </div>
                             <div>
-                              <h4 className="text-foreground font-medium">{item.product_name || "Unknown Product"}</h4>
-                              <p className="text-xs text-muted-foreground mt-0.5">SKU: {item.product_sku}</p>
+                              <h4 className="text-foreground font-medium">
+                                {item.product_name || "Unknown Product"}
+                              </h4>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                SKU: {item.product_sku}
+                              </p>
                               {item.product && (
                                 <button
                                   onClick={() => toggleRecipe(item.id, item.product, order.branch)}
@@ -493,59 +560,74 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 >
                                   <Utensils className="h-3 w-3" />
                                   {isExpanded ? "Hide Recipe" : "View Recipe"}
-                                  {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronDown className="h-3 w-3" />
+                                  )}
                                 </button>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-right">
-                              <div className="text-foreground font-bold">${parseFloat(item.price_at_order).toFixed(2)}</div>
+                              <div className="text-foreground font-bold">
+                                ${parseFloat(item.price_at_order).toFixed(2)}
+                              </div>
                               <div className="text-xs text-muted-foreground mt-0.5">
                                 ${(parseFloat(item.price_at_order) * item.quantity).toFixed(2)} total
                               </div>
                             </div>
                             {canModify && (
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => handleDeleteItem(item.id)}
-                                  className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
+                              <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                             )}
                           </div>
                         </div>
 
-                        {/* Recipe Ingredients (expanded) */}
                         {isExpanded && (
                           <div className="mt-3 pt-3 border-t border-border">
                             {ingredients.length === 0 ? (
-                              <p className="text-xs text-muted-foreground">No ingredients defined for this recipe.</p>
+                              <p className="text-xs text-muted-foreground">
+                                No ingredients defined for this recipe.
+                              </p>
                             ) : (
                               <div className="space-y-1.5">
-                                <p className="text-xs font-medium text-muted-foreground mb-1">Ingredients & Stock</p>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">
+                                  Ingredients & Stock
+                                </p>
                                 {ingredients.map((ing: any) => {
                                   const stock = inventoryData[ing.ingredient] ?? 0;
                                   const required = parseFloat(ing.quantity) * item.quantity;
                                   const isSufficient = stock >= required;
                                   return (
-                                    <div key={ing.id} className="flex items-center justify-between text-sm bg-background p-2 rounded-lg">
+                                    <div
+                                      key={ing.id}
+                                      className="flex items-center justify-between text-sm bg-background p-2 rounded-lg"
+                                    >
                                       <div className="flex items-center gap-2">
                                         <span className="text-foreground">{ing.ingredient_name}</span>
                                         <span className="text-muted-foreground text-xs">
-                                          {ing.quantity} {ing.unit} × {item.quantity} = {required} {ing.unit}
+                                          {ing.quantity} {ing.unit} × {item.quantity} = {required}{" "}
+                                          {ing.unit}
                                         </span>
                                       </div>
                                       <div className="flex items-center gap-3">
                                         <span className="text-muted-foreground">
                                           Stock: {stock} {ing.unit}
                                         </span>
-                                        <span className={cn(
-                                          "text-xs px-2 py-0.5 rounded-full",
-                                          isSufficient ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
-                                        )}>
+                                        <span
+                                          className={cn(
+                                            "text-xs px-2 py-0.5 rounded-full",
+                                            isSufficient
+                                              ? "bg-emerald-500/20 text-emerald-400"
+                                              : "bg-red-500/20 text-red-400"
+                                          )}
+                                        >
                                           {isSufficient ? "✅ Sufficient" : "❌ Insufficient"}
                                         </span>
                                       </div>
@@ -576,7 +658,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           )}
         </div>
 
-        {/* Right Column: Order Summary */}
+        {/* ─── Right: Order Summary ────────────────────────────────────────── */}
         <div className="space-y-6">
           <Card className="border-border bg-muted/30">
             <CardHeader className="pb-4 border-b border-border">
@@ -584,25 +666,97 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             </CardHeader>
             <CardContent className="p-4 space-y-4">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground flex items-center gap-2"><Hash className="h-4 w-4"/> Order ID</span>
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Hash className="h-4 w-4" /> Order ID
+                </span>
                 <span className="text-foreground">{order.order_number}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground flex items-center gap-2"><User className="h-4 w-4"/> Server/User</span>
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <User className="h-4 w-4" /> Server/User
+                </span>
                 <span className="text-foreground">{order.user_name || "Guest"}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4"/> Created At</span>
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Clock className="h-4 w-4" /> Created At
+                </span>
                 <span className="text-foreground">
-                  {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(order.created_at).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> Priority</span>
-                <span className="text-foreground">{order.priority}</span>
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" /> Priority
+                </span>
+                <span className="text-foreground">{order.priority ? "Yes" : "No"}</span>
               </div>
 
-              {/* ─── Subtotal (items before discounts) ─── */}
+              {/* ─── Customer Count ───────────────────────────────────────── */}
+              <div className="pt-2 border-t border-border/60">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Users className="h-4 w-4" /> Customers
+                  </span>
+                  <span className="text-sm font-medium text-foreground">
+                    {customerCount} / {maxCapacity}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={1}
+                    max={maxCapacity}
+                    step={1}
+                    value={customerCount}
+                    onChange={(e) => handleSliderChange(parseInt(e.target.value))}
+                    disabled={isOrderLocked}
+                    className="flex-1 h-1.5 rounded-full appearance-none bg-muted 
+                      [&::-webkit-slider-thumb]:appearance-none 
+                      [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 
+                      [&::-webkit-slider-thumb]:rounded-full 
+                      [&::-webkit-slider-thumb]:bg-indigo-500 
+                      [&::-webkit-slider-thumb]:border 
+                      [&::-webkit-slider-thumb]:border-indigo-400/50 
+                      [&::-webkit-slider-thumb]:shadow 
+                      [&::-webkit-slider-thumb]:cursor-pointer
+                      [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 
+                      [&::-moz-range-thumb]:rounded-full 
+                      [&::-moz-range-thumb]:bg-indigo-500 
+                      [&::-moz-range-thumb]:border 
+                      [&::-moz-range-thumb]:border-indigo-400/50 
+                      [&::-moz-range-thumb]:shadow
+                      [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-muted
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <div className="w-16">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={inputValue}
+                      onChange={handleInputChange}
+                      onBlur={handleInputBlur}
+                      onKeyDown={handleInputKeyDown}
+                      disabled={isOrderLocked}
+                      className="h-8 text-center text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                  </div>
+                </div>
+                {isOrderLocked ? (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Customer count cannot be changed for {order.status.toLowerCase()} orders.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    👥 Drag the slider or enter a number (max {maxCapacity}).
+                  </p>
+                )}
+              </div>
+
+              {/* ─── Subtotal ────────────────────────────────────────────── */}
               {totalDiscount > 0 && (
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Subtotal (items)</span>
@@ -610,7 +764,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 </div>
               )}
 
-              {/* ─── Discounts Applied ─── */}
+              {/* ─── Discounts ────────────────────────────────────────────── */}
               {order.discounts && order.discounts.length > 0 && (
                 <div className="pt-2 border-t border-border">
                   <h4 className="text-sm font-medium text-muted-foreground mb-2">Discounts Applied</h4>
@@ -624,7 +778,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                     <span className="text-muted-foreground">Total Discount</span>
                     <span className="text-emerald-400">-${totalDiscount.toFixed(2)}</span>
                   </div>
-                  {/* Remove all discounts button (only for editable orders) */}
                   {canApplyDiscountHere && order.discounts.length > 0 && (
                     <button
                       onClick={handleRemoveAllDiscounts}
@@ -637,7 +790,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 </div>
               )}
 
-              {/* ─── Apply Discount (Cashier/Manager/Admin only) ─── */}
+              {/* ─── Apply Discount ────────────────────────────────────────── */}
               {canApplyDiscountHere && (
                 <div className="pt-2 border-t border-border">
                   <div className="flex-1">
@@ -659,31 +812,36 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                       ))}
                     </select>
                     {availableDiscounts.length === 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">All available discounts have been applied.</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        All available discounts have been applied.
+                      </p>
                     )}
-                    {updatingDiscount && <p className="text-xs text-muted-foreground mt-1">Updating...</p>}
+                    {updatingDiscount && (
+                      <p className="text-xs text-muted-foreground mt-1">Updating...</p>
+                    )}
                   </div>
 
-                  {/* ─── Promo Code Input ─── */}
-                  {selectedDiscountId && discounts.find((d: any) => String(d.id) === selectedDiscountId)?.requires_code && (
-                    <div className="mt-2">
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">
-                        Promo Code
-                      </label>
-                      <input
-                        type="text"
-                        value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value)}
-                        placeholder="Enter promo code..."
-                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                  )}
+                  {selectedDiscountId &&
+                    discounts.find((d: any) => String(d.id) === selectedDiscountId)
+                      ?.requires_code && (
+                      <div className="mt-2">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
+                          Promo Code
+                        </label>
+                        <input
+                          type="text"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                          placeholder="Enter promo code…"
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    )}
 
                   {selectedDiscountId && (
-                    <Button 
-                      size="sm" 
-                      className="w-full mt-3" 
+                    <Button
+                      size="sm"
+                      className="w-full mt-3"
                       onClick={handleApplyDiscount}
                       disabled={updatingDiscount}
                     >
