@@ -7,6 +7,7 @@ import {
   saveTokenToBackend,
   setupForegroundMessageListener,
 } from "@/lib/notification";
+import toast from "react-hot-toast"; 
 
 export default function NotificationInitializer() {
   const { user, isAuthenticated } = useAuth();
@@ -32,7 +33,28 @@ export default function NotificationInitializer() {
 
         // 3. Listen for foreground messages
         const unsubscribe = setupForegroundMessageListener((payload) => {
-          alert(`🔔 ${payload.notification.title}\n${payload.notification.body}`);
+          // 🔔 Custom toast instead of alert
+          toast.success(
+            <div>
+              <strong>{payload.notification?.title || 'New Notification'}</strong>
+              <p className="text-sm text-muted-foreground mt-1">
+                {payload.notification?.body || ''}
+              </p>
+            </div>,
+            {
+              duration: 5000,
+              position: 'bottom-right',
+              style: {
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                color: 'var(--foreground)',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                maxWidth: '400px',
+              },
+              icon: '🔔',
+            }
+          );
         });
 
         return () => {
