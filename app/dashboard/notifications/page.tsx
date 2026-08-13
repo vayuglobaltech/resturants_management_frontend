@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-  useMemo,
-  useRef,
-  useCallback,
-} from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -30,36 +24,88 @@ type RoleType = "kitchen_staff" | "waiter" | "branch_manager";
 const ROLE_CONFIG = {
   kitchen_staff: {
     fetchStatuses: ["CONFIRMED", "QUEUED", "PREPARING"] as string[],
-    nextStatus:    { CONFIRMED: "QUEUED", QUEUED: "PREPARING", PREPARING: "READY" } as Record<string, string>,
-    label:         "Kitchen Staff",
-    icon:          ChefHat,
-    swipeLabel:    { CONFIRMED: "Queue it", QUEUED: "Start Preparing", PREPARING: "Mark Ready" } as Record<string, string>,
-    isActionable:  true,
+    nextStatus: {
+      CONFIRMED: "QUEUED",
+      QUEUED: "PREPARING",
+      PREPARING: "READY",
+    } as Record<string, string>,
+    label: "Kitchen Staff",
+    icon: ChefHat,
+    swipeLabel: {
+      CONFIRMED: "Queue it",
+      QUEUED: "Start Preparing",
+      PREPARING: "Mark Ready",
+    } as Record<string, string>,
+    isActionable: true,
   },
   waiter: {
     fetchStatuses: ["PENDING", "READY"] as string[],
-    nextStatus:    { PENDING: "CONFIRMED", READY: "DELIVERED" } as Record<string, string>,
-    label:         "Waiter",
-    icon:          Utensils,
-    swipeLabel:    { PENDING: "Confirm Order", READY: "Mark Delivered" } as Record<string, string>,
-    isActionable:  true,
+    nextStatus: { PENDING: "CONFIRMED", READY: "DELIVERED" } as Record<
+      string,
+      string
+    >,
+    label: "Waiter",
+    icon: Utensils,
+    swipeLabel: { PENDING: "Confirm Order", READY: "Mark Delivered" } as Record<
+      string,
+      string
+    >,
+    isActionable: true,
   },
   branch_manager: {
     fetchStatuses: [] as string[],
-    label:         "Branch Manager",
-    icon:          ListChecks,
-    isActionable:  false,
+    label: "Branch Manager",
+    icon: ListChecks,
+    isActionable: false,
   },
 } satisfies Record<RoleType, object>;
 
-const STATUS_BADGE: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  PENDING:   { label: "Pending",   bg: "bg-amber-500/15",   text: "text-amber-500",   dot: "bg-amber-400" },
-  CONFIRMED: { label: "Confirmed", bg: "bg-blue-500/15",    text: "text-blue-500",    dot: "bg-blue-400" },
-  QUEUED:    { label: "Queued",    bg: "bg-indigo-500/15",  text: "text-indigo-400",  dot: "bg-indigo-400" },
-  PREPARING: { label: "Preparing", bg: "bg-orange-500/15",  text: "text-orange-500",  dot: "bg-orange-400" },
-  READY:     { label: "Ready",     bg: "bg-emerald-500/15", text: "text-emerald-500", dot: "bg-emerald-400" },
-  DELIVERED: { label: "Delivered", bg: "bg-emerald-500/15", text: "text-emerald-500", dot: "bg-emerald-400" },
-  PAID:      { label: "Paid",      bg: "bg-green-500/15",   text: "text-green-500",   dot: "bg-green-400" },
+const STATUS_BADGE: Record<
+  string,
+  { label: string; bg: string; text: string; dot: string }
+> = {
+  PENDING: {
+    label: "Pending",
+    bg: "bg-amber-500/15",
+    text: "text-amber-500",
+    dot: "bg-amber-400",
+  },
+  CONFIRMED: {
+    label: "Confirmed",
+    bg: "bg-blue-500/15",
+    text: "text-blue-500",
+    dot: "bg-blue-400",
+  },
+  QUEUED: {
+    label: "Queued",
+    bg: "bg-indigo-500/15",
+    text: "text-indigo-400",
+    dot: "bg-indigo-400",
+  },
+  PREPARING: {
+    label: "Preparing",
+    bg: "bg-orange-500/15",
+    text: "text-orange-500",
+    dot: "bg-orange-400",
+  },
+  READY: {
+    label: "Ready",
+    bg: "bg-emerald-500/15",
+    text: "text-emerald-500",
+    dot: "bg-emerald-400",
+  },
+  DELIVERED: {
+    label: "Delivered",
+    bg: "bg-emerald-500/15",
+    text: "text-emerald-500",
+    dot: "bg-emerald-400",
+  },
+  PAID: {
+    label: "Paid",
+    bg: "bg-green-500/15",
+    text: "text-green-500",
+    dot: "bg-green-400",
+  },
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -102,7 +148,10 @@ function SwipeCard({
   const THRESHOLD = 130;
 
   const badge = STATUS_BADGE[msg.status] || {
-    label: msg.status, bg: "bg-muted", text: "text-muted-foreground", dot: "bg-muted-foreground",
+    label: msg.status,
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    dot: "bg-muted-foreground",
   };
   const progress = Math.min(slideX / THRESHOLD, 1);
 
@@ -113,7 +162,9 @@ function SwipeCard({
   };
   const onTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
-    setSlideX(Math.max(0, Math.min(e.touches[0].clientX - startXRef.current, 230)));
+    setSlideX(
+      Math.max(0, Math.min(e.touches[0].clientX - startXRef.current, 230)),
+    );
   };
   const onTouchEnd = () => {
     setIsDragging(false);
@@ -162,16 +213,24 @@ function SwipeCard({
           className="relative select-none touch-pan-y"
         >
           {/* Background track */}
-          <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none" aria-hidden>
+          <div
+            className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none"
+            aria-hidden
+          >
             <div
               className="h-full flex items-center justify-end pr-5 rounded-2xl"
               style={{
                 background: `linear-gradient(90deg, transparent ${40 - progress * 40}%, ${
-                  progress > 0.85 ? "rgba(34,197,94,0.22)" : "rgba(99,102,241,0.10)"
+                  progress > 0.85
+                    ? "rgba(34,197,94,0.22)"
+                    : "rgba(99,102,241,0.10)"
                 } 100%)`,
               }}
             >
-              <motion.span className="text-2xl" animate={{ scale: 0.7 + progress * 0.55, opacity: progress }}>
+              <motion.span
+                className="text-2xl"
+                animate={{ scale: 0.7 + progress * 0.55, opacity: progress }}
+              >
                 {progress > 0.85 ? "✅" : "👉"}
               </motion.span>
             </div>
@@ -182,7 +241,9 @@ function SwipeCard({
             className="relative bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
             style={{
               transform: `translateX(${slideX}px)`,
-              transition: isDragging ? "none" : "transform 0.25s cubic-bezier(.22,.68,0,1.2)",
+              transition: isDragging
+                ? "none"
+                : "transform 0.25s cubic-bezier(.22,.68,0,1.2)",
               cursor: isDragging ? "grabbing" : "grab",
             }}
             onTouchStart={onTouchStart}
@@ -193,13 +254,18 @@ function SwipeCard({
             {/* Progress fill */}
             <div
               className="absolute bottom-0 left-0 h-[3px] bg-gradient-to-r from-primary/50 to-emerald-500 rounded-full"
-              style={{ width: `${progress * 100}%`, transition: isDragging ? "none" : "width 0.1s" }}
+              style={{
+                width: `${progress * 100}%`,
+                transition: isDragging ? "none" : "width 0.1s",
+              }}
             />
 
             <div className="flex items-center gap-4 px-4 py-4">
               {/* Order number */}
               <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 flex flex-col items-center justify-center">
-                <span className="text-[9px] text-primary/60 font-bold uppercase tracking-wider leading-none">Order</span>
+                <span className="text-[9px] text-primary/60 font-bold uppercase tracking-wider leading-none">
+                  Order
+                </span>
                 <span className="text-base font-black text-primary leading-tight">
                   #{String(msg.order_number).replace("ORD-", "").slice(-4)}
                 </span>
@@ -208,8 +274,12 @@ function SwipeCard({
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center flex-row-reverse gap-2">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${badge.dot} animate-pulse`} />
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${badge.dot} animate-pulse`}
+                    />
                     {badge.label}
                   </span>
                   <span className="text-xs text-muted-foreground font-medium">
@@ -217,14 +287,16 @@ function SwipeCard({
                   </span>
                 </div>
                 <div className="mb-0 md:mb-5 ">
-                <p className="mb-1.5 text-sm font-semibold text-foreground truncate">
-                  {msg.message}
-                </p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <span>Swipe right to</span>
-                  <span className="font-semibold text-primary">{swipeLabel}</span>
-                  <span>→</span>
-                </p>
+                  <p className="mb-1.5 text-sm font-semibold text-foreground truncate">
+                    {msg.message}
+                  </p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span>Swipe right to</span>
+                    <span className="font-semibold text-primary">
+                      {swipeLabel}
+                    </span>
+                    <span>→</span>
+                  </p>
                 </div>
               </div>
 
@@ -246,19 +318,28 @@ function SwipeCard({
 function HistoryItem({ log }: { log: StatusLog }) {
   const from = log.from_status || "—";
   const to = log.to_status;
-  const badge = STATUS_BADGE[to] || { label: to, bg: "bg-muted", text: "text-muted-foreground", dot: "bg-muted-foreground" };
+  const badge = STATUS_BADGE[to] || {
+    label: to,
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    dot: "bg-muted-foreground",
+  };
 
   return (
     <div className="flex items-center gap-4 p-3 rounded-xl border border-border bg-card/80 hover:shadow-md transition-shadow">
       <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex flex-col items-center justify-center">
-        <span className="text-[9px] text-primary/60 font-bold uppercase tracking-wider leading-none">Order</span>
+        <span className="text-[9px] text-primary/60 font-bold uppercase tracking-wider leading-none">
+          Order
+        </span>
         <span className="text-sm font-black text-primary leading-tight">
           #{String(log.order).slice(-4)}
         </span>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
+          <span
+            className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}
+          >
             <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
             {badge.label}
           </span>
@@ -298,11 +379,17 @@ export default function NotificationsPage() {
       typeof user.role === "object" && user.role !== null && "name" in user.role
         ? String(user.role.name).toLowerCase()
         : typeof user.role === "string"
-        ? user.role.toLowerCase()
-        : (user.designation?.toLowerCase().replace(/\s+/g, "_")) ?? "";
-    if (rn === "kitchen_staff" || rn.includes("kitchen")) return "kitchen_staff";
+          ? user.role.toLowerCase()
+          : (user.designation?.toLowerCase().replace(/\s+/g, "_") ?? "");
+    if (rn === "kitchen_staff" || rn.includes("kitchen"))
+      return "kitchen_staff";
     if (rn === "waiter" || rn.includes("waiter")) return "waiter";
-    if (rn === "branch_manager" || rn.includes("manager") || rn.includes("branch")) return "branch_manager";
+    if (
+      rn === "branch_manager" ||
+      rn.includes("manager") ||
+      rn.includes("branch")
+    )
+      return "branch_manager";
     return null;
   }, [user]);
 
@@ -317,13 +404,18 @@ export default function NotificationsPage() {
 
       try {
         if (role === "branch_manager") {
-          const logsData = await getOrderStatusLogs();
-          const logs = Array.isArray(logsData) ? logsData : (logsData.results || []);
+          const logsData: any = await getOrderStatusLogs();
+          const logs = Array.isArray(logsData)
+            ? logsData
+            : logsData.results || [];
           setStatusLogs(logs);
         } else {
           const allFetched: NotificationMsg[] = [];
           for (const status of config.fetchStatuses) {
-            const orders = await listOrders(undefined, { status, page_size: 100 });
+            const orders = await listOrders(undefined, {
+              status,
+              page_size: 100,
+            });
             for (const o of orders) {
               const st = String(o.status ?? "").toUpperCase();
               const nextSt = config.nextStatus?.[st];
@@ -332,7 +424,8 @@ export default function NotificationsPage() {
                 order_id: o.id,
                 order_number: o.order_number,
                 status: st,
-                table_number: o.table_number_display ?? o.table_number ?? o.table ?? "—",
+                table_number:
+                  o.table_number_display ?? o.table_number ?? o.table ?? "—",
                 message: o.special_instructions
                   ? `Order #${o.order_number} — ${o.special_instructions.slice(0, 40)}`
                   : `Order #${o.order_number}`,
@@ -354,7 +447,7 @@ export default function NotificationsPage() {
         setRefreshing(false);
       }
     },
-    [config, role]
+    [config, role],
   );
 
   useEffect(() => {
@@ -368,7 +461,9 @@ export default function NotificationsPage() {
   }, [fetchOrders]);
 
   useEffect(() => {
-    const hasStatusUpdate = messages.some(msg => msg.type === 'order_status_update');
+    const hasStatusUpdate = messages.some(
+      (msg) => msg.type === "order_status_update",
+    );
     if (!hasStatusUpdate) return;
     const timer = setTimeout(() => {
       fetchOrdersRef.current(true);
@@ -384,12 +479,18 @@ export default function NotificationsPage() {
       if (latest?.action_required) {
         toast(
           (t) => (
-            <div className="flex items-start gap-3" onClick={() => toast.dismiss(t.id)}>
+            <div
+              className="flex items-start gap-3"
+              onClick={() => toast.dismiss(t.id)}
+            >
               <Bell className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-bold text-foreground">New Order Alert</p>
+                <p className="text-sm font-bold text-foreground">
+                  New Order Alert
+                </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {latest.message ?? `Order #${latest.order_number} needs attention`}
+                  {latest.message ??
+                    `Order #${latest.order_number} needs attention`}
                 </p>
               </div>
             </div>
@@ -404,7 +505,7 @@ export default function NotificationsPage() {
               borderRadius: "14px",
               padding: "12px 14px",
             },
-          }
+          },
         );
       }
     }
@@ -420,19 +521,28 @@ export default function NotificationsPage() {
       const st = String(m.status ?? "").toUpperCase();
       const nextSt = config.nextStatus?.[st];
       if (m.action_required && nextSt) {
-        map.set(m.order_id, { ...m, status: st, next_status: nextSt, arrived_at: Date.now() });
+        map.set(m.order_id, {
+          ...m,
+          status: st,
+          next_status: nextSt,
+          arrived_at: Date.now(),
+        });
       } else {
         map.delete(m.order_id);
       }
     });
-    return Array.from(map.values()).sort((a, b) => (a.arrived_at ?? 0) - (b.arrived_at ?? 0));
+    return Array.from(map.values()).sort(
+      (a, b) => (a.arrived_at ?? 0) - (b.arrived_at ?? 0),
+    );
   }, [initialOrders, messages, config, isActionable]);
 
   // ─── Swipe handler ─────────────────────────────────────────────────────────
   const handleSwipe = useCallback(
     async (msg: NotificationMsg) => {
       if (!msg.next_status) return;
-      setInitialOrders((prev) => prev.filter((m) => m.order_id !== msg.order_id));
+      setInitialOrders((prev) =>
+        prev.filter((m) => m.order_id !== msg.order_id),
+      );
       removeMessage(msg.order_id);
       try {
         await updateOrder(msg.order_id, { status: msg.next_status });
@@ -442,11 +552,16 @@ export default function NotificationsPage() {
         fetchOrders(true);
       }
     },
-    [removeMessage, fetchOrders]
+    [removeMessage, fetchOrders],
   );
 
   // ─── Access guards ────────────────────────────────────────────────────────
-  if (!user) return <div className="flex items-center justify-center min-h-[50vh]"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
+  if (!user)
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
 
   if (!role) {
     return (
@@ -456,7 +571,8 @@ export default function NotificationsPage() {
         </div>
         <h2 className="text-xl font-bold text-foreground">Access Restricted</h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-          This page is only available for kitchen staff, waiters, and branch managers.
+          This page is only available for kitchen staff, waiters, and branch
+          managers.
         </p>
       </div>
     );
@@ -468,7 +584,6 @@ export default function NotificationsPage() {
   return (
     <div className="w-full min-h-[calc(100vh-104px)] bg-background">
       <div className="max-w-[640px] mx-auto px-4 pt-6 pb-24 space-y-6">
-
         {/* ─── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -480,7 +595,10 @@ export default function NotificationsPage() {
                 {isActionable ? "Order Alerts" : "Order History"}
               </h1>
               <p className="text-xs text-muted-foreground mt-1 font-medium">
-                {config!.label} · {isActionable ? "Swipe right to action" : "Audit trail of status changes"}
+                {config!.label} ·{" "}
+                {isActionable
+                  ? "Swipe right to action"
+                  : "Audit trail of status changes"}
               </p>
             </div>
           </div>
@@ -506,7 +624,9 @@ export default function NotificationsPage() {
               className="w-9 h-9 rounded-xl border border-border hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
               title="Refresh"
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              />
             </button>
           </div>
         </div>
@@ -515,7 +635,9 @@ export default function NotificationsPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-            <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading…</p>
+            <p className="text-sm text-muted-foreground font-medium animate-pulse">
+              Loading…
+            </p>
           </div>
         ) : isActionable ? (
           // ─── Actionable (kitchen_staff / waiter) ──────────────────────────
@@ -525,7 +647,10 @@ export default function NotificationsPage() {
             <>
               <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium px-1">
                 <Clock className="h-3.5 w-3.5" />
-                <span>{displayMessages.length} order{displayMessages.length !== 1 ? "s" : ""} need your attention</span>
+                <span>
+                  {displayMessages.length} order
+                  {displayMessages.length !== 1 ? "s" : ""} need your attention
+                </span>
               </div>
               <AnimatePresence initial={false}>
                 {displayMessages.map((msg) => (
@@ -539,21 +664,19 @@ export default function NotificationsPage() {
               </AnimatePresence>
             </>
           )
+        ) : // ─── History (branch_manager) ──────────────────────────────────────
+        statusLogs.length === 0 ? (
+          <EmptyState />
         ) : (
-          // ─── History (branch_manager) ──────────────────────────────────────
-          statusLogs.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium px-1">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Showing {statusLogs.length} recent status changes</span>
-              </div>
-              {statusLogs.map((log) => (
-                <HistoryItem key={log.id} log={log} />
-              ))}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium px-1">
+              <Clock className="h-3.5 w-3.5" />
+              <span>Showing {statusLogs.length} recent status changes</span>
             </div>
-          )
+            {statusLogs.map((log) => (
+              <HistoryItem key={log.id} log={log} />
+            ))}
+          </div>
         )}
       </div>
     </div>
