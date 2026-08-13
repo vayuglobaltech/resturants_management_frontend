@@ -10,7 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { listOrders, updateOrder } from "@/lib/ordersApi";
+import { listOrders, updateOrder, getOrderStatusLogs } from "@/lib/ordersApi";
 import toast from "react-hot-toast";
 import {
   Bell,
@@ -19,10 +19,13 @@ import {
   ChefHat,
   Utensils,
   RefreshCw,
+  ListChecks,
+  User,
+  Calendar,
 } from "lucide-react";
 
 // ─── Status config ────────────────────────────────────────────────────────────
-type RoleType = "kitchen_staff" | "waiter";
+type RoleType = "kitchen_staff" | "waiter" | "branch_manager";
 
 const ROLE_CONFIG = {
   kitchen_staff: {
@@ -31,6 +34,7 @@ const ROLE_CONFIG = {
     label:         "Kitchen Staff",
     icon:          ChefHat,
     swipeLabel:    { CONFIRMED: "Queue it", QUEUED: "Start Preparing", PREPARING: "Mark Ready" } as Record<string, string>,
+    isActionable:  true,
   },
   waiter: {
     fetchStatuses: ["PENDING", "READY"] as string[],
@@ -38,6 +42,13 @@ const ROLE_CONFIG = {
     label:         "Waiter",
     icon:          Utensils,
     swipeLabel:    { PENDING: "Confirm Order", READY: "Mark Delivered" } as Record<string, string>,
+    isActionable:  true,
+  },
+  branch_manager: {
+    fetchStatuses: [] as string[],
+    label:         "Branch Manager",
+    icon:          ListChecks,
+    isActionable:  false,
   },
 } satisfies Record<RoleType, object>;
 
@@ -47,6 +58,8 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; text: string; do
   QUEUED:    { label: "Queued",    bg: "bg-indigo-500/15",  text: "text-indigo-400",  dot: "bg-indigo-400" },
   PREPARING: { label: "Preparing", bg: "bg-orange-500/15",  text: "text-orange-500",  dot: "bg-orange-400" },
   READY:     { label: "Ready",     bg: "bg-emerald-500/15", text: "text-emerald-500", dot: "bg-emerald-400" },
+  DELIVERED: { label: "Delivered", bg: "bg-emerald-500/15", text: "text-emerald-500", dot: "bg-emerald-400" },
+  PAID:      { label: "Paid",      bg: "bg-green-500/15",   text: "text-green-500",   dot: "bg-green-400" },
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -57,11 +70,21 @@ interface NotificationMsg {
   table_number: string | number;
   message: string;
   action_required: boolean;
-  next_status: string;
+  next_status?: string;
   arrived_at?: number;
 }
 
-// ─── Swipe card ───────────────────────────────────────────────────────────────
+interface StatusLog {
+  id: number;
+  order: number;
+  from_status: string | null;
+  to_status: string;
+  changed_by: number | null;
+  changed_by_name: string;
+  created_at: string;
+}
+
+// ─── Swipe card (for kitchen & waiter) ──────────────────────────────────────
 function SwipeCard({
   msg,
   swipeLabel,
@@ -219,16 +242,56 @@ function SwipeCard({
   );
 }
 
+// ─── History item (for manager) ─────────────────────────────────────────────
+function HistoryItem({ log }: { log: StatusLog }) {
+  const from = log.from_status || "—";
+  const to = log.to_status;
+  const badge = STATUS_BADGE[to] || { label: to, bg: "bg-muted", text: "text-muted-foreground", dot: "bg-muted-foreground" };
+
+  return (
+    <div className="flex items-center gap-4 p-3 rounded-xl border border-border bg-card/80 hover:shadow-md transition-shadow">
+      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex flex-col items-center justify-center">
+        <span className="text-[9px] text-primary/60 font-bold uppercase tracking-wider leading-none">Order</span>
+        <span className="text-sm font-black text-primary leading-tight">
+          #{String(log.order).slice(-4)}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
+            {badge.label}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {from} → {to}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <User className="h-3 w-3" />
+            {log.changed_by_name || "System"}
+          </span>
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {new Date(log.created_at).toLocaleString()}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function NotificationsPage() {
   const { user } = useAuth();
   const { messages, removeMessage } = useWebSocket();
   const [initialOrders, setInitialOrders] = useState<NotificationMsg[]>([]);
+  const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const prevMsgCount = useRef(0);
 
-  // Role detection — derived from user, so recomputes when user loads
+  // Role detection
   const role: RoleType | null = useMemo(() => {
     if (!user) return null;
     const rn =
@@ -239,62 +302,58 @@ export default function NotificationsPage() {
         : (user.designation?.toLowerCase().replace(/\s+/g, "_")) ?? "";
     if (rn === "kitchen_staff" || rn.includes("kitchen")) return "kitchen_staff";
     if (rn === "waiter" || rn.includes("waiter")) return "waiter";
+    if (rn === "branch_manager" || rn.includes("manager") || rn.includes("branch")) return "branch_manager";
     return null;
   }, [user]);
 
   const config = role ? ROLE_CONFIG[role] : null;
+  const isActionable = config?.isActionable ?? false;
 
-  // Fetch orders — re-runs whenever role becomes non-null
+  // ─── Fetch data ────────────────────────────────────────────────────────────
   const fetchOrders = useCallback(
     async (silent = false) => {
       if (!config) return;
       silent ? setRefreshing(true) : setLoading(true);
 
       try {
-        const allFetched: NotificationMsg[] = [];
-
-        for (const status of config.fetchStatuses) {
-          console.log(`[Notifications] Fetching status=${status}`);
-          const orders = await listOrders(undefined, { status, page_size: 100 });
-          console.log(`[Notifications] Got ${orders.length} orders for status=${status}`, orders);
-
-          for (const o of orders) {
-            // Normalize status to uppercase in case backend returns mixed case
-            const st = String(o.status ?? "").toUpperCase();
-            const nextSt = config.nextStatus[st];
-            if (!nextSt) {
-              console.warn(`[Notifications] No nextStatus for status="${st}"`, o);
-              continue;
+        if (role === "branch_manager") {
+          const logsData = await getOrderStatusLogs();
+          const logs = Array.isArray(logsData) ? logsData : (logsData.results || []);
+          setStatusLogs(logs);
+        } else {
+          const allFetched: NotificationMsg[] = [];
+          for (const status of config.fetchStatuses) {
+            const orders = await listOrders(undefined, { status, page_size: 100 });
+            for (const o of orders) {
+              const st = String(o.status ?? "").toUpperCase();
+              const nextSt = config.nextStatus?.[st];
+              if (!nextSt) continue;
+              allFetched.push({
+                order_id: o.id,
+                order_number: o.order_number,
+                status: st,
+                table_number: o.table_number_display ?? o.table_number ?? o.table ?? "—",
+                message: o.special_instructions
+                  ? `Order #${o.order_number} — ${o.special_instructions.slice(0, 40)}`
+                  : `Order #${o.order_number}`,
+                action_required: true,
+                next_status: nextSt,
+                arrived_at: new Date(o.created_at ?? Date.now()).getTime(),
+              });
             }
-            allFetched.push({
-              order_id: o.id,
-              order_number: o.order_number,
-              status: st,
-              table_number: o.table_number_display ?? o.table_number ?? o.table ?? "—",
-              message: o.special_instructions
-                ? `Order #${o.order_number} — ${o.special_instructions.slice(0, 40)}`
-                : `Order #${o.order_number}`,
-              action_required: true,
-              next_status: nextSt,
-              arrived_at: new Date(o.created_at ?? Date.now()).getTime(),
-            });
           }
+          const map = new Map<number, NotificationMsg>();
+          allFetched.forEach((m) => map.set(m.order_id, m));
+          setInitialOrders(Array.from(map.values()));
         }
-
-        // Deduplicate
-        const map = new Map<number, NotificationMsg>();
-        allFetched.forEach((m) => map.set(m.order_id, m));
-        console.log(`[Notifications] Total actionable orders: ${map.size}`);
-        setInitialOrders(Array.from(map.values()));
       } catch (err) {
         console.error("[Notifications] Fetch error:", err);
-        toast.error("Failed to fetch notifications");
+        toast.error("Failed to fetch data");
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [config, role]
   );
 
@@ -302,30 +361,24 @@ export default function NotificationsPage() {
     fetchOrders();
   }, [fetchOrders]);
 
-  // ─── Auto‑refresh on WebSocket status updates ──────────────────────────────
+  // ─── Auto‑refresh on WebSocket updates ─────────────────────────────────────
   const fetchOrdersRef = useRef(fetchOrders);
   useEffect(() => {
     fetchOrdersRef.current = fetchOrders;
   }, [fetchOrders]);
 
   useEffect(() => {
-    console.log('[Auto‑refresh] messages changed:', messages);
     const hasStatusUpdate = messages.some(msg => msg.type === 'order_status_update');
-    if (!hasStatusUpdate)  {
-    console.log('[Auto‑refresh] No status update message');
-    return;
-  }
-  console.log('[Auto‑refresh] Will refetch in 500ms');
+    if (!hasStatusUpdate) return;
     const timer = setTimeout(() => {
-      console.log('[Auto‑refresh] Refetching orders...');
-      fetchOrdersRef.current(); // silent refresh – no loading spinner
+      fetchOrdersRef.current(true);
     }, 500);
-
     return () => clearTimeout(timer);
   }, [messages]);
 
-  // Toast on new WS messages
+  // ─── Toast on new WS messages (only for actionable roles) ─────────────────
   useEffect(() => {
+    if (!isActionable) return;
     if (messages.length > prevMsgCount.current) {
       const latest = messages[messages.length - 1];
       if (latest?.action_required) {
@@ -356,16 +409,16 @@ export default function NotificationsPage() {
       }
     }
     prevMsgCount.current = messages.length;
-  }, [messages]);
+  }, [messages, isActionable]);
 
-  // Merge initial + WS messages
+  // ─── Merge initial + WS messages for actionable roles ────────────────────
   const displayMessages = useMemo(() => {
-    if (!config) return [];
+    if (!isActionable || !config) return [];
     const map = new Map<number, NotificationMsg>();
     initialOrders.forEach((m) => map.set(m.order_id, m));
     messages.forEach((m: any) => {
       const st = String(m.status ?? "").toUpperCase();
-      const nextSt = config.nextStatus[st];
+      const nextSt = config.nextStatus?.[st];
       if (m.action_required && nextSt) {
         map.set(m.order_id, { ...m, status: st, next_status: nextSt, arrived_at: Date.now() });
       } else {
@@ -373,22 +426,17 @@ export default function NotificationsPage() {
       }
     });
     return Array.from(map.values()).sort((a, b) => (a.arrived_at ?? 0) - (b.arrived_at ?? 0));
-  }, [initialOrders, messages, config]);
+  }, [initialOrders, messages, config, isActionable]);
 
+  // ─── Swipe handler ─────────────────────────────────────────────────────────
   const handleSwipe = useCallback(
     async (msg: NotificationMsg) => {
+      if (!msg.next_status) return;
       setInitialOrders((prev) => prev.filter((m) => m.order_id !== msg.order_id));
       removeMessage(msg.order_id);
       try {
         await updateOrder(msg.order_id, { status: msg.next_status });
-        toast.success(`✅ Order #${msg.order_number} → ${msg.next_status}`, {
-          style: {
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-            color: "var(--foreground)",
-            borderRadius: "14px",
-          },
-        });
+        toast.success(`✅ Order #${msg.order_number} → ${msg.next_status}`);
       } catch {
         toast.error("Failed to update. Refreshing...");
         fetchOrders(true);
@@ -397,14 +445,8 @@ export default function NotificationsPage() {
     [removeMessage, fetchOrders]
   );
 
-  // Access guard
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
+  // ─── Access guards ────────────────────────────────────────────────────────
+  if (!user) return <div className="flex items-center justify-center min-h-[50vh]"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
 
   if (!role) {
     return (
@@ -414,7 +456,7 @@ export default function NotificationsPage() {
         </div>
         <h2 className="text-xl font-bold text-foreground">Access Restricted</h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-          This page is only available for kitchen staff and waiters.
+          This page is only available for kitchen staff, waiters, and branch managers.
         </p>
       </div>
     );
@@ -422,11 +464,12 @@ export default function NotificationsPage() {
 
   const RoleIcon = config!.icon;
 
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="w-full min-h-[calc(100vh-104px)] bg-background">
       <div className="max-w-[640px] mx-auto px-4 pt-6 pb-24 space-y-6">
 
-        {/* Header */}
+        {/* ─── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
@@ -434,15 +477,15 @@ export default function NotificationsPage() {
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tight text-foreground leading-none">
-                Order Alerts
+                {isActionable ? "Order Alerts" : "Order History"}
               </h1>
               <p className="text-xs text-muted-foreground mt-1 font-medium">
-                {config!.label} · Swipe right to action
+                {config!.label} · {isActionable ? "Swipe right to action" : "Audit trail of status changes"}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {displayMessages.length > 0 && (
+            {isActionable && displayMessages.length > 0 && (
               <motion.span
                 key={displayMessages.length}
                 initial={{ scale: 0.7 }}
@@ -451,6 +494,11 @@ export default function NotificationsPage() {
               >
                 {displayMessages.length}
               </motion.span>
+            )}
+            {!isActionable && statusLogs.length > 0 && (
+              <span className="flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full bg-primary text-primary-foreground text-xs font-black shadow-md shadow-primary/30">
+                {statusLogs.length}
+              </span>
             )}
             <button
               onClick={() => fetchOrders(true)}
@@ -463,76 +511,69 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        {/* Stats bar */}
-        {!loading && displayMessages.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-3 gap-2"
-          >
-            {config!.fetchStatuses.map((status) => {
-              const count = displayMessages.filter((m) => m.status === status).length;
-              const b = STATUS_BADGE[status];
-              return (
-                <div key={status} className={`rounded-xl border border-border px-3 py-2.5 flex flex-col gap-0.5 ${b.bg}`}>
-                  <span className={`text-xl font-black leading-none ${b.text}`}>{count}</span>
-                  <span className={`text-[10px] font-semibold uppercase tracking-wider opacity-70 ${b.text}`}>
-                    {b.label}
-                  </span>
-                </div>
-              );
-            })}
-          </motion.div>
-        )}
-
-        {/* Content */}
+        {/* ─── Content ──────────────────────────────────────────────────────── */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-            <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading orders…</p>
+            <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading…</p>
           </div>
-        ) : displayMessages.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center py-16 text-center bg-card border border-border rounded-3xl"
-          >
-            <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-            </div>
-            <p className="text-lg font-bold text-foreground">All caught up!</p>
-            <p className="text-sm text-muted-foreground mt-1.5 max-w-[240px]">
-              No actionable orders right now. New alerts appear automatically.
-            </p>
-            <button
-              onClick={() => fetchOrders(true)}
-              className="mt-5 flex items-center gap-2 text-xs font-semibold text-primary hover:underline"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Check again
-            </button>
-          </motion.div>
+        ) : isActionable ? (
+          // ─── Actionable (kitchen_staff / waiter) ──────────────────────────
+          displayMessages.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium px-1">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{displayMessages.length} order{displayMessages.length !== 1 ? "s" : ""} need your attention</span>
+              </div>
+              <AnimatePresence initial={false}>
+                {displayMessages.map((msg) => (
+                  <SwipeCard
+                    key={msg.order_id}
+                    msg={msg}
+                    swipeLabel={config!.swipeLabel?.[msg.status] ?? "Action"}
+                    onSwipe={() => handleSwipe(msg)}
+                  />
+                ))}
+              </AnimatePresence>
+            </>
+          )
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium px-1">
-              <Clock className="h-3.5 w-3.5" />
-              <span>
-                {displayMessages.length} order{displayMessages.length !== 1 ? "s" : ""} need your attention
-              </span>
-            </div>
-            <AnimatePresence initial={false}>
-              {displayMessages.map((msg) => (
-                <SwipeCard
-                  key={msg.order_id}
-                  msg={msg}
-                  swipeLabel={config!.swipeLabel[msg.status] ?? "Action"}
-                  onSwipe={() => handleSwipe(msg)}
-                />
+          // ─── History (branch_manager) ──────────────────────────────────────
+          statusLogs.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium px-1">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Showing {statusLogs.length} recent status changes</span>
+              </div>
+              {statusLogs.map((log) => (
+                <HistoryItem key={log.id} log={log} />
               ))}
-            </AnimatePresence>
-          </div>
+            </div>
+          )
         )}
       </div>
     </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center justify-center py-16 text-center bg-card border border-border rounded-3xl"
+    >
+      <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4">
+        <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+      </div>
+      <p className="text-lg font-bold text-foreground">All caught up!</p>
+      <p className="text-sm text-muted-foreground mt-1.5 max-w-[240px]">
+        No updates to display right now.
+      </p>
+    </motion.div>
   );
 }

@@ -142,3 +142,9 @@ export async function deleteDiscount(id: number) {
   if (!res.ok && json) throw json;
   return json;
 }
+
+export async function getOrderStatusLogs(): Promise<any[]> {
+  const res = await apiFetch('/api/orders/status-logs/', {}, true);
+  if (!res.ok) throw new Error('Failed to fetch logs');
+  return res.json();
+}

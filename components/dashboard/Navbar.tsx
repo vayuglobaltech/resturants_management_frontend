@@ -82,8 +82,12 @@ export function DashboardNavbar({
   const tabsRef = useRef<HTMLDivElement>(null);
 
   const roleName = getRoleName(user);
-  const { count: notifCount, role: notifRole } = useNotifCount();
-  const showAlertBell = notifRole === 'kitchen_staff' || notifRole === 'waiter';
+  const { count: notifCount } = useNotifCount();
+  const showAlertBell =
+  roleName &&
+  (roleName === 'kitchen_staff' ||
+   roleName === 'waiter' ||
+   roleName.includes('manager'));
 
   const features = FEATURES_BY_ROLE[roleName] || FEATURES_BY_ROLE.waiter;
 
