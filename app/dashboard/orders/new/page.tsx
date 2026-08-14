@@ -802,6 +802,12 @@ const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
                 tableError={tableError || errors.table?.message}
                 customerCount={customerCount}           // <-- pass to summary
                 maxCapacity={maxCapacity}              // <-- pass to summary
+                inputValue={inputValue}
+                fetchingPreviousOrder={fetchingPreviousOrder}
+                onCustomerCountChange={handleSliderChange}
+                onInputValueChange={(val) => setInputValue(val)}
+                onInputBlur={handleInputBlur}
+                onInputKeyDown={handleInputKeyDown}
                 onTableChange={handleTableChange}
                 onUpdateQuantity={updateQuantity}
                 onRemoveItem={removeItem}
@@ -880,6 +886,12 @@ const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
                   tableError={tableError || errors.table?.message}
                   customerCount={customerCount}
                   maxCapacity={maxCapacity}
+                  inputValue={inputValue}
+                  fetchingPreviousOrder={fetchingPreviousOrder}
+                  onCustomerCountChange={handleSliderChange}
+                  onInputValueChange={(val) => setInputValue(val)}
+                  onInputBlur={handleInputBlur}
+                  onInputKeyDown={handleInputKeyDown}
                   onTableChange={handleTableChange}
                   onUpdateQuantity={updateQuantity}
                   onRemoveItem={removeItem}

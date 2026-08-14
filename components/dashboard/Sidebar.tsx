@@ -67,12 +67,13 @@ const SUB_FEATURES: Record<
   users: [{ label: "All Users", icon: Users, href: "/dashboard/users" }],
   reports: [
     { label: "Overview", icon: LayoutDashboard, href: "/dashboard/reports" },
+    { label: "Customer Tracking", icon: Users, href: "/dashboard/reports/tracking" },
     { label: "Sales Report", icon: BarChart3, href: "/dashboard/reports/sales" },
     { label: "Product Performance", icon: Package, href: "/dashboard/reports/products" },
     { label: "Gross Profit", icon: DollarSign, href: "/dashboard/reports/gross-profit" },
     { label: "Profit & Loss", icon: TrendingUp, href: "/dashboard/reports/profit-loss" },
     { label: "Order Report", icon: Receipt, href: "/dashboard/reports/orders" },
-    { label: "Employee Performance", icon: Users, href: "/dashboard/reports/employees" },
+    { id: "employee-performance", label: "Employee Performance", icon: Users, href: "/dashboard/reports/employees" },
   ],
 };
 

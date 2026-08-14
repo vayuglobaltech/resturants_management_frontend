@@ -1,6 +1,6 @@
 // components/orders/orderSummary.tsx
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -13,11 +13,13 @@ import {
   AlertCircle,
   Table as TableIcon,
   CheckCircle,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { Slider } from "@/components/ui/Slider"; // import your Radix Slider
 
 interface CartItem {
   id: number;
@@ -30,6 +32,7 @@ interface Table {
   id: number;
   table_number: number;
   status: string;
+  capacity?: number;
 }
 
 interface OrderSummaryProps {
@@ -41,8 +44,10 @@ interface OrderSummaryProps {
   canApplyDiscount: boolean;
   discounts: any[];
   selectedDiscountId: string;
-  customerCount?: number;   
+  customerCount?: number;
   maxCapacity?: number;
+  inputValue?: string;
+  fetchingPreviousOrder?: boolean;
   loadingDiscounts: boolean;
   promoCode: string;
   submitting: boolean;
@@ -56,6 +61,10 @@ interface OrderSummaryProps {
   onPromoCodeChange: (code: string) => void;
   onSpecialInstructionsChange: (instructions: string) => void;
   onTableChange?: (value: string) => void;
+  onCustomerCountChange?: (val: number) => void;
+  onInputValueChange?: (val: string) => void;
+  onInputBlur?: () => void;
+  onInputKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onSubmit: (e?: React.BaseSyntheticEvent) => Promise<void>;
 }
 
@@ -69,8 +78,10 @@ export default function OrderSummary({
   discounts,
   selectedDiscountId,
   loadingDiscounts,
-  customerCount,
-  maxCapacity,
+  customerCount = 1,
+  maxCapacity = 10,
+  inputValue = "1",
+  fetchingPreviousOrder = false,
   promoCode,
   submitting,
   specialInstructions,
@@ -83,12 +94,18 @@ export default function OrderSummary({
   onPromoCodeChange,
   onSpecialInstructionsChange,
   onTableChange,
+  onCustomerCountChange,
+  onInputValueChange,
+  onInputBlur,
+  onInputKeyDown,
   onSubmit,
 }: OrderSummaryProps) {
   const [isDiscountOpen, setIsDiscountOpen] = useState(false);
 
+  const isLocked = !selectedTableId;
+
   return (
-    <div className="rounded-2xl border border-[var(--primary)]/20 bg-card/85 p-4 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
+    <div className="rounded-2xl border border-[var(--primary)]/20 bg-card/85 p-4 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur relative">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
           <ShoppingCart className="h-5 w-5 text-[var(--primary)]" />
@@ -132,9 +149,67 @@ export default function OrderSummary({
         </div>
       )}
 
-      <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">Customers</span>
-        <span>{customerCount ?? 1} / {maxCapacity ?? 10}</span>
+      {/* ─── Customer Count Slider (Mobile Only) ───────────────────────── */}
+      <div className="mb-4 lg:hidden">
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5" /> Customers
+          </label>
+          <span className="text-sm font-semibold text-foreground">
+            {customerCount} / {maxCapacity}
+          </span>
+        </div>
+        <div className="relative">
+          <Slider
+            min={1}
+            max={maxCapacity}
+            step={1}
+            value={[customerCount]}
+            onValueChange={(vals) => onCustomerCountChange?.(vals[0])}
+            disabled={isLocked || fetchingPreviousOrder}
+            className="w-full cursor-grab active:cursor-grabbing"
+          />
+          {fetchingPreviousOrder && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+              <Loader2 className="h-3 w-3 animate-spin text-[var(--primary)]" />
+              Loading previous order...
+            </div>
+          )}
+          <div className="flex justify-between px-0.5 mt-1 w-full">
+            {Array.from({ length: maxCapacity }, (_, i) => i + 1).map((num) => (
+              <span
+                key={num}
+                className={cn(
+                  "text-[10px] font-medium transition-colors select-none",
+                  num <= customerCount
+                    ? "text-[var(--primary)]"
+                    : "text-muted-foreground/60"
+                )}
+              >
+                {num}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 mt-1.5">
+          <div className="w-16">
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={inputValue}
+              onChange={(e) => onInputValueChange?.(e.target.value)}
+              onBlur={onInputBlur}
+              onKeyDown={onInputKeyDown}
+              disabled={isLocked || fetchingPreviousOrder}
+              className="h-8 text-center text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {isLocked
+              ? "Select a table first"
+              : `Max capacity: ${maxCapacity}`}
+          </p>
+        </div>
       </div>
 
       {/* ─── Cart Items ──────────────────────────────────────────────────── */}
@@ -286,7 +361,7 @@ export default function OrderSummary({
       <Button
         onClick={onSubmit}
         disabled={submitting || cart.length === 0 || !selectedTableId}
-        className="w-full  mt-4 gap-2 bg-[var(--primary)] hover:bg-[color:var(--primary)]/80 text-[var(--primary-foreground)] font-semibold shadow-lg shadow-[var(--primary)]/25"
+        className="w-full mt-4 gap-2 bg-[var(--primary)] hover:bg-[color:var(--primary)]/80 text-[var(--primary-foreground)] font-semibold shadow-lg shadow-[var(--primary)]/25"
       >
         {submitting ? (
           <>
