@@ -463,7 +463,7 @@ export default function NotificationsPage() {
     if (!hasStatusUpdate) return;
     const timer = setTimeout(() => {
       fetchOrdersRef.current(true);
-    }, 500);
+    }, 800);
     return () => clearTimeout(timer);
   }, [messages]);
 
@@ -528,22 +528,24 @@ export default function NotificationsPage() {
 
   // ─── Swipe handler ─────────────────────────────────────────────────────────
   const handleSwipe = useCallback(
-    async (msg: NotificationMsg) => {
-      if (!msg.next_status) return;
-      setInitialOrders((prev) =>
-        prev.filter((m) => m.order_id !== msg.order_id),
-      );
-      removeMessage(msg.order_id);
-      try {
-        await updateOrder(msg.order_id, { status: msg.next_status });
-        toast.success(`✅ Order #${msg.order_number} → ${msg.next_status}`);
-      } catch {
-        toast.error("Failed to update. Refreshing...");
+  async (msg: NotificationMsg) => {
+    if (!msg.next_status) return;
+    setInitialOrders((prev) => prev.filter((m) => m.order_id !== msg.order_id));
+    removeMessage(msg.order_id);
+    try {
+      await updateOrder(msg.order_id, { status: msg.next_status });
+      toast.success(`✅ Order #${msg.order_number} → ${msg.next_status}`);
+      // 🔁 Force refresh after a short delay to ensure the order reappears
+      setTimeout(() => {
         fetchOrders(true);
-      }
-    },
-    [removeMessage, fetchOrders],
-  );
+      }, 1000);
+    } catch {
+      toast.error("Failed to update. Refreshing...");
+      fetchOrders(true);
+    }
+  },
+  [removeMessage, fetchOrders]
+);
 
   // ─── Access guards ────────────────────────────────────────────────────────
   if (!user)
