@@ -24,7 +24,7 @@ import {
   ChevronRight,
   CheckCircle,
   XCircle,
-  PieChart,
+  UserRoundSearch,
   Lightbulb,
   Cloud,
   DollarSign,
@@ -67,7 +67,7 @@ const SUB_FEATURES: Record<
   users: [{ label: "All Users", icon: Users, href: "/dashboard/users" }],
   reports: [
     { label: "Overview", icon: LayoutDashboard, href: "/dashboard/reports" },
-    { label: "Customer Tracking", icon: Users, href: "/dashboard/reports/tracking" },
+    { label: "Customer Tracking", icon: UserRoundSearch, href: "/dashboard/reports/tracking" },
     { label: "Sales Report", icon: BarChart3, href: "/dashboard/reports/sales" },
     { label: "Product Performance", icon: Package, href: "/dashboard/reports/products" },
     { label: "Gross Profit", icon: DollarSign, href: "/dashboard/reports/gross-profit" },

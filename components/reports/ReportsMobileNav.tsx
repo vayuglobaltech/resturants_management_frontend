@@ -7,7 +7,7 @@ import {
   Boxes,
   ChartNoAxesCombined,
   ClipboardList,
-  Lightbulb,
+  UserRoundSearch,
   ListChecks,
   ReceiptText,
   TrendingUp,
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 const REPORT_LINKS = [
   { label: "Overview", href: "/dashboard/reports", icon: BarChart3 },
-  { label: "Customer Tracking", href: "/dashboard/reports/tracking", icon: Users },
+  { label: "Customer Tracking", href: "/dashboard/reports/tracking",icon: UserRoundSearch },
   { label: "Sales", href: "/dashboard/reports/sales", icon: TrendingUp },
   { label: "Products", href: "/dashboard/reports/products", icon: Boxes },
   { label: "Gross profit", href: "/dashboard/reports/gross-profit", icon: ChartNoAxesCombined },

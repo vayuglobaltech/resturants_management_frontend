@@ -62,10 +62,10 @@ export default function CustomerTrackingPage() {
       const trackingRes = await apiFetch(
         `/api/orders/tracking/?start_date=${startStr}&end_date=${endStr}`,
         {},
-        true
+        true,
       );
       const trackingData = await trackingRes.json();
-      
+
       setTables(trackingData.tables || []);
       setTotalCustomersServed(trackingData.total_customers || 0);
       setTotalCurrentlySitting(trackingData.total_currently_sitting || 0);
@@ -84,7 +84,9 @@ export default function CustomerTrackingPage() {
 
   // Auto-refresh when websocket receives an order update
   useEffect(() => {
-    const hasStatusUpdate = messages.some(msg => msg.type === "order_status_update");
+    const hasStatusUpdate = messages.some(
+      (msg) => msg.type === "order_status_update",
+    );
     if (hasStatusUpdate) {
       const timer = setTimeout(() => {
         fetchData();
@@ -188,95 +190,152 @@ export default function CustomerTrackingPage() {
       {/* Grid of Tables */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <AnimatePresence>
-          {tables.map((table) => {
-            const customers = table.customers_served || 0;
-            const capacity = table.capacity || 4;
-            // For historical tracking, a table is "highly utilized" if it served many customers relative to its capacity
-            const usagePercentage = Math.min((customers / (capacity * 2)) * 100, 100); // Just a visual metric
+          {[...tables]
+            .sort(
+              (a, b) => (a.customers_served || 0) - (b.customers_served || 0),
+            )
+            .map((table) => {
+              const customers = table.customers_served || 0;
+              const sitting = table.currently_sitting || 0;
+              const capacity = table.capacity || 4;
 
-            let statusColor = "bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20";
-            
-            return (
-              <motion.div
-                key={table.id}
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className="group relative overflow-hidden bg-card border border-border rounded-2xl p-5 hover:shadow-lg transition-all duration-300 flex flex-col"
-              >
-                {/* Background Glass Element */}
-                <div className="absolute -right-8 -top-8 w-24 h-24 bg-[var(--primary)]/5 rounded-full blur-2xl group-hover:bg-[var(--primary)]/10 transition-colors duration-500" />
-                
-                <div className="flex justify-between items-start mb-4 z-10 relative">
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground">Table {table.table_number}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">{table.area || "Main Hall"}</p>
+              const occupancyPercentage = Math.min(
+                (sitting / capacity) * 100,
+                100,
+              );
+
+              const statusColor =
+                "bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20";
+
+              return (
+                <motion.div
+                  key={table.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="group relative overflow-hidden bg-card border border-border rounded-2xl p-5 hover:shadow-lg transition-all duration-300 flex flex-col"
+                >
+                  {/* Background Glass Element */}
+                  <div className="absolute -right-8 -top-8 w-24 h-24 bg-[var(--primary)]/5 rounded-full blur-2xl group-hover:bg-[var(--primary)]/10 transition-colors duration-500" />
+
+                  <div className="flex justify-between items-start mb-4 z-10 relative">
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground">
+                        Table {table.table_number}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {table.area || "Main Hall"}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "text-[10px] uppercase font-bold px-2 py-1 rounded-full border",
+                        statusColor,
+                      )}
+                    >
+                      Capacity: {capacity}
+                    </span>
                   </div>
-                  <span className={cn("text-[10px] uppercase font-bold px-2 py-1 rounded-full border", statusColor)}>
-                    Capacity: {capacity}
-                  </span>
-                </div>
 
-                <div className="flex items-end justify-between mt-auto mb-2 z-10 relative">
-                  <div>
-                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Served</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className={cn(
-                        "text-2xl font-black",
-                        customers === 0 ? "text-muted-foreground/50" : "text-emerald-500"
-                      )}>
-                        {customers}
-                      </span>
+                  <div className="flex items-end justify-between mt-auto mb-2 z-10 relative">
+                    <div>
+                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                        Served
+                      </p>
+                      <div className="flex items-baseline gap-1">
+                        <span
+                          className={cn(
+                            "text-2xl font-black",
+                            customers === 0
+                              ? "text-muted-foreground/50"
+                              : "text-emerald-500",
+                          )}
+                        >
+                          {customers}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                        Sitting
+                      </p>
+                      <div className="flex items-baseline gap-1 justify-end">
+                        <span
+                          className={cn(
+                            "text-2xl font-black",
+                            table.currently_sitting === 0
+                              ? "text-muted-foreground/50"
+                              : "text-purple-500",
+                          )}
+                        >
+                          {table.currently_sitting}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Sitting</p>
-                    <div className="flex items-baseline gap-1 justify-end">
-                      <span className={cn(
-                        "text-2xl font-black",
-                        table.currently_sitting === 0 ? "text-muted-foreground/50" : "text-purple-500"
-                      )}>
-                        {table.currently_sitting}
-                      </span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Progress Bar (Visual representation of utilization) */}
-                <div className="w-full bg-secondary rounded-full h-2 z-10 relative overflow-hidden mt-2">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${usagePercentage}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className={cn(
-                      "h-full rounded-full transition-colors",
-                      customers === 0 && table.currently_sitting === 0 ? "bg-transparent" : "bg-[var(--primary)]"
-                    )}
-                  />
-                </div>
-              </motion.div>
-            );
-          })}
+                  {/* Progress Bar (Visual representation of utilization) */}
+                  <div className="w-full bg-secondary rounded-full h-2 z-10 relative overflow-hidden mt-2">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${occupancyPercentage}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      className={cn(
+                        "h-full rounded-full",
+                        sitting === 0
+                          ? "bg-transparent"
+                          : sitting >= capacity
+                            ? "bg-red-500"
+                            : "bg-[var(--primary)]",
+                      )}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {sitting}/{capacity} seats occupied
+                    </p>
+                  </div>
+                </motion.div>
+              );
+            })}
         </AnimatePresence>
       </div>
-      
+
       {tables.length === 0 && !loading && (
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground bg-card border border-border border-dashed rounded-3xl">
           <AlertCircle className="h-10 w-10 mb-3 opacity-50" />
           <p className="font-medium text-lg">No tables found</p>
-          <p className="text-sm opacity-70">Add tables to start tracking occupancy.</p>
+          <p className="text-sm opacity-70">
+            Add tables to start tracking occupancy.
+          </p>
         </div>
       )}
     </div>
   );
 }
 
-function MetricCard({ title, value, subtitle, icon, gradient }: { title: string, value: number, subtitle: string, icon: React.ReactNode, gradient: string }) {
+function MetricCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  gradient,
+}: {
+  title: string;
+  value: number;
+  subtitle: string;
+  icon: React.ReactNode;
+  gradient: string;
+}) {
   return (
     <div className="bg-card border border-border rounded-2xl p-5 hover:shadow-md transition-shadow relative overflow-hidden flex items-center justify-between">
-      <div className={cn("absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl rounded-bl-full opacity-50 -mr-10 -mt-10", gradient.split(' ')[0], gradient.split(' ')[1])} />
+      <div
+        className={cn(
+          "absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl rounded-bl-full opacity-50 -mr-10 -mt-10",
+          gradient.split(" ")[0],
+          gradient.split(" ")[1],
+        )}
+      />
       <div>
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
         <h3 className="text-3xl font-black text-foreground mt-1">{value}</h3>
