@@ -277,7 +277,7 @@ export default function TableDetailPage({ params }: { params: any }) {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Today's Revenue</p>
-                  <p className="text-xl font-bold">${totalRevenue.toFixed(2)}</p>
+                  <p className="text-xl font-bold">Rs {totalRevenue.toFixed(2)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -354,7 +354,7 @@ export default function TableDetailPage({ params }: { params: any }) {
                               </span>
                             </div>
                             <span className="text-muted-foreground text-sm flex-shrink-0 ml-4">
-                              ${(parseFloat(item.price_at_order || 0) * item.quantity).toFixed(2)}
+                              Rs {(parseFloat(item.price_at_order || 0) * item.quantity).toFixed(2)}
                             </span>
                           </div>
                         ))}
@@ -363,7 +363,7 @@ export default function TableDetailPage({ params }: { params: any }) {
                       <div className="mt-3 pt-2 border-t border-border/50 flex justify-between items-center">
                         <span className="text-xs text-muted-foreground">Total</span>
                         <span className="text-sm font-bold text-foreground">
-                          ${parseFloat(order.total_amount || 0).toFixed(2)}
+                          Rs {parseFloat(order.total_amount || 0).toFixed(2)}
                         </span>
                       </div>
                     </div>

@@ -572,10 +572,10 @@ export default function OrderDetailsPage({
                           <div className="flex items-center gap-3">
                             <div className="text-right">
                               <div className="text-foreground font-bold">
-                                ${parseFloat(item.price_at_order).toFixed(2)}
+                                Rs {parseFloat(item.price_at_order).toFixed(2)}
                               </div>
                               <div className="text-xs text-muted-foreground mt-0.5">
-                                ${(parseFloat(item.price_at_order) * item.quantity).toFixed(2)} total
+                                Rs {(parseFloat(item.price_at_order) * item.quantity).toFixed(2)} total
                               </div>
                             </div>
                             {canModify && (
@@ -855,7 +855,7 @@ export default function OrderDetailsPage({
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium">Total Amount</span>
                   <span className="text-xl font-bold text-emerald-400">
-                    ${parseFloat(order.total_amount || 0).toFixed(2)}
+                    Rs {parseFloat(order.total_amount || 0).toFixed(2)}
                   </span>
                 </div>
               </div>

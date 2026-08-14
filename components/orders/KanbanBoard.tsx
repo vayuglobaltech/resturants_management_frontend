@@ -96,7 +96,7 @@ function OverlayOrderCard({ order }: { order: any }) {
           {order.items?.length || 0} item{order.items?.length !== 1 ? "s" : ""}
         </span>
         <span className="text-sm font-bold text-foreground">
-          ${parseFloat(order.total_amount || 0).toFixed(2)}
+          Rs {parseFloat(order.total_amount || 0).toFixed(2)}
         </span>
       </div>
     </div>
@@ -161,7 +161,7 @@ function OrderCard({ order, onClick }: OrderCardProps) {
           {order.items?.length || 0} item{order.items?.length !== 1 ? "s" : ""}
         </span>
         <span className="text-sm font-bold text-foreground">
-          ${parseFloat(order.total_amount || 0).toFixed(2)}
+          Rs {parseFloat(order.total_amount || 0).toFixed(2)}
         </span>
       </div>
       <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
