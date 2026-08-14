@@ -260,48 +260,49 @@ function SwipeCard({
               }}
             />
 
-            <div className="flex items-center gap-4 px-4 py-4">
+            <div className="flex items-center gap-3 sm:gap-4 px-4 py-4 sm:p-5">
               {/* Order number */}
-              <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 flex flex-col items-center justify-center">
-                <span className="text-[9px] text-primary/60 font-bold uppercase tracking-wider leading-none">
+              <div className="flex-shrink-0 w-12 h-12 sm:w-14 px-2.5 sm:h-14 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex flex-col items-center justify-center shadow-inner">
+                <span className="text-[8px] sm:text-[9px] text-primary/60 font-bold uppercase tracking-wider leading-none">
                   Order
                 </span>
-                <span className="text-base font-black text-primary leading-tight">
+                <span className="text-[11px] sm:text-base font-black text-primary leading-tight">
                   #{String(msg.order_number).replace("ORD-", "").slice(-4)}
                 </span>
               </div>
 
               {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center flex-row-reverse gap-2">
+              <div className="flex-1 min-w-0 flex flex-col justify-center mx-3">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-xs text-muted-foreground font-semibold bg-muted/50 px-2 py-0.5 rounded-md">
+                    Table {msg.table_number ?? "—"}
+                  </span>
                   <span
-                    className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}
+                    className={`inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}
                   >
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${badge.dot} animate-pulse`}
                     />
                     {badge.label}
                   </span>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    Table {msg.table_number ?? "—"}
-                  </span>
                 </div>
-                <div className="mb-0 md:mb-5 ">
-                  <p className="mb-1.5 text-sm font-semibold text-foreground truncate">
+                <div>
+                  <p className="mb-1.5 text-sm font-semibold text-foreground truncate pr-2">
                     {msg.message}
                   </p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <span>Swipe right to</span>
+                  <p className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1">
+                    <span className="hidden sm:inline">Swipe right to</span>
+                    <span className="sm:hidden">Swipe to</span>
                     <span className="font-semibold text-primary">
                       {swipeLabel}
                     </span>
-                    <span>→</span>
+                    <span className="text-primary/60">→</span>
                   </p>
                 </div>
               </div>
 
               {/* Drag handle */}
-              <div className="flex-shrink-0 flex flex-col gap-1 opacity-25 pr-1">
+              <div className="flex-shrink-0 flex flex-col gap-1 opacity-20 pr-1 pl-1">
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="w-1 h-1 rounded-full bg-foreground" />
                 ))}
@@ -315,7 +316,7 @@ function SwipeCard({
 }
 
 // ─── History item (for manager) ─────────────────────────────────────────────
-function HistoryItem({ log }: { log: StatusLog }) {
+function HistoryItem({ log, index = 0 }: { log: StatusLog; index?: number }) {
   const from = log.from_status || "—";
   const to = log.to_status;
   const badge = STATUS_BADGE[to] || {
@@ -326,39 +327,63 @@ function HistoryItem({ log }: { log: StatusLog }) {
   };
 
   return (
-    <div className="flex items-center gap-4 p-3 rounded-xl border border-border bg-card/80 hover:shadow-md transition-shadow">
-      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex flex-col items-center justify-center">
-        <span className="text-[9px] text-primary/60 font-bold uppercase tracking-wider leading-none">
-          Order
-        </span>
-        <span className="text-sm font-black text-primary leading-tight">
-          #{String(log.order).slice(-4)}
-        </span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
-            {badge.label}
+    <motion.div
+      initial={{ opacity: 0, y: 15, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.3, type: "spring", stiffness: 300, damping: 24 }}
+      className="group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 sm:p-3 rounded-2xl border border-border bg-card/60 hover:bg-card hover:shadow-lg transition-all duration-300 backdrop-blur-sm"
+    >
+      <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex flex-col items-center justify-center transition-transform group-hover:scale-105 shadow-inner">
+          <span className="text-[9px] text-primary/60 font-bold uppercase tracking-wider leading-none">
+            Order
           </span>
-          <span className="text-xs text-muted-foreground">
-            {from} → {to}
+          <span className="text-sm font-black text-primary leading-tight">
+            #{String(log.order).slice(-4)}
           </span>
         </div>
-        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <User className="h-3 w-3" />
-            {log.changed_by_name || "System"}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {new Date(log.created_at).toLocaleString()}
-          </span>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1 sm:mb-0.5">
+            <span
+              className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
+              {badge.label}
+            </span>
+            <span className="text-xs text-muted-foreground font-medium hidden sm:inline-flex items-center gap-1">
+              <span>{from}</span>
+              <span className="text-muted-foreground/40 mx-0.5">→</span>
+              <span className="text-foreground">{to}</span>
+            </span>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground mt-1.5 sm:mt-0">
+            <span className="flex items-center gap-1.5 text-foreground/80 font-medium">
+              <User className="h-3.5 w-3.5 opacity-60 text-primary/80" />
+              <span className="truncate max-w-[120px] sm:max-w-[150px]">{log.changed_by_name || "System"}</span>
+            </span>
+            <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-border" />
+            <span className="flex items-center gap-1.5 opacity-80">
+              <Calendar className="h-3.5 w-3.5 opacity-60 text-primary/80" />
+              {new Date(log.created_at).toLocaleString(undefined, {
+                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+              })}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
+      
+      {/* Mobile-only status transition view */}
+      <div className="sm:hidden mt-1 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground font-medium">
+        <span className="uppercase tracking-wider text-[9px] opacity-70">Status Update</span>
+        <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-md">
+          <span className="line-through opacity-60">{from}</span>
+          <span className="text-primary/60">→</span>
+          <span className="text-foreground font-semibold">{to}</span>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -577,47 +602,51 @@ export default function NotificationsPage() {
     <div className="w-full min-h-[calc(100vh-104px)] bg-background">
       <div className="max-w-[640px] mx-auto px-4 pt-6 pb-24 space-y-6">
         {/* ─── Header ──────────────────────────────────────────────────────── */}
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-              <RoleIcon className="h-5 w-5 text-primary" />
+        <div className="flex items-start sm:items-center justify-between bg-card/40 p-4 sm:p-5 rounded-3xl border border-border/50 backdrop-blur-md shadow-sm">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center flex-shrink-0 shadow-inner">
+              <RoleIcon className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-foreground leading-none">
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground leading-none mb-1.5 sm:mb-2">
                 {isActionable ? "Order Alerts" : "Order History"}
               </h1>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">
-                {config!.label} ·{" "}
-                {isActionable
-                  ? "Swipe right to action"
-                  : "Audit trail of status changes"}
-              </p>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="px-2 py-0.5 rounded-md bg-muted text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  {config!.label}
+                </span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground font-medium hidden sm:inline-block">
+                  · {isActionable
+                    ? "Swipe right to action"
+                    : "Audit trail of status changes"}
+                </span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3">
             {isActionable && displayMessages.length > 0 && (
               <motion.span
                 key={displayMessages.length}
                 initial={{ scale: 0.7 }}
                 animate={{ scale: 1 }}
-                className="flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full bg-primary text-primary-foreground text-xs font-black shadow-md shadow-primary/30"
+                className="flex items-center justify-center min-w-[28px] sm:min-w-[32px] h-7 sm:h-8 px-2 rounded-full bg-primary text-primary-foreground text-xs sm:text-sm font-black shadow-md shadow-primary/30"
               >
                 {displayMessages.length}
               </motion.span>
             )}
             {!isActionable && statusLogs.length > 0 && (
-              <span className="flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full bg-primary text-primary-foreground text-xs font-black shadow-md shadow-primary/30">
+              <span className="flex items-center justify-center min-w-[28px] sm:min-w-[32px] h-7 sm:h-8 px-2 rounded-full bg-primary text-primary-foreground text-xs sm:text-sm font-black shadow-md shadow-primary/30">
                 {statusLogs.length}
               </span>
             )}
             <button
               onClick={() => fetchOrders(true)}
               disabled={refreshing}
-              className="w-9 h-9 rounded-xl border border-border hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-border bg-background hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-all shadow-sm"
               title="Refresh"
             >
               <RefreshCw
-                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                className={`h-4 w-4 sm:h-4.5 sm:w-4.5 ${refreshing ? "animate-spin text-primary" : ""}`}
               />
             </button>
           </div>
@@ -665,8 +694,8 @@ export default function NotificationsPage() {
               <Clock className="h-3.5 w-3.5" />
               <span>Showing {statusLogs.length} recent status changes</span>
             </div>
-            {statusLogs.map((log) => (
-              <HistoryItem key={log.id} log={log} />
+            {statusLogs.map((log, index) => (
+              <HistoryItem key={log.id} log={log} index={index} />
             ))}
           </div>
         )}
@@ -678,15 +707,16 @@ export default function NotificationsPage() {
 function EmptyState() {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center justify-center py-16 text-center bg-card border border-border rounded-3xl"
+      initial={{ opacity: 0, scale: 0.96, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      className="flex flex-col items-center justify-center py-16 sm:py-20 text-center bg-card/40 border border-border/50 rounded-3xl backdrop-blur-sm"
     >
-      <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4">
-        <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-b from-emerald-500/20 to-emerald-500/5 flex items-center justify-center mb-4 sm:mb-5 shadow-inner">
+        <CheckCircle2 className="h-8 w-8 sm:h-10 sm:w-10 text-emerald-500" />
       </div>
-      <p className="text-lg font-bold text-foreground">All caught up!</p>
-      <p className="text-sm text-muted-foreground mt-1.5 max-w-[240px]">
+      <p className="text-lg sm:text-xl font-bold text-foreground">All caught up!</p>
+      <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 sm:mt-2 max-w-[240px]">
         No updates to display right now.
       </p>
     </motion.div>
