@@ -38,7 +38,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true); // expanded by default
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const hideSidebarPages = ['/dashboard/menu', '/dashboard/users','/dashboard','/dashboard/discounts'];
+  const hideSidebarPages = ['/dashboard/menu', '/dashboard/users','/dashboard','/dashboard/discounts', '/dashboard/notifications'];
   const shouldHideSidebar = hideSidebarPages.includes(pathname);
   const hideReportsSidebarMobile = isMobile && pathname.startsWith("/dashboard/reports");
   const roleName = user ? getRoleName(user) : null;

@@ -266,7 +266,7 @@ function SwipeCard({
                 <span className="text-[8px] sm:text-[9px] text-primary/60 font-bold uppercase tracking-wider leading-none">
                   Order
                 </span>
-                <span className="text-[11px] sm:text-base font-black text-primary leading-tight">
+                <span className="text-[13px] sm:text-base font-black text-primary leading-tight">
                   #{String(msg.order_number).replace("ORD-", "").slice(-4)}
                 </span>
               </div>
