@@ -73,7 +73,7 @@ const SUB_FEATURES: Record<
     { label: "Gross Profit", icon: DollarSign, href: "/dashboard/reports/gross-profit" },
     { label: "Profit & Loss", icon: TrendingUp, href: "/dashboard/reports/profit-loss" },
     { label: "Order Report", icon: Receipt, href: "/dashboard/reports/orders" },
-    { id: "employee-performance", label: "Employee Performance", icon: Users, href: "/dashboard/reports/employees" },
+    { label: "Employee Performance", icon: Users, href: "/dashboard/reports/employee-performance" },
   ],
 };
 
