@@ -113,10 +113,10 @@ export function InvoicePreview({
               <td className="py-2">{item.product_name}</td>
               <td className="py-2">{item.quantity}</td>
               <td className="text-right py-2">
-                ${parseFloat(item.price_at_order).toFixed(2)}
+                Rs.{parseFloat(item.price_at_order).toFixed(2)}
               </td>
               <td className="text-right py-2">
-                ${(parseFloat(item.price_at_order) * item.quantity).toFixed(2)}
+                Rs.{(parseFloat(item.price_at_order) * item.quantity).toFixed(2)}
               </td>
             </tr>
           ))}
@@ -127,7 +127,7 @@ export function InvoicePreview({
       <div className="border-t border-gray-300 pt-4 space-y-1 text-sm">
         <div className="flex justify-between">
           <span className="text-lg">Subtotal <span className="text-[12px]">(Including Tax)</span></span>
-          <span>${subtotal.toFixed(2)}</span>
+          <span>Rs. {subtotal.toFixed(2)}</span>
         </div>
 
         {/* ─── Discounts ─── */}
@@ -136,19 +136,19 @@ export function InvoicePreview({
             {discounts.map((d) => (
               <div key={d.id} className="flex justify-between text-emerald-600">
                 <span>{d.discount_name}</span>
-                <span>-${Number(d.amount).toFixed(2)}</span>
+                <span>-Rs. {Number(d.amount).toFixed(2)}</span>
               </div>
             ))}
             <div className="flex justify-between font-medium text-emerald-700">
               <span>Total Discount</span>
-              <span>-${totalDiscount.toFixed(2)}</span>
+              <span>-Rs. {totalDiscount.toFixed(2)}</span>
             </div>
           </div>
         )}
 
         <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-300">
           <span>Grand Total</span>
-          <span>${grandTotal.toFixed(2)}</span>
+          <span>Rs. {grandTotal.toFixed(2)}</span>
         </div>
       </div>
 

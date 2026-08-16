@@ -645,26 +645,25 @@ export async function getAccountingSummary(branchId?: number) {
   const monthStr = monthStart.toISOString().split('T')[0];
   
   try {
-    // Sales and COGS share the same paid-order cost calculation used by reports.
-    const [todayMetrics, monthMetrics, pendingExpenses, pendingAdjustments] = await Promise.all([
-      calculateFinancialMetrics(today, today, branchId),
-      calculateFinancialMetrics(monthStr, today, branchId),
-      getExpenses({ is_approved: false, branch: branchId }),
-      getInventoryAdjustments({ is_approved: false, branch: branchId }),
+    const [todayReport, monthReport, pendingExpenses, pendingAdjustments] = await Promise.all([
+      getGrossProfitReport(today, today, branchId).catch(() => null),
+      getGrossProfitReport(monthStr, today, branchId).catch(() => null),
+      getExpenses({ is_approved: false, branch: branchId }).catch(() => ({ results: [] })),
+      getInventoryAdjustments({ is_approved: false, branch: branchId }).catch(() => ({ results: [] })),
     ]);
     
     return {
-      todayRevenue: todayMetrics.netSales,
-      monthlyRevenue: monthMetrics.netSales,
-      totalCOGS: monthMetrics.cogs,
-      grossProfit: monthMetrics.grossProfit,
-      grossProfitMargin: monthMetrics.grossMargin,
+      todayRevenue: Number(todayReport?.total_revenue || 0),
+      monthlyRevenue: Number(monthReport?.total_revenue || 0),
+      totalCOGS: Number(monthReport?.total_cogs || 0),
+      grossProfit: Number(monthReport?.gross_profit || 0),
+      grossProfitMargin: Number(monthReport?.gross_profit_margin_percentage || 0),
       pendingExpenses: pendingExpenses?.results?.length || 0,
       pendingAdjustments: pendingAdjustments?.results?.length || 0,
-      missingCostCount: monthMetrics.missingCostCount,
+      missingCostCount: 0,
       dailySales: {
-        total_sales: todayMetrics.netSales,
-        number_of_orders: todayMetrics.paidOrderCount,
+        total_sales: Number(todayReport?.total_revenue || 0),
+        number_of_orders: Number(todayReport?.transaction_count || 0),
       },
     };
   } catch (error) {

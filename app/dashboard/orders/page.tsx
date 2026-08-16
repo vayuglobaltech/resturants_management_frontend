@@ -615,8 +615,8 @@ export default function OrdersPage() {
             className={cn(
               "grid grid-cols-2 gap-2 sm:gap-4",
               isManager 
-                ? "sm:grid-cols-2 xl:grid-cols-6" 
-                : "sm:grid-cols-2 xl:grid-cols-4"
+                ? "sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-6" 
+                : "sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4"
             )}
           >
             <StatCard
@@ -655,26 +655,6 @@ export default function OrdersPage() {
               trend={stats.growth.ready}
               trendLabel="vs previous"
             />
-            {isManager && (
-              <>
-                <StatCard
-                  title="Revenue"
-                  value={`$${stats.revenue}`}
-                  icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
-                  color="text-green-400"
-                  subtitle="Total sales"
-                  trend={stats.growth.revenue}
-                  trendLabel="vs previous"
-                />
-                <StatCard
-                  title="Avg Time"
-                  value={stats.avgTime}
-                  icon={<Timer className="h-4 w-4 sm:h-5 sm:w-5" />}
-                  color="text-cyan-400"
-                  subtitle="To completion"
-                />
-              </>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -144,7 +144,14 @@ export async function deleteDiscount(id: number) {
 }
 
 export async function getOrderStatusLogs(): Promise<any[]> {
-  const res = await apiFetch('/api/orders/status-logs/', {}, true);
+  const res = await apiFetch('/api/orders/status-logs/?page_size=50', {}, true);
   if (!res.ok) throw new Error('Failed to fetch logs');
   return res.json();
+}
+
+export async function getNotificationCount(): Promise<number> {
+  const res = await apiFetch('/api/orders/notifications/count/', {}, true);
+  if (!res.ok) return 0;
+  const json = await res.json();
+  return json.count || 0;
 }

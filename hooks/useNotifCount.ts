@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { listOrders, getOrderStatusLogs } from "@/lib/ordersApi";
+import { getNotificationCount } from "@/lib/ordersApi";
 import { useWebSocket } from "@/hooks/useWebSocket";
 
 const KITCHEN_STATUSES = ["CONFIRMED", "QUEUED", "PREPARING"];
@@ -32,17 +32,7 @@ export function useNotifCount() {
   const fetchCount = useCallback(async () => {
     if (!role) { setCount(0); return; }
     try {
-      let total = 0;
-      if (role === "branch_manager") {
-        const logsData: any = await getOrderStatusLogs();
-        const logs = Array.isArray(logsData) ? logsData : (logsData.results || []);
-        total = logs.length;
-      } else {
-        for (const status of actionableStatuses) {
-          const orders = await listOrders(undefined, { status, page_size: 100 });
-          total += orders.length;
-        }
-      }
+      const total = await getNotificationCount();
       setCount(total);
     } catch {
       /* silent */

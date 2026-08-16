@@ -188,7 +188,7 @@ export function BranchManagerDashboard({ branchId, branchName, managerName, stat
       const endDate = format(new Date(), "yyyy-MM-dd");
       const startDate = format(subDays(new Date(), 6), "yyyy-MM-dd");
       const branchOrders = async () => {
-        const response = await apiFetch(`/api/orders/?branch=${branchId}&created_at__gte=${startDate}&page_size=200`, {}, true);
+        const response = await apiFetch(`/api/orders/?branch=${branchId}&created_at__gte=${endDate}&created_at__lte=${endDate}&page_size=200`, {}, true);
         if (!response.ok) throw new Error(`Orders request failed (${response.status})`);
         return response.json();
       };

@@ -499,7 +499,7 @@ export default function DiscountsPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Value</span>
                   <span className="text-foreground font-medium">
-                    {d.type === "percentage" ? `${d.value}%` : `$${d.value}`}
+                    {d.type === "percentage" ? `Rs.{d.value}%` : `Rs.${d.value}`}
                   </span>
                 </div>
                 <div className="flex justify-between">
